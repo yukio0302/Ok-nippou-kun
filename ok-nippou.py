@@ -34,9 +34,24 @@ def login():
         if employee_code == "901179" and password == "okanaga":
             st.session_state.user = {"code": employee_code, "name": "野村幸男"}
             st.success("ログイン成功！")
-            st.experimental_rerun()
         else:
             st.error("社員コードまたはパスワードが間違っています。")
+
+# メイン処理
+if "user" not in st.session_state or st.session_state.user is None:
+    login()
+else:
+    # 下部ナビゲーション
+    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "マイページ", "お知らせ"])
+
+    if menu == "タイムライン":
+        timeline()
+    elif menu == "日報投稿":
+        post_report()
+    elif menu == "マイページ":
+        st.write("マイページ機能は未実装です。")
+    elif menu == "お知らせ":
+        st.write("お知らせ機能は未実装です。")
 
 # タイムライン表示
 def timeline():
