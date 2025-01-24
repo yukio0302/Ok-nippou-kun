@@ -1,7 +1,4 @@
 streamlit
-googlemaps
+gspread
+oauth2client
 pandas
-geopy
-folium
-streamlit-folium
-importlib
