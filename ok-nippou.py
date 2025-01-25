@@ -25,14 +25,15 @@ st.session_state.setdefault("user", None)  # ユーザー情報
 # ログイン画面
 def login():
     st.title("ログイン")
-    employee_code = st.text_input("社員コード")
-    password = st.text_input("パスワード", type="password")
-    login_button = st.button("ログイン")
+    # 各入力要素に一意のキーを付与
+    employee_code = st.text_input("社員コード", key="employee_code_input")
+    password = st.text_input("パスワード", type="password", key="password_input")
+    login_button = st.button("ログイン", key="login_button")
 
     if login_button:
         # ユーザー認証（簡易版、外部ユーザー情報データを使用予定）
         if employee_code == "901179" and password == "okanaga":
-            st.session_state.user = {"code": employee_code, "name": "野村幸男"}
+            st.session_state.user = {"code": employee_code, "name": "野村　幸男"}
             st.success("ログイン成功！")
         else:
             st.error("社員コードまたはパスワードが間違っています。")
