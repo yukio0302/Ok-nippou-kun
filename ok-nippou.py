@@ -18,7 +18,7 @@ def login():
     if login_button:
         # ユーザー認証（簡易版、外部ユーザー情報データを使用予定）
         if employee_code == "901179" and password == "okanaga":
-            st.session_state.user = {"code": employee_code, "name": "野村　幸男"}
+            st.session_state.user = {"code": employee_code, "name": "野村幸男"}
             st.success("ログイン成功！")
         else:
             st.error("社員コードまたはパスワードが間違っています。")
@@ -43,7 +43,7 @@ def timeline():
             st.write(f"所感・備考: {report['所感・備考']}")
         if report["画像"]:
             try:
-                st.image(report["画像"].read(), caption=report["画像"].name, use_column_width=True)
+                st.image(report["画像"].read(), caption=report["画像"].name, use_container_width=True)
             except Exception as e:
                 st.warning("画像の読み込み中にエラーが発生しました。")
 
