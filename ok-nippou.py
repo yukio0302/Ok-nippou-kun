@@ -1,11 +1,31 @@
 import streamlit as st
 from datetime import datetime, timedelta
 import os
+import json
 
 # 初期設定
 st.set_page_config(page_title="日報管理システム", layout="wide")
-st.session_state.setdefault("user", None)  # ユーザー情報
-st.session_state.setdefault("reports", [])  # 日報投稿データ
+
+# JSONファイルのパス
+data_file = "reports_data.json"
+
+# データの永続化用関数
+def load_reports():
+    if os.path.exists(data_file):
+        with open(data_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def save_reports(reports):
+    with open(data_file, "w", encoding="utf-8") as f:
+        json.dump(reports, f, ensure_ascii=False, indent=4)
+
+# セッション初期化
+if "user" not in st.session_state:
+    st.session_state["user"] = None
+
+if "reports" not in st.session_state:
+    st.session_state["reports"] = load_reports()
 
 # ログイン画面
 def login():
@@ -89,6 +109,7 @@ def post_report():
                     "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M")
                 }
                 st.session_state["reports"].append(post)
+                save_reports(st.session_state["reports"])
 
                 st.success("日報を投稿しました！")
 
