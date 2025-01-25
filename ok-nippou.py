@@ -17,7 +17,6 @@ if "user" not in st.session_state:
     st.session_state["user"] = None
 
 if "reports" not in st.session_state:
-    # アプリ起動時にデータをファイルから読み込む
     st.session_state["reports"] = []
 
 if "last_login" not in st.session_state:
@@ -96,9 +95,12 @@ def timeline():
         st.info("該当する投稿がありません。")
         return
 
-    for report in reversed(reports):
+    for report_index, report in enumerate(reversed(reports)):
         with st.container():
-            st.subheader(f"カテゴリ: {report['カテゴリ']} - {report['投稿日時']}")
+            st.markdown("---")
+            st.subheader(f"{report['投稿者']} さんの投稿")
+            st.write(f"カテゴリ: **{report['カテゴリ']}**")
+            st.write(f"投稿日時: {report['投稿日時']}")
             if report["得意先"]:
                 st.write(f"得意先: {report['得意先']}")
             if report["タグ"]:
@@ -110,13 +112,23 @@ def timeline():
             # スタンプ機能
             col1, col2 = st.columns(2)
             with col1:
-                if st.button(f"いいね！ ({report.get('いいね', 0)})", key=f"like_{report['投稿日時']}"):
+                if st.button(f"👍 いいね！ ({report.get('いいね', 0)})", key=f"like_{report_index}"):
                     report["いいね"] = report.get("いいね", 0) + 1
                     save_data(data_file, st.session_state["reports"])
+                    # 通知を追加
+                    if report["投稿者"] != st.session_state.user["name"]:
+                        st.session_state["notifications"].append(
+                            f"{report['投稿者']} さんの投稿に「いいね！」を押しました。"
+                        )
             with col2:
-                if st.button(f"ナイスファイト！ ({report.get('ナイスファイト', 0)})", key=f"fight_{report['投稿日時']}"):
+                if st.button(f"🔥 ナイスファイト！ ({report.get('ナイスファイト', 0)})", key=f"fight_{report_index}"):
                     report["ナイスファイト"] = report.get("ナイスファイト", 0) + 1
                     save_data(data_file, st.session_state["reports"])
+                    # 通知を追加
+                    if report["投稿者"] != st.session_state.user["name"]:
+                        st.session_state["notifications"].append(
+                            f"{report['投稿者']} さんの投稿に「ナイスファイト！」を押しました。"
+                        )
 
 
 # 日報投稿フォーム
@@ -152,6 +164,53 @@ def post_report():
                 st.success("日報を投稿しました！")
 
 
+# マイページ
+def my_page():
+    st.title("マイページ")
+    user_reports = [r for r in st.session_state["reports"] if r["投稿者"] == st.session_state.user["name"]]
+
+    if not user_reports:
+        st.info("まだ投稿がありません。")
+        return
+
+    for report in reversed(user_reports):
+        with st.container():
+            st.markdown("---")
+            st.subheader(f"カテゴリ: {report['カテゴリ']} - {report['投稿日時']}")
+            if report["得意先"]:
+                st.write(f"得意先: {report['得意先']}")
+            if report["タグ"]:
+                st.write(f"タグ: {report['タグ']}")
+            st.write(f"実施内容: {report['実施内容']}")
+            if report["所感・備考"]:
+                st.write(f"所感・備考: {report['所感・備考']}")
+
+            # 修正・削除ボタン
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("編集", key=f"edit_{report['投稿日時']}"):
+                    st.write("※編集フォーム未実装")
+            with col2:
+                if st.button("削除", key=f"delete_{report['投稿日時']}"):
+                    st.session_state["reports"].remove(report)
+                    save_data(data_file, st.session_state["reports"])
+                    st.success("投稿を削除しました。")
+                    st.experimental_rerun()
+
+
+# お知らせ
+def notifications():
+    st.title("お知らせ")
+    if not st.session_state["notifications"]:
+        st.info("お知らせはありません。")
+        return
+
+    for notification in reversed(st.session_state["notifications"]):
+        with st.container():
+            st.write(notification)
+            st.markdown("---")
+
+
 # メイン処理
 if st.session_state.user is None:
     if st.session_state.last_login and datetime.now() - st.session_state.last_login < SESSION_DURATION:
@@ -159,8 +218,12 @@ if st.session_state.user is None:
     else:
         login()
 else:
-    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿"])
+    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "マイページ", "お知らせ"])
     if menu == "タイムライン":
         timeline()
     elif menu == "日報投稿":
         post_report()
+    elif menu == "マイページ":
+        my_page()
+    elif menu == "お知らせ":
+        notifications()
