@@ -17,6 +17,7 @@ if "user" not in st.session_state:
     st.session_state["user"] = None
 
 if "reports" not in st.session_state:
+    # アプリ起動時にデータをファイルから読み込む
     st.session_state["reports"] = []
 
 if "last_login" not in st.session_state:
@@ -27,6 +28,7 @@ if "notifications" not in st.session_state:
 
 # データの永続化関数
 def load_data(file_path):
+    """ファイルからデータを読み込む"""
     if os.path.exists(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -34,8 +36,14 @@ def load_data(file_path):
 
 
 def save_data(file_path, data):
+    """データをファイルに保存する"""
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+
+
+# アプリ起動時にファイルから投稿データを読み込む
+if os.path.exists(data_file):
+    st.session_state["reports"] = load_data(data_file)
 
 
 # ログイン画面
@@ -57,6 +65,7 @@ def login():
             st.error("社員コードまたはパスワードが間違っています。")
 
 
+# タイムライン
 def timeline():
     st.title("タイムライン")
 
@@ -87,7 +96,7 @@ def timeline():
         st.info("該当する投稿がありません。")
         return
 
-    for report_index, report in enumerate(reversed(reports)):
+    for report in reversed(reports):
         with st.container():
             st.subheader(f"カテゴリ: {report['カテゴリ']} - {report['投稿日時']}")
             if report["得意先"]:
@@ -101,12 +110,12 @@ def timeline():
             # スタンプ機能
             col1, col2 = st.columns(2)
             with col1:
-                if st.button(f"いいね！ ({report.get('いいね', 0)})", key=f"like_{report_index}"):
-                    st.session_state["reports"][len(st.session_state["reports"]) - 1 - report_index]["いいね"] = report.get("いいね", 0) + 1
+                if st.button(f"いいね！ ({report.get('いいね', 0)})", key=f"like_{report['投稿日時']}"):
+                    report["いいね"] = report.get("いいね", 0) + 1
                     save_data(data_file, st.session_state["reports"])
             with col2:
-                if st.button(f"ナイスファイト！ ({report.get('ナイスファイト', 0)})", key=f"fight_{report_index}"):
-                    st.session_state["reports"][len(st.session_state["reports"]) - 1 - report_index]["ナイスファイト"] = report.get("ナイスファイト", 0) + 1
+                if st.button(f"ナイスファイト！ ({report.get('ナイスファイト', 0)})", key=f"fight_{report['投稿日時']}"):
+                    report["ナイスファイト"] = report.get("ナイスファイト", 0) + 1
                     save_data(data_file, st.session_state["reports"])
 
 
@@ -139,49 +148,8 @@ def post_report():
                     "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 }
                 st.session_state["reports"].append(post)
-                save_data(data_file, st.session_state["reports"])
+                save_data(data_file, st.session_state["reports"])  # ファイルに保存
                 st.success("日報を投稿しました！")
-                st.experimental_rerun()
-
-
-# マイページ
-def my_page():
-    st.title("マイページ")
-    user_reports = [r for r in st.session_state["reports"] if r["投稿者"] == st.session_state.user["name"]]
-
-    if not user_reports:
-        st.info("まだ投稿がありません。")
-        return
-
-    for report in reversed(user_reports):
-        with st.container():
-            st.subheader(f"カテゴリ: {report['カテゴリ']} - {report['投稿日時']}")
-            if report["得意先"]:
-                st.write(f"得意先: {report['得意先']}")
-            if report["タグ"]:
-                st.write(f"タグ: {report['タグ']}")
-            st.write(f"実施内容: {report['実施内容']}")
-            if report["所感・備考"]:
-                st.write(f"所感・備考: {report['所感・備考']}")
-
-            # 修正・削除ボタン
-            if st.button("削除", key=f"delete_{report['投稿日時']}"):
-                st.session_state["reports"].remove(report)
-                save_data(data_file, st.session_state["reports"])
-                st.success("投稿を削除しました。")
-                st.experimental_rerun()
-
-
-# お知らせ
-def notifications():
-    st.title("お知らせ")
-    if not st.session_state["notifications"]:
-        st.info("お知らせはありません。")
-        return
-
-    for notification in reversed(st.session_state["notifications"]):
-        st.write(notification)
-        st.write("---")
 
 
 # メイン処理
@@ -191,12 +159,8 @@ if st.session_state.user is None:
     else:
         login()
 else:
-    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "マイページ", "お知らせ"])
+    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿"])
     if menu == "タイムライン":
         timeline()
     elif menu == "日報投稿":
         post_report()
-    elif menu == "マイページ":
-        my_page()
-    elif menu == "お知らせ":
-        notifications()
