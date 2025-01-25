@@ -8,6 +8,7 @@ st.set_page_config(page_title="日報管理システム", layout="wide")
 
 # JSONファイルのパス
 data_file = "reports_data.json"
+icon_file = "user_icons.json"  # ユーザーアイコンの保存ファイル
 
 # セッション永続化の保持時間（1週間）
 SESSION_DURATION = timedelta(days=7)
@@ -18,6 +19,9 @@ if "user" not in st.session_state:
 
 if "reports" not in st.session_state:
     st.session_state["reports"] = []
+
+if "user_icons" not in st.session_state:
+    st.session_state["user_icons"] = {}
 
 if "last_login" not in st.session_state:
     st.session_state["last_login"] = None
@@ -40,9 +44,12 @@ def save_data(file_path, data):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 
-# アプリ起動時にファイルから投稿データを読み込む
+# アプリ起動時にデータを読み込む
 if os.path.exists(data_file):
     st.session_state["reports"] = load_data(data_file)
+
+if os.path.exists(icon_file):
+    st.session_state["user_icons"] = load_data(icon_file)
 
 
 # ログイン画面
@@ -98,6 +105,12 @@ def timeline():
     for report_index, report in enumerate(reversed(reports)):
         with st.container():
             st.markdown("---")
+            # ユーザーアイコンを取得
+            icon_url = st.session_state["user_icons"].get(report["投稿者"], None)
+            if icon_url:
+                st.image(icon_url, width=50)
+
+            # 投稿内容を表示
             st.subheader(f"{report['投稿者']} さんの投稿")
             st.write(f"カテゴリ: **{report['カテゴリ']}**")
             st.write(f"投稿日時: {report['投稿日時']}")
@@ -115,20 +128,10 @@ def timeline():
                 if st.button(f"👍 いいね！ ({report.get('いいね', 0)})", key=f"like_{report_index}"):
                     report["いいね"] = report.get("いいね", 0) + 1
                     save_data(data_file, st.session_state["reports"])
-                    # 通知を追加
-                    if report["投稿者"] != st.session_state.user["name"]:
-                        st.session_state["notifications"].append(
-                            f"{report['投稿者']} さんの投稿に「いいね！」を押しました。"
-                        )
             with col2:
                 if st.button(f"🔥 ナイスファイト！ ({report.get('ナイスファイト', 0)})", key=f"fight_{report_index}"):
                     report["ナイスファイト"] = report.get("ナイスファイト", 0) + 1
                     save_data(data_file, st.session_state["reports"])
-                    # 通知を追加
-                    if report["投稿者"] != st.session_state.user["name"]:
-                        st.session_state["notifications"].append(
-                            f"{report['投稿者']} さんの投稿に「ナイスファイト！」を押しました。"
-                        )
 
 
 # 日報投稿フォーム
@@ -167,6 +170,14 @@ def post_report():
 # マイページ
 def my_page():
     st.title("マイページ")
+    st.subheader("アイコン設定")
+    uploaded_icon = st.file_uploader("アイコンをアップロード", type=["jpg", "png", "jpeg"], key="icon_uploader")
+    if uploaded_icon:
+        st.session_state["user_icons"][st.session_state.user["name"]] = uploaded_icon
+        save_data(icon_file, st.session_state["user_icons"])
+        st.success("アイコンを設定しました！")
+
+    st.subheader("投稿の管理")
     user_reports = [r for r in st.session_state["reports"] if r["投稿者"] == st.session_state.user["name"]]
 
     if not user_reports:
@@ -189,12 +200,21 @@ def my_page():
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("編集", key=f"edit_{report['投稿日時']}"):
-                    st.write("※編集フォーム未実装")
+                    # 編集フォームの表示
+                    edited_content = st.text_area("編集内容", report["実施内容"])
+                    edited_notes = st.text_area("編集所感・備考", report["所感・備考"])
+                    save_changes = st.button("保存", key=f"save_{report['投稿日時']}")
+                    if save_changes:
+                        report["実施内容"] = edited_content
+                        report["所感・備考"] = edited_notes
+                        save_data(data_file, st.session_state["reports"])
+                        st.success("投稿を編集しました！")
+                        st.experimental_rerun()
             with col2:
                 if st.button("削除", key=f"delete_{report['投稿日時']}"):
                     st.session_state["reports"].remove(report)
                     save_data(data_file, st.session_state["reports"])
-                    st.success("投稿を削除しました。")
+                    st.success("投稿を削除しました！")
                     st.experimental_rerun()
 
 
