@@ -57,7 +57,6 @@ def login():
             st.error("社員コードまたはパスワードが間違っています。")
 
 
-# タイムライン
 def timeline():
     st.title("タイムライン")
 
@@ -88,7 +87,7 @@ def timeline():
         st.info("該当する投稿がありません。")
         return
 
-    for report in reversed(reports):
+    for report_index, report in enumerate(reversed(reports)):
         with st.container():
             st.subheader(f"カテゴリ: {report['カテゴリ']} - {report['投稿日時']}")
             if report["得意先"]:
@@ -100,15 +99,15 @@ def timeline():
                 st.write(f"所感・備考: {report['所感・備考']}")
 
             # スタンプ機能
-            if st.button(f"いいね！ ({report.get('いいね', 0)})", key=f"like_{report['投稿日時']}"):
-                report["いいね"] = report.get("いいね", 0) + 1
-                save_data(data_file, st.session_state["reports"])
-                st.experimental_rerun()
-
-            if st.button(f"ナイスファイト！ ({report.get('ナイスファイト', 0)})", key=f"fight_{report['投稿日時']}"):
-                report["ナイスファイト"] = report.get("ナイスファイト", 0) + 1
-                save_data(data_file, st.session_state["reports"])
-                st.experimental_rerun()
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"いいね！ ({report.get('いいね', 0)})", key=f"like_{report_index}"):
+                    st.session_state["reports"][len(st.session_state["reports"]) - 1 - report_index]["いいね"] = report.get("いいね", 0) + 1
+                    save_data(data_file, st.session_state["reports"])
+            with col2:
+                if st.button(f"ナイスファイト！ ({report.get('ナイスファイト', 0)})", key=f"fight_{report_index}"):
+                    st.session_state["reports"][len(st.session_state["reports"]) - 1 - report_index]["ナイスファイト"] = report.get("ナイスファイト", 0) + 1
+                    save_data(data_file, st.session_state["reports"])
 
 
 # 日報投稿フォーム
