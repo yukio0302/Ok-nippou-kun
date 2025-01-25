@@ -17,8 +17,8 @@ def login():
 
     if login_button:
         # ユーザー認証（簡易版、外部ユーザー情報データを使用予定）
-        if employee_code == "1234" and password == "password":
-            st.session_state.user = {"code": employee_code, "name": "山田 太郎"}
+        if employee_code == "901179" and password == "okanaga":
+            st.session_state.user = {"code": employee_code, "name": "野村幸男"}
             st.success("ログイン成功！")
         else:
             st.error("社員コードまたはパスワードが間違っています。")
