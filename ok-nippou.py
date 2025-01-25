@@ -25,6 +25,19 @@ if "last_login" not in st.session_state:
 if "notifications" not in st.session_state:
     st.session_state["notifications"] = []
 
+# データの永続化関数
+def load_data(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+def save_data(file_path, data):
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
+
 # ログイン画面
 def login():
     st.title("ログイン")
@@ -43,13 +56,13 @@ def login():
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
+
 # タイムライン
 def timeline():
     st.title("タイムライン")
 
     # 検索機能
     search_query = st.text_input("検索", placeholder="タグやカテゴリ、内容で検索", key="search_query")
-    search_button = st.button("検索", key="search_button")
 
     # 表示期間フィルター
     now = datetime.now()
@@ -63,12 +76,12 @@ def timeline():
     days_filter = {"24時間以内": 1, "3日以内": 3, "5日以内": 5}.get(filter_option, 5)
     cutoff_date = now - timedelta(days=days_filter)
 
-    # 検索と期間フィルターで絞り込み
+    # フィルター適用
     reports = [
         report
         for report in st.session_state["reports"]
         if datetime.strptime(report["投稿日時"], "%Y-%m-%d %H:%M") >= cutoff_date
-        and (not search_query or search_query in report["タグ"] or search_query in report["実施内容"] or search_query in report["カテゴリ"])
+        and (not search_query or search_query in report["タグ"] or search_query in report["カテゴリ"] or search_query in report["実施内容"])
     ]
 
     if not reports:
@@ -85,11 +98,6 @@ def timeline():
             st.write(f"実施内容: {report['実施内容']}")
             if report["所感・備考"]:
                 st.write(f"所感・備考: {report['所感・備考']}")
-            if report["画像"]:
-                try:
-                    st.image(report["画像"].read(), caption=report["画像"].name, use_container_width=True)
-                except Exception as e:
-                    st.warning("画像の読み込み中にエラーが発生しました。")
 
             # スタンプ機能
             if st.button(f"いいね！ ({report.get('いいね', 0)})", key=f"like_{report['投稿日時']}"):
@@ -100,6 +108,40 @@ def timeline():
             if st.button(f"ナイスファイト！ ({report.get('ナイスファイト', 0)})", key=f"fight_{report['投稿日時']}"):
                 report["ナイスファイト"] = report.get("ナイスファイト", 0) + 1
                 save_data(data_file, st.session_state["reports"])
+                st.experimental_rerun()
+
+
+# 日報投稿フォーム
+def post_report():
+    st.title("日報投稿")
+
+    with st.form("report_form"):
+        category = st.selectbox("カテゴリ", ["営業活動", "社内作業", "その他"], key="category")
+        client = st.text_input("得意先", key="client") if category == "営業活動" else ""
+        tags = st.text_input("タグ", placeholder="#案件, #改善提案 など", key="tags")
+        content = st.text_area("実施内容", placeholder="実施した内容を記入してください", key="content")
+        notes = st.text_area("所感・備考", placeholder="所感や備考を記入してください（任意）", key="notes")
+        image = st.file_uploader("画像をアップロード（任意）", type=["jpg", "png", "jpeg"], key="image")
+
+        submit = st.form_submit_button("投稿")
+
+        if submit:
+            if not content:
+                st.error("実施内容は必須項目です。")
+            else:
+                post = {
+                    "投稿者": st.session_state.user["name"],
+                    "カテゴリ": category,
+                    "得意先": client,
+                    "タグ": tags,
+                    "実施内容": content,
+                    "所感・備考": notes,
+                    "画像": image if image else None,
+                    "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                }
+                st.session_state["reports"].append(post)
+                save_data(data_file, st.session_state["reports"])
+                st.success("日報を投稿しました！")
                 st.experimental_rerun()
 
 
@@ -124,9 +166,6 @@ def my_page():
                 st.write(f"所感・備考: {report['所感・備考']}")
 
             # 修正・削除ボタン
-            if st.button("修正", key=f"edit_{report['投稿日時']}"):
-                st.write("編集フォーム（未実装）")
-
             if st.button("削除", key=f"delete_{report['投稿日時']}"):
                 st.session_state["reports"].remove(report)
                 save_data(data_file, st.session_state["reports"])
