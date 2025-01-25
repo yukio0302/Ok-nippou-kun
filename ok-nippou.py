@@ -8,20 +8,16 @@ st.set_page_config(page_title="日報管理システム", layout="wide")
 
 # JSONファイルのパス
 data_file = "reports_data.json"
-icon_file = "user_icons.json"  # ユーザーアイコンの保存ファイル
 
 # セッション永続化の保持時間（1週間）
 SESSION_DURATION = timedelta(days=7)
 
-# 初期データ設定
+# セッションデータの初期化
 if "user" not in st.session_state:
     st.session_state["user"] = None
 
 if "reports" not in st.session_state:
-    st.session_state["reports"] = []
-
-if "user_icons" not in st.session_state:
-    st.session_state["user_icons"] = {}
+    st.session_state["reports"] = load_data(data_file)  # アプリ起動時に読み込む
 
 if "last_login" not in st.session_state:
     st.session_state["last_login"] = None
@@ -44,12 +40,8 @@ def save_data(file_path, data):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 
-# アプリ起動時にデータを読み込む
-if os.path.exists(data_file):
-    st.session_state["reports"] = load_data(data_file)
-
-if os.path.exists(icon_file):
-    st.session_state["user_icons"] = load_data(icon_file)
+# アプリ起動時に投稿データを読み込む
+st.session_state["reports"] = load_data(data_file)
 
 
 # ログイン画面
@@ -69,6 +61,31 @@ def login():
             st.success(f"ログイン成功！ようこそ、{user['name']}さん！")
         else:
             st.error("社員コードまたはパスワードが間違っています。")
+
+
+# 名前アイコン作成
+def create_name_icon(name):
+    """名前から丸いアイコンを生成する"""
+    initials = "".join([part[0] for part in name.split()]).upper()  # 頭文字を取得
+    st.markdown(
+        f"""
+        <div style="
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            background-color: #007bff;
+            border-radius: 50%;
+            color: white;
+            text-align: center;
+            line-height: 50px;
+            font-weight: bold;
+            font-size: 20px;
+        ">
+            {initials}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # タイムライン
@@ -105,10 +122,8 @@ def timeline():
     for report_index, report in enumerate(reversed(reports)):
         with st.container():
             st.markdown("---")
-            # ユーザーアイコンを取得
-            icon_url = st.session_state["user_icons"].get(report["投稿者"], None)
-            if icon_url:
-                st.image(icon_url, width=50)
+            # 名前アイコンを表示
+            create_name_icon(report["投稿者"])
 
             # 投稿内容を表示
             st.subheader(f"{report['投稿者']} さんの投稿")
@@ -170,12 +185,8 @@ def post_report():
 # マイページ
 def my_page():
     st.title("マイページ")
-    st.subheader("アイコン設定")
-    uploaded_icon = st.file_uploader("アイコンをアップロード", type=["jpg", "png", "jpeg"], key="icon_uploader")
-    if uploaded_icon:
-        st.session_state["user_icons"][st.session_state.user["name"]] = uploaded_icon
-        save_data(icon_file, st.session_state["user_icons"])
-        st.success("アイコンを設定しました！")
+    st.subheader("アイコン表示")
+    create_name_icon(st.session_state.user["name"])
 
     st.subheader("投稿の管理")
     user_reports = [r for r in st.session_state["reports"] if r["投稿者"] == st.session_state.user["name"]]
