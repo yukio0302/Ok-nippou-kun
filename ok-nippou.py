@@ -3,48 +3,55 @@ from datetime import datetime, timedelta
 import json
 import os
 
-# データファイルのパス
-data_file = "reports_data.json"
-users_file = "users_data.json"
+# ファイルパス
+USERS_FILE = "users_data.json"
+REPORTS_FILE = "reports_data.json"
 
-# データの読み込み・保存用関数
-def load_data(file_path):
-    if os.path.exists(file_path):
-        with open(file_path, "r", encoding="utf-8") as f:
+# 初期設定
+st.set_page_config(page_title="日報管理システム", layout="wide")
+
+# ユーザーデータをロード
+def load_users():
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return []
 
-def save_data(file_path, data):
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+# 投稿データをロード
+def load_reports():
+    if os.path.exists(REPORTS_FILE):
+        with open(REPORTS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
 
-# 初期化
-if "reports" not in st.session_state:
-    st.session_state["reports"] = load_data(data_file)
+# 投稿データを保存
+def save_reports(reports):
+    with open(REPORTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(reports, f, ensure_ascii=False, indent=4)
 
-if "users" not in st.session_state:
-    st.session_state["users"] = load_data(users_file)
-
+# セッション初期化
 if "user" not in st.session_state:
-    st.session_state["user"] = None  # ログイン情報を保持
+    st.session_state["user"] = None
+if "reports" not in st.session_state:
+    st.session_state["reports"] = load_reports()
 
-if "login_success" not in st.session_state:
-    st.session_state["login_success"] = False  # ログイン成功フラグ
-
-# ログイン機能
+# ログイン画面
 def login():
     st.title("ログイン")
-    username = st.text_input("ユーザー名", key="username")
-    password = st.text_input("パスワード", type="password", key="password")
+    user_code = st.text_input("社員コード", key="user_code_input")
+    password = st.text_input("パスワード", type="password", key="password_input")
+    login_button = st.button("ログイン", key="login_button")
 
-    if st.button("ログイン"):
-        for user in st.session_state["users"]:
-            if user["name"] == username and user["password"] == password:
+    if login_button:
+        users = load_users()
+        for user in users:
+            if user["code"] == user_code and user["password"] == password:
                 st.session_state["user"] = user
-                st.session_state["login_success"] = True
-                st.success(f"ログイン成功！ようこそ、{username}さん！")
+                st.success(f"ログイン成功！ようこそ、{user['name']}さん！")
                 st.experimental_rerun()
-        st.error("ユーザー名またはパスワードが正しくありません。")
+                return
+        st.error("社員コードまたはパスワードが間違っています。")
+
 
 # ログアウト機能
 def logout():
