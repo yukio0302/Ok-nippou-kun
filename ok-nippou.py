@@ -41,6 +41,16 @@ if "reports" not in st.session_state:
 if "notifications" not in st.session_state:
     st.session_state["notifications"] = load_notifications()
 
+# JSONファイルのパス（ユーザー情報用）
+users_file = "users_data.json"
+
+# ユーザー情報をロード
+def load_users():
+    if os.path.exists(users_file):
+        with open(users_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
 # ログイン画面
 def login():
     st.title("ログイン")
@@ -50,12 +60,16 @@ def login():
 
     if login_button:
         # ユーザー認証
-        if employee_code == "1234" and password == "password":
-            st.session_state.user = {"code": employee_code, "name": "山田 太郎"}
-            st.success("ログイン成功！")
-            st.experimental_rerun()  # 画面をリロードしてセッション状態を反映
+        users = load_users()
+        user = next((u for u in users if u["code"] == employee_code and u["password"] == password), None)
+        
+        if user:
+            st.session_state.user = {"code": user["code"], "name": user["name"]}
+            st.success(f"ログイン成功！ようこそ、{user['name']} さん")
+            st.experimental_rerun()
         else:
             st.error("社員コードまたはパスワードが間違っています。")
+
 
 # タイムライン表示
 def timeline():
