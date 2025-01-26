@@ -91,11 +91,9 @@ def create_name_icon(name):
         unsafe_allow_html=True,
     )
 
-
-# タイムライン
 def timeline():
     st.title("タイムライン")
-
+    
     # 検索機能
     search_query = st.text_input("検索", placeholder="タグやカテゴリ、内容で検索", key="search_query")
 
@@ -124,35 +122,75 @@ def timeline():
         return
 
     for report_index, report in enumerate(reversed(reports)):
+        # カードスタイルで投稿を表示
         with st.container():
-            st.markdown("---")
-            # 名前アイコンを表示
-            create_name_icon(report["投稿者"])
+            st.markdown("""
+                <style>
+                    .post-card {
+                        border: 1px solid #ddd;
+                        border-radius: 10px;
+                        padding: 10px 20px;
+                        margin-bottom: 20px;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                    }
+                    .icon {
+                        display: inline-block;
+                        width: 50px;
+                        height: 50px;
+                        background-color: #007bff;
+                        border-radius: 50%;
+                        color: white;
+                        text-align: center;
+                        line-height: 50px;
+                        font-weight: bold;
+                        font-size: 20px;
+                        margin-right: 10px;
+                    }
+                    .content {
+                        display: flex;
+                        align-items: center;
+                    }
+                    .actions button {
+                        margin-right: 10px;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
 
-            # 投稿内容を表示
-            st.subheader(f"{report['投稿者']} さんの投稿")
-            st.write(f"カテゴリ: **{report['カテゴリ']}**")
-            st.write(f"投稿日時: {report['投稿日時']}")
-            if report["得意先"]:
-                st.write(f"得意先: {report['得意先']}")
-            if report["タグ"]:
-                st.write(f"タグ: {report['タグ']}")
-            st.write(f"実施内容: {report['実施内容']}")
-            if report["所感・備考"]:
-                st.write(f"所感・備考: {report['所感・備考']}")
+            # 投稿をカードで囲む
+            st.markdown(f"""
+                <div class="post-card">
+                    <div class="content">
+                        <div class="icon">{report['投稿者'][0]}</div>
+                        <div>
+                            <b>{report['投稿者']}</b> ・ {report['投稿日時']}
+                            <br>
+                            カテゴリ: <b>{report['カテゴリ']}</b>
+                        </div>
+                    </div>
+                    <p>{report['実施内容']}</p>
+            """, unsafe_allow_html=True)
 
             # スタンプ機能
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 if st.button(f"👍 いいね！ ({len(report.get('いいね', []))})", key=f"like_{report_index}"):
                     if st.session_state.user["name"] not in report.get("いいね", []):
                         report.setdefault("いいね", []).append(st.session_state.user["name"])
                         save_data(data_file, st.session_state["reports"])
+                        st.success("リアクションを追加しました！")
+                        st.experimental_rerun()
             with col2:
                 if st.button(f"🔥 ナイスファイト！ ({len(report.get('ナイスファイト', []))})", key=f"fight_{report_index}"):
                     if st.session_state.user["name"] not in report.get("ナイスファイト", []):
                         report.setdefault("ナイスファイト", []).append(st.session_state.user["name"])
                         save_data(data_file, st.session_state["reports"])
+                        st.success("リアクションを追加しました！")
+                        st.experimental_rerun()
+            with col3:
+                if st.session_state.user["name"] == report["投稿者"]:
+                    if st.button("編集", key=f"edit_{report_index}"):
+                        st.info("編集機能はマイページから利用してください！")
+            st.markdown("</div>", unsafe_allow_html=True)
 
             # リアクション詳細（投稿者のみ）
             if st.session_state.user["name"] == report["投稿者"]:
