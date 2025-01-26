@@ -12,19 +12,6 @@ data_file = "reports_data.json"
 # セッション永続化の保持時間（1週間）
 SESSION_DURATION = timedelta(days=7)
 
-# セッションデータの初期化
-if "user" not in st.session_state:
-    st.session_state["user"] = None
-
-if "reports" not in st.session_state:
-    st.session_state["reports"] = load_data(data_file)  # アプリ起動時に読み込む
-
-if "last_login" not in st.session_state:
-    st.session_state["last_login"] = None
-
-if "notifications" not in st.session_state:
-    st.session_state["notifications"] = []
-
 # データの永続化関数
 def load_data(file_path):
     """ファイルからデータを読み込む"""
@@ -40,8 +27,18 @@ def save_data(file_path, data):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 
-# アプリ起動時に投稿データを読み込む
-st.session_state["reports"] = load_data(data_file)
+# セッションデータの初期化
+if "user" not in st.session_state:
+    st.session_state["user"] = None
+
+if "reports" not in st.session_state:
+    st.session_state["reports"] = load_data(data_file)  # アプリ起動時に読み込む
+
+if "last_login" not in st.session_state:
+    st.session_state["last_login"] = None
+
+if "notifications" not in st.session_state:
+    st.session_state["notifications"] = []
 
 
 # ログイン画面
