@@ -196,6 +196,62 @@ def post_report():
                 st.success("日報を投稿しました！")
 
 
+# マイページ
+def my_page():
+    st.title("マイページ")
+    st.subheader("投稿の管理")
+
+    user_reports = [r for r in st.session_state["reports"] if r["投稿者"] == st.session_state.user["name"]]
+
+    if not user_reports:
+        st.info("まだ投稿がありません。")
+        return
+
+    for report in reversed(user_reports):
+        with st.container():
+            st.markdown("---")
+            st.subheader(f"カテゴリ: {report['カテゴリ']} - {report['投稿日時']}")
+            if report["得意先"]:
+                st.write(f"得意先: {report['得意先']}")
+            if report["タグ"]:
+                st.write(f"タグ: {report['タグ']}")
+            st.write(f"実施内容: {report['実施内容']}")
+            if report["所感・備考"]:
+                st.write(f"所感・備考: {report['所感・備考']}")
+
+            # 編集・削除ボタン
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("編集", key=f"edit_{report['投稿日時']}"):
+                    edited_content = st.text_area("編集内容", report["実施内容"], key=f"edit_content_{report['投稿日時']}")
+                    edited_notes = st.text_area("編集所感・備考", report["所感・備考"], key=f"edit_notes_{report['投稿日時']}")
+                    if st.button("保存", key=f"save_{report['投稿日時']}"):
+                        report["実施内容"] = edited_content
+                        report["所感・備考"] = edited_notes
+                        save_data(data_file, st.session_state["reports"])
+                        st.success("投稿を編集しました！")
+                        st.experimental_rerun()
+            with col2:
+                if st.button("削除", key=f"delete_{report['投稿日時']}"):
+                    st.session_state["reports"].remove(report)
+                    save_data(data_file, st.session_state["reports"])
+                    st.success("投稿を削除しました！")
+                    st.experimental_rerun()
+
+
+# お知らせ
+def notifications():
+    st.title("お知らせ")
+    if not st.session_state["notifications"]:
+        st.info("お知らせはありません。")
+        return
+
+    for notification in reversed(st.session_state["notifications"]):
+        with st.container():
+            st.write(notification)
+            st.markdown("---")
+
+
 # メイン処理
 if st.session_state.user is None:
     if st.session_state.last_login and datetime.now() - st.session_state.last_login < SESSION_DURATION:
@@ -203,8 +259,12 @@ if st.session_state.user is None:
     else:
         login()
 else:
-    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿"])
+    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "マイページ", "お知らせ"])
     if menu == "タイムライン":
         timeline()
     elif menu == "日報投稿":
         post_report()
+    elif menu == "マイページ":
+        my_page()
+    elif menu == "お知らせ":
+        notifications()
