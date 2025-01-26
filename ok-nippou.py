@@ -60,42 +60,77 @@ def timeline():
         return
 
     for idx, report in enumerate(reversed(st.session_state["reports"])):
-        st.divider()
-        st.subheader(f"投稿者: {report['投稿者']} / カテゴリ: {report['カテゴリ']} / 投稿日: {report['投稿日時']}")
-        st.write(f"実施内容: {report['実施内容']}")
-        if report["タグ"]:
-            st.write(f"タグ: {report['タグ']}")
-        if report["所感・備考"]:
-            st.write(f"所感・備考: {report['所感・備考']}")
-        st.text(f"いいね！ {len(report['いいね'])} / ナイスファイト！ {len(report['ナイスファイト'])}")
-        
-        # リアクションボタン
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            if st.button("コメントする", key=f"comment_{idx}"):
-                st.write("コメント機能は未実装です")
-        with col2:
-            if st.button("いいね！", key=f"like_{idx}"):
-                if st.session_state["user"]["name"] not in report["いいね"]:
-                    report["いいね"].append(st.session_state["user"]["name"])
-                else:
-                    report["いいね"].remove(st.session_state["user"]["name"])
-                save_reports(st.session_state["reports"])
-                st.experimental_rerun()
-        with col3:
-            if st.button("ナイスファイト！", key=f"nice_fight_{idx}"):
-                if st.session_state["user"]["name"] not in report["ナイスファイト"]:
-                    report["ナイスファイト"].append(st.session_state["user"]["name"])
-                else:
-                    report["ナイスファイト"].remove(st.session_state["user"]["name"])
-                save_reports(st.session_state["reports"])
-                st.experimental_rerun()
-        with col4:
-            if st.button("お気に入り", key=f"favorite_{idx}"):
-                if report not in st.session_state["user"].get("favorites", []):
-                    st.session_state["user"].setdefault("favorites", []).append(report)
+        # カードデザイン
+        with st.container():
+            st.markdown(
+                """
+                <style>
+                .card {
+                    background-color: white;
+                    padding: 15px;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    margin-bottom: 20px;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.subheader(f"投稿者: {report['投稿者']} / 投稿日: {report['投稿日時']}")
+            st.write(f"カテゴリ: {report['カテゴリ']}")
+            st.write(f"実施内容: {report['実施内容']}")
+            if report["タグ"]:
+                st.write(f"タグ: {report['タグ']}")
+            if report["所感・備考"]:
+                st.write(f"所感・備考: {report['所感・備考']}")
+
+            # リアクション表示
+            st.text(f"いいね！ {len(report['いいね'])} / ナイスファイト！ {len(report['ナイスファイト'])}")
+            
+            # リアクションボタンとコメント
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                if st.button("コメントする", key=f"comment_{idx}"):
+                    with st.form(f"comment_form_{idx}"):
+                        comment = st.text_area("コメントを入力してください", key=f"comment_input_{idx}")
+                        submit = st.form_submit_button("投稿")
+                        if submit:
+                            if "コメント" not in report:
+                                report["コメント"] = []
+                            report["コメント"].append({"ユーザー": st.session_state["user"]["name"], "コメント": comment})
+                            save_reports(st.session_state["reports"])
+                            st.experimental_rerun()
+            with col2:
+                if st.button("いいね！", key=f"like_{idx}"):
+                    if st.session_state["user"]["name"] not in report["いいね"]:
+                        report["いいね"].append(st.session_state["user"]["name"])
+                    else:
+                        report["いいね"].remove(st.session_state["user"]["name"])
                     save_reports(st.session_state["reports"])
-                    st.success("お気に入りに追加しました！")
+                    st.experimental_rerun()
+            with col3:
+                if st.button("ナイスファイト！", key=f"nice_fight_{idx}"):
+                    if st.session_state["user"]["name"] not in report["ナイスファイト"]:
+                        report["ナイスファイト"].append(st.session_state["user"]["name"])
+                    else:
+                        report["ナイスファイト"].remove(st.session_state["user"]["name"])
+                    save_reports(st.session_state["reports"])
+                    st.experimental_rerun()
+            with col4:
+                if st.button("お気に入り", key=f"favorite_{idx}"):
+                    if report not in st.session_state["user"].get("favorites", []):
+                        st.session_state["user"].setdefault("favorites", []).append(report)
+                        save_reports(st.session_state["reports"])
+                        st.success("お気に入りに追加しました！")
+            
+            # コメント一覧表示
+            if "コメント" in report and len(report["コメント"]) > 0:
+                st.write("コメント:")
+                for comment in report["コメント"]:
+                    st.write(f"- {comment['ユーザー']}: {comment['コメント']}")
+
+            st.markdown('</div>', unsafe_allow_html=True)
 
 # 日報投稿フォーム
 def post_report():
