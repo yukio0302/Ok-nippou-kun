@@ -48,7 +48,6 @@ def login():
             if user["code"] == user_code and user["password"] == password:
                 st.session_state["user"] = user
                 st.success(f"ログイン成功！ようこそ、{user['name']}さん！")
-                st.experimental_rerun()
                 return
         st.error("社員コードまたはパスワードが間違っています。")
 
@@ -102,27 +101,27 @@ def timeline():
                             save_reports(st.session_state["reports"])
                             st.experimental_rerun()
             with col2:
-                if st.button("いいね！", key=f"like_{idx}"):
-                    if st.session_state["user"]["name"] not in report["いいね"]:
+                if st.session_state["user"]["name"] not in report["いいね"]:
+                    if st.button("いいね！", key=f"like_{idx}"):
                         report["いいね"].append(st.session_state["user"]["name"])
-                    else:
-                        report["いいね"].remove(st.session_state["user"]["name"])
-                    save_reports(st.session_state["reports"])
-                    st.experimental_rerun()
+                        save_reports(st.session_state["reports"])
+                else:
+                    st.markdown("❤️ いいね済み")
             with col3:
-                if st.button("ナイスファイト！", key=f"nice_fight_{idx}"):
-                    if st.session_state["user"]["name"] not in report["ナイスファイト"]:
+                if st.session_state["user"]["name"] not in report["ナイスファイト"]:
+                    if st.button("ナイスファイト！", key=f"nice_fight_{idx}"):
                         report["ナイスファイト"].append(st.session_state["user"]["name"])
-                    else:
-                        report["ナイスファイト"].remove(st.session_state["user"]["name"])
-                    save_reports(st.session_state["reports"])
-                    st.experimental_rerun()
+                        save_reports(st.session_state["reports"])
+                else:
+                    st.markdown("💪 ナイスファイト済み")
             with col4:
-                if st.button("お気に入り", key=f"favorite_{idx}"):
-                    if report not in st.session_state["user"].get("favorites", []):
+                if report not in st.session_state["user"].get("favorites", []):
+                    if st.button("お気に入り", key=f"favorite_{idx}"):
                         st.session_state["user"].setdefault("favorites", []).append(report)
                         save_reports(st.session_state["reports"])
                         st.success("お気に入りに追加しました！")
+                else:
+                    st.markdown("⭐ お気に入り済み")
             
             # コメント一覧表示
             if "コメント" in report and len(report["コメント"]) > 0:
@@ -131,6 +130,7 @@ def timeline():
                     st.write(f"- {comment['ユーザー']}: {comment['コメント']}")
 
             st.markdown('</div>', unsafe_allow_html=True)
+
 
 # 日報投稿フォーム
 def post_report():
