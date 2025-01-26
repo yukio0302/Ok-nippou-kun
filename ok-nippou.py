@@ -10,21 +10,23 @@ REPORTS_FILE = "reports_data.json"
 # 初期設定
 st.set_page_config(page_title="日報管理システム", layout="wide")
 
-# ユーザーデータをロード
+# データロード
 def load_users():
     if os.path.exists(USERS_FILE):
         with open(USERS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return []
 
-# 投稿データをロード
+def save_users(users):
+    with open(USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(users, f, ensure_ascii=False, indent=4)
+
 def load_reports():
     if os.path.exists(REPORTS_FILE):
         with open(REPORTS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return []
 
-# 投稿データを保存
 def save_reports(reports):
     with open(REPORTS_FILE, "w", encoding="utf-8") as f:
         json.dump(reports, f, ensure_ascii=False, indent=4)
@@ -51,6 +53,54 @@ def login():
                 return
         st.error("社員コードまたはパスワードが間違っています。")
 
+# 通知を追加
+def add_notification(target_user, message, link_to_post=None):
+    users = load_users()
+    for user in users:
+        if user["name"] == target_user:
+            if "notifications" not in user:
+                user["notifications"] = []
+            user["notifications"].append({
+                "message": message,
+                "link": link_to_post,
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "read": False
+            })
+    save_users(users)
+
+# お知らせ機能
+def notifications():
+    st.title("お知らせ")
+    user = st.session_state["user"]
+    if "notifications" not in user or len(user["notifications"]) == 0:
+        st.info("現在、お知らせはありません。")
+        return
+
+    for idx, notification in enumerate(reversed(user["notifications"])):
+        with st.container():
+            is_read = notification["read"]
+            message_style = "font-weight: bold;" if not is_read else ""
+            st.markdown(
+                f"""
+                <div style="background-color: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                    <p style="{message_style}">🔔 {notification['message']}</p>
+                    <small>{notification['timestamp']}</small>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                if not is_read:
+                    if st.button("既読にする", key=f"mark_read_{idx}"):
+                        notification["read"] = True
+                        save_users(load_users())
+                        st.experimental_rerun()
+            with col2:
+                if notification["link"]:
+                    if st.button("詳細を見る", key=f"view_detail_{idx}"):
+                        st.write(f"投稿へのリンク: {notification['link']}")
+
 # タイムライン表示
 def timeline():
     st.title("タイムライン")
@@ -59,78 +109,26 @@ def timeline():
         return
 
     for idx, report in enumerate(reversed(st.session_state["reports"])):
-        # カードデザイン
         with st.container():
-            st.markdown(
-                """
-                <style>
-                .card {
-                    background-color: white;
-                    padding: 15px;
-                    border-radius: 10px;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                    margin-bottom: 20px;
-                }
-                </style>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader(f"投稿者: {report['投稿者']} / 投稿日: {report['投稿日時']}")
-            st.write(f"カテゴリ: {report['カテゴリ']}")
-            st.write(f"実施内容: {report['実施内容']}")
-            if report["タグ"]:
-                st.write(f"タグ: {report['タグ']}")
-            if report["所感・備考"]:
-                st.write(f"所感・備考: {report['所感・備考']}")
-
-            # リアクション表示
+            st.subheader(f"{report['投稿者']} - {report['投稿日時']}")
+            st.write(report["実施内容"])
             st.text(f"いいね！ {len(report['いいね'])} / ナイスファイト！ {len(report['ナイスファイト'])}")
             
-            # リアクションボタンとコメント
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3 = st.columns(3)
             with col1:
-                if st.button("コメントする", key=f"comment_{idx}"):
-                    with st.form(f"comment_form_{idx}"):
-                        comment = st.text_area("コメントを入力してください", key=f"comment_input_{idx}")
-                        submit = st.form_submit_button("投稿")
-                        if submit:
-                            if "コメント" not in report:
-                                report["コメント"] = []
-                            report["コメント"].append({"ユーザー": st.session_state["user"]["name"], "コメント": comment})
-                            save_reports(st.session_state["reports"])
-                            st.experimental_rerun()
-            with col2:
-                if st.session_state["user"]["name"] not in report["いいね"]:
-                    if st.button("いいね！", key=f"like_{idx}"):
+                if st.button("いいね！", key=f"like_{idx}"):
+                    if st.session_state["user"]["name"] not in report["いいね"]:
                         report["いいね"].append(st.session_state["user"]["name"])
+                        add_notification(report["投稿者"], f"{st.session_state['user']['name']} さんが「いいね！」しました。", link_to_post=f"投稿ID: {idx}")
                         save_reports(st.session_state["reports"])
-                else:
-                    st.markdown("❤️ いいね済み")
-            with col3:
-                if st.session_state["user"]["name"] not in report["ナイスファイト"]:
-                    if st.button("ナイスファイト！", key=f"nice_fight_{idx}"):
+            with col2:
+                if st.button("ナイスファイト！", key=f"nice_fight_{idx}"):
+                    if st.session_state["user"]["name"] not in report["ナイスファイト"]:
                         report["ナイスファイト"].append(st.session_state["user"]["name"])
+                        add_notification(report["投稿者"], f"{st.session_state['user']['name']} さんが「ナイスファイト！」しました。", link_to_post=f"投稿ID: {idx}")
                         save_reports(st.session_state["reports"])
-                else:
-                    st.markdown("💪 ナイスファイト済み")
-            with col4:
-                if report not in st.session_state["user"].get("favorites", []):
-                    if st.button("お気に入り", key=f"favorite_{idx}"):
-                        st.session_state["user"].setdefault("favorites", []).append(report)
-                        save_reports(st.session_state["reports"])
-                        st.success("お気に入りに追加しました！")
-                else:
-                    st.markdown("⭐ お気に入り済み")
-            
-            # コメント一覧表示
-            if "コメント" in report and len(report["コメント"]) > 0:
-                st.write("コメント:")
-                for comment in report["コメント"]:
-                    st.write(f"- {comment['ユーザー']}: {comment['コメント']}")
-
-            st.markdown('</div>', unsafe_allow_html=True)
-
+            with col3:
+                st.button("コメントする", key=f"comment_{idx}")
 
 # 日報投稿フォーム
 def post_report():
