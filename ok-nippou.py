@@ -1,308 +1,208 @@
 import streamlit as st
 from datetime import datetime, timedelta
-import os
 import json
+import os
 
-# 初期設定
-st.set_page_config(page_title="日報管理システム", layout="wide")
+# データファイルのパス
+data_file = "reports_data.json"
+users_file = "users_data.json"
 
-# JSONファイルのパス
-data_file = "reports_data.json"  # 投稿データ
-user_file = "users_data.json"    # ユーザーデータ
-
-# セッション永続化の保持時間（1週間）
-SESSION_DURATION = timedelta(days=7)
-
-# データの永続化関数
+# データの読み込み・保存用関数
 def load_data(file_path):
-    """ファイルからデータを読み込む"""
     if os.path.exists(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
     return []
 
-
 def save_data(file_path, data):
-    """データをファイルに保存する"""
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-
-# セッションデータの初期化
-if "user" not in st.session_state:
-    st.session_state["user"] = None
-
+# 初期化
 if "reports" not in st.session_state:
-    st.session_state["reports"] = load_data(data_file)  # 投稿データを読み込む
+    st.session_state["reports"] = load_data(data_file)
 
 if "users" not in st.session_state:
-    st.session_state["users"] = load_data(user_file)    # ユーザーデータを読み込む
+    st.session_state["users"] = load_data(users_file)
 
-if "last_login" not in st.session_state:
-    st.session_state["last_login"] = None
+if "user" not in st.session_state:
+    st.session_state["user"] = None  # ログイン情報を保持
 
-if "notifications" not in st.session_state:
-    st.session_state["notifications"] = []
+if "login_success" not in st.session_state:
+    st.session_state["login_success"] = False  # ログイン成功フラグ
 
-
-# ログイン画面
+# ログイン機能
 def login():
     st.title("ログイン")
-    employee_code = st.text_input("社員コード", key="employee_code_input")
-    password = st.text_input("パスワード", type="password", key="password_input")
-    login_button = st.button("ログイン", key="login_button")
+    username = st.text_input("ユーザー名", key="username")
+    password = st.text_input("パスワード", type="password", key="password")
 
-    if login_button:
-        # ユーザーデータから検索
-        user = next(
-            (u for u in st.session_state["users"] if u["code"] == employee_code and u["password"] == password),
-            None,
-        )
+    if st.button("ログイン"):
+        for user in st.session_state["users"]:
+            if user["name"] == username and user["password"] == password:
+                st.session_state["user"] = user
+                st.session_state["login_success"] = True
+                st.success(f"ログイン成功！ようこそ、{username}さん！")
+                st.experimental_rerun()
+        st.error("ユーザー名またはパスワードが正しくありません。")
 
-        if user:
-            st.session_state.user = user
-            st.session_state.last_login = datetime.now()
-            st.success(f"ログイン成功！ようこそ、{user['name']}さん！")
-        else:
-            st.error("社員コードまたはパスワードが間違っています。")
+# ログアウト機能
+def logout():
+    st.session_state["user"] = None
+    st.session_state["login_success"] = False
+    st.experimental_rerun()
 
-
-# 名前アイコン作成
-def create_name_icon(name):
-    """名前から丸いアイコンを生成する"""
-    initials = "".join([part[0] for part in name.split()]).upper()  # 頭文字を取得
-    st.markdown(
-        f"""
-        <div style="
-            display: inline-block;
-            width: 50px;
-            height: 50px;
-            background-color: #007bff;
-            border-radius: 50%;
-            color: white;
-            text-align: center;
-            line-height: 50px;
-            font-weight: bold;
-            font-size: 20px;
-        ">
-            {initials}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-def timeline():
-    st.title("タイムライン")
-    
-    # 検索機能
-    search_query = st.text_input("検索", placeholder="タグやカテゴリ、内容で検索", key="search_query")
-
-    # 表示期間フィルター
-    now = datetime.now()
-    filter_option = st.radio(
-        "表示期間",
-        ["24時間以内", "3日以内", "5日以内"],
-        horizontal=True,
-        key="filter_option",
-    )
-
-    days_filter = {"24時間以内": 1, "3日以内": 3, "5日以内": 5}.get(filter_option, 5)
-    cutoff_date = now - timedelta(days=days_filter)
-
-    # フィルター適用
-    reports = [
-        report
-        for report in st.session_state["reports"]
-        if datetime.strptime(report["投稿日時"], "%Y-%m-%d %H:%M") >= cutoff_date
-        and (not search_query or search_query in report["タグ"] or search_query in report["カテゴリ"] or search_query in report["実施内容"])
-    ]
-
-    if not reports:
-        st.info("該当する投稿がありません。")
-        return
-
-    for report_index, report in enumerate(reversed(reports)):
-        # カードスタイルで投稿を表示
-        with st.container():
-            st.markdown("""
-                <style>
-                    .post-card {
-                        border: 1px solid #ddd;
-                        border-radius: 10px;
-                        padding: 10px 20px;
-                        margin-bottom: 20px;
-                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-                    }
-                    .icon {
-                        display: inline-block;
-                        width: 50px;
-                        height: 50px;
-                        background-color: #007bff;
-                        border-radius: 50%;
-                        color: white;
-                        text-align: center;
-                        line-height: 50px;
-                        font-weight: bold;
-                        font-size: 20px;
-                        margin-right: 10px;
-                    }
-                    .content {
-                        display: flex;
-                        align-items: center;
-                    }
-                    .actions button {
-                        margin-right: 10px;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
-
-            # 投稿をカードで囲む
-            st.markdown(f"""
-                <div class="post-card">
-                    <div class="content">
-                        <div class="icon">{report['投稿者'][0]}</div>
-                        <div>
-                            <b>{report['投稿者']}</b> ・ {report['投稿日時']}
-                            <br>
-                            カテゴリ: <b>{report['カテゴリ']}</b>
-                        </div>
-                    </div>
-                    <p>{report['実施内容']}</p>
-            """, unsafe_allow_html=True)
-
-            # スタンプ機能
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if st.button(f"👍 いいね！ ({len(report.get('いいね', []))})", key=f"like_{report_index}"):
-                    if st.session_state.user["name"] not in report.get("いいね", []):
-                        report.setdefault("いいね", []).append(st.session_state.user["name"])
-                        save_data(data_file, st.session_state["reports"])
-                        st.success("リアクションを追加しました！")
-                        st.experimental_rerun()
-            with col2:
-                if st.button(f"🔥 ナイスファイト！ ({len(report.get('ナイスファイト', []))})", key=f"fight_{report_index}"):
-                    if st.session_state.user["name"] not in report.get("ナイスファイト", []):
-                        report.setdefault("ナイスファイト", []).append(st.session_state.user["name"])
-                        save_data(data_file, st.session_state["reports"])
-                        st.success("リアクションを追加しました！")
-                        st.experimental_rerun()
-            with col3:
-                if st.session_state.user["name"] == report["投稿者"]:
-                    if st.button("編集", key=f"edit_{report_index}"):
-                        st.info("編集機能はマイページから利用してください！")
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            # リアクション詳細（投稿者のみ）
-            if st.session_state.user["name"] == report["投稿者"]:
-                with st.expander("リアクション詳細"):
-                    st.write("👍 いいね！:")
-                    st.write(", ".join(report.get("いいね", [])) or "なし")
-                    st.write("🔥 ナイスファイト！:")
-                    st.write(", ".join(report.get("ナイスファイト", [])) or "なし")
-
-
-# 日報投稿フォーム
+# 日報投稿
 def post_report():
     st.title("日報投稿")
+    tag = st.text_input("タグ (例: #進捗, #トラブル対応)", key="tag")
+    category = st.text_input("カテゴリ (例: 開発, 営業, 企画)", key="category")
+    content = st.text_area("実施内容", key="content")
 
-    with st.form("report_form"):
-        category = st.selectbox("カテゴリ", ["営業活動", "社内作業", "その他"], key="category")
-        client = st.text_input("得意先", key="client") if category == "営業活動" else ""
-        tags = st.text_input("タグ", placeholder="#案件, #改善提案 など", key="tags")
-        content = st.text_area("実施内容", placeholder="実施した内容を記入してください", key="content")
-        notes = st.text_area("所感・備考", placeholder="所感や備考を記入してください（任意）", key="notes")
+    if st.button("投稿"):
+        if not tag or not category or not content:
+            st.error("すべての項目を入力してください。")
+            return
 
-        submit = st.form_submit_button("投稿")
-
-        if submit:
-            if not content:
-                st.error("実施内容は必須項目です。")
-            else:
-                post = {
-                    "投稿者": st.session_state.user["name"],
-                    "カテゴリ": category,
-                    "得意先": client,
-                    "タグ": tags,
-                    "実施内容": content,
-                    "所感・備考": notes,
-                    "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "いいね": [],
-                    "ナイスファイト": []
-                }
-                st.session_state["reports"].append(post)
-                save_data(data_file, st.session_state["reports"])  # 投稿データをファイルに保存
-                st.success("日報を投稿しました！")
-
+        new_report = {
+            "投稿者": st.session_state["user"]["name"],
+            "タグ": tag,
+            "カテゴリ": category,
+            "実施内容": content,
+            "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "いいね": [],
+            "ナイスファイト": [],
+            "コメント": [],
+        }
+        st.session_state["reports"].append(new_report)
+        save_data(data_file, st.session_state["reports"])
+        st.success("日報を投稿しました！")
 
 # マイページ
 def my_page():
     st.title("マイページ")
-    st.subheader("投稿の管理")
 
-    user_reports = [r for r in st.session_state["reports"] if r["投稿者"] == st.session_state.user["name"]]
+    # 自分の投稿を表示
+    st.header("自分の投稿")
+    user_reports = [
+        report for report in st.session_state["reports"]
+        if report["投稿者"] == st.session_state["user"]["name"]
+    ]
 
     if not user_reports:
         st.info("まだ投稿がありません。")
-        return
+    else:
+        for report in reversed(user_reports):
+            st.markdown(f"""
+                <div style="border: 1px solid #ddd; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                    <b>{report['投稿日時']}</b>
+                    <p>{report['実施内容']}</p>
+                    <small>カテゴリ: {report['カテゴリ']} | タグ: {report['タグ']}</small>
+                </div>
+            """, unsafe_allow_html=True)
 
-    for report in reversed(user_reports):
-        with st.container():
-            st.markdown("---")
-            st.subheader(f"カテゴリ: {report['カテゴリ']} - {report['投稿日時']}")
-            if report["得意先"]:
-                st.write(f"得意先: {report['得意先']}")
-            if report["タグ"]:
-                st.write(f"タグ: {report['タグ']}")
-            st.write(f"実施内容: {report['実施内容']}")
-            if report["所感・備考"]:
-                st.write(f"所感・備考: {report['所感・備考']}")
-
-            # 編集・削除ボタン
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("編集", key=f"edit_{report['投稿日時']}"):
-                    edited_content = st.text_area("編集内容", report["実施内容"], key=f"edit_content_{report['投稿日時']}")
-                    edited_notes = st.text_area("編集所感・備考", report["所感・備考"], key=f"edit_notes_{report['投稿日時']}")
-                    if st.button("保存", key=f"save_{report['投稿日時']}"):
-                        report["実施内容"] = edited_content
-                        report["所感・備考"] = edited_notes
-                        save_data(data_file, st.session_state["reports"])
-                        st.success("投稿を編集しました！")
-                        st.experimental_rerun()
-            with col2:
-                if st.button("削除", key=f"delete_{report['投稿日時']}"):
-                    st.session_state["reports"].remove(report)
-                    save_data(data_file, st.session_state["reports"])
-                    st.success("投稿を削除しました！")
-                    st.experimental_rerun()
-
+    # お気に入りの投稿
+    st.header("お気に入り")
+    if "お気に入り" in st.session_state["user"] and st.session_state["user"]["お気に入り"]:
+        for index in st.session_state["user"]["お気に入り"]:
+            report = st.session_state["reports"][index]
+            st.markdown(f"""
+                <div style="border: 1px solid #ddd; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                    <b>{report['投稿者']} - {report['投稿日時']}</b>
+                    <p>{report['実施内容']}</p>
+                </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("まだお気に入りが登録されていません。")
 
 # お知らせ
 def notifications():
     st.title("お知らせ")
-    if not st.session_state["notifications"]:
+
+    user_notifications = st.session_state["user"].get("通知", [])
+    if not user_notifications:
         st.info("お知らせはありません。")
         return
 
-    for notification in reversed(st.session_state["notifications"]):
+    for notification in reversed(user_notifications):
+        st.markdown(f"""
+            <div style="border: 1px solid #ddd; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                <b>{notification['内容']}</b>
+                <p>{notification['詳細']}</p>
+                <small>{notification['日時']}</small>
+            </div>
+        """, unsafe_allow_html=True)
+
+# タイムライン
+def timeline():
+    st.title("タイムライン")
+
+    reports = st.session_state["reports"]
+    if not reports:
+        st.info("投稿がありません。")
+        return
+
+    for report_index, report in enumerate(reversed(reports)):
         with st.container():
-            st.write(notification)
-            st.markdown("---")
+            st.markdown(f"""
+                <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px;">
+                    <b>{report['投稿者']}</b> ・ {report['投稿日時']}
+                    <p>{report['実施内容']}</p>
+                    <small>カテゴリ: {report['カテゴリ']} | タグ: {report['タグ']}</small>
+                </div>
+            """, unsafe_allow_html=True)
 
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                if st.button("💬 コメント", key=f"comment_{report_index}"):
+                    st.session_state["active_comment"] = report_index
+            with col2:
+                if st.button(f"❤️ {len(report.get('いいね', []))}", key=f"like_{report_index}"):
+                    if st.session_state["user"]["name"] in report.get("いいね", []):
+                        report["いいね"].remove(st.session_state["user"]["name"])
+                    else:
+                        report.setdefault("いいね", []).append(st.session_state["user"]["name"])
+                    save_data(data_file, st.session_state["reports"])
+                    st.experimental_rerun()
+            with col3:
+                if st.button(f"🔥 {len(report.get('ナイスファイト', []))}", key=f"fight_{report_index}"):
+                    if st.session_state["user"]["name"] in report.get("ナイスファイト", []):
+                        report["ナイスファイト"].remove(st.session_state["user"]["name"])
+                    else:
+                        report.setdefault("ナイスファイト", []).append(st.session_state["user"]["name"])
+                    save_data(data_file, st.session_state["reports"])
+                    st.experimental_rerun()
+            with col4:
+                if st.button("⭐", key=f"favorite_{report_index}"):
+                    st.success("お気に入りに追加しました！")
 
-# メイン処理
-if st.session_state.user is None:
-    if st.session_state.last_login and datetime.now() - st.session_state.last_login < SESSION_DURATION:
-        st.session_state.user = {"code": "901179", "name": "野村幸男"}
-    else:
-        login()
-else:
-    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "マイページ", "お知らせ"])
-    if menu == "タイムライン":
+# アプリ全体の表示
+if st.session_state["user"]:
+    with st.sidebar:
+        st.write(f"ログイン中: {st.session_state['user']['name']}")
+        if st.button("タイムライン"):
+            st.session_state["active_page"] = "timeline"
+            st.experimental_rerun()
+        if st.button("日報投稿"):
+            st.session_state["active_page"] = "post_report"
+            st.experimental_rerun()
+        if st.button("マイページ"):
+            st.session_state["active_page"] = "my_page"
+            st.experimental_rerun()
+        if st.button("お知らせ"):
+            st.session_state["active_page"] = "notifications"
+            st.experimental_rerun()
+        if st.button("ログアウト"):
+            logout()
+
+    # ページ切り替え
+    if st.session_state.get("active_page") == "timeline":
         timeline()
-    elif menu == "日報投稿":
+    elif st.session_state.get("active_page") == "post_report":
         post_report()
-    elif menu == "マイページ":
+    elif st.session_state.get("active_page") == "my_page":
         my_page()
-    elif menu == "お知らせ":
+    elif st.session_state.get("active_page") == "notifications":
         notifications()
+else:
+    login()
