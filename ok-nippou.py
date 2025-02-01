@@ -158,24 +158,65 @@ def timeline():
 # お知らせ
 def notice():
     st.title("🔔 お知らせ")
-    if not notices:
-        st.info("現在お知らせはありません。")
-        return
 
-    for idx, notice in enumerate(notices):
-        with st.container():
-            st.subheader(f"{notice['タイトル']} - {notice['日付']}")
-            st.write(notice["内容"])
+    # 未読と既読のタブを作る
+    tab_selected = st.radio("📌 お知らせ", ["未読", "既読"])
 
-            if "リンク" in notice:
-                if st.button("📌 投稿を確認する", key=f"notice_{idx}"):
-                    st.session_state["jump_to_report"] = notice["リンク"]
-                    notice["既読"] = True
-                    save_data(NOTICE_FILE, notices)
-                    st.rerun()
+    # 未読・既読リストのフィルタリング
+    unread_notices = [n for n in notices if not n["既読"]]
+    read_notices = [n for n in notices if n["既読"]]
 
-            if not notice["既読"]:
-                st.text("🔴 未読")
+    # 確認する投稿のインデックス（Noneなら表示しない）
+    selected_report_index = st.session_state.get("selected_report_index", None)
+
+    # 🔴 未読タブ
+    if tab_selected == "未読":
+        if selected_report_index is None:
+            if not unread_notices:
+                st.info("未読のお知らせはありません。")
+                return
+            
+            for idx, notice in enumerate(unread_notices):
+                with st.container():
+                    st.subheader(f"{notice['タイトル']} - {notice['日付']}")
+                    st.write(notice["内容"])
+
+                    if "リンク" in notice:
+                        if st.button("📌 投稿を確認する", key=f"notice_{idx}"):
+                            st.session_state["selected_report_index"] = notice["リンク"]
+                            notice["既読"] = True
+                            save_data(NOTICE_FILE, notices)
+                            st.rerun()
+
+        else:
+            # 📌 投稿を表示
+            report = reports[selected_report_index]
+            st.markdown("### 🎯 該当の投稿")
+            st.subheader(f"{report['投稿者']} - {report['カテゴリ']} - {report['投稿日時']}")
+            
+            if report["タグ"]:
+                st.markdown(f"**🏷 タグ:** {report['タグ']}")
+
+            st.write(f"📝 {report['実施内容']}")
+
+            st.text(f"👍 いいね！ {report['いいね']} / 🎉 ナイスファイト！ {report['ナイスファイト']}")
+
+            # 🔙 閉じるボタン
+            if st.button("❌ 閉じる"):
+                st.session_state["selected_report_index"] = None
+                st.rerun()
+
+    # ✅ 既読タブ
+    elif tab_selected == "既読":
+        if not read_notices:
+            st.info("既読のお知らせはありません。")
+            return
+        
+        for notice in read_notices:
+            with st.container():
+                st.subheader(f"{notice['タイトル']} - {notice['日付']}")
+                st.write(notice["内容"])
+
 
 if "user" not in st.session_state:
     st.session_state["user"] = None
