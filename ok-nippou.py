@@ -20,7 +20,7 @@ def save_data(file_path, data):
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# 認証情報読み込み
+# データ読み込み
 users = load_data(USER_DATA_FILE, [])
 reports = load_data(REPORTS_FILE, [])
 notices = load_data(NOTICE_FILE, [])
@@ -40,6 +40,7 @@ def login():
         if user:
             st.session_state["user"] = user
             st.success(f"ログイン成功！ようこそ、{user['name']}さん！")
+            st.rerun()
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
@@ -62,52 +63,79 @@ def post_report():
                 "所感・備考": notes,
                 "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 "いいね": 0,
-                "ナイスファイト": 0
+                "ナイスファイト": 0,
+                "コメント": []
             }
             reports.append(new_report)
             save_data(REPORTS_FILE, reports)
             st.success("日報を投稿しました！")
+            st.rerun()
 
 # タイムライン
 def timeline():
     st.title("タイムライン")
-    if not reports:
-        st.info("まだ投稿がありません。")
+
+    # タグ検索
+    search_tag = st.text_input("タグ検索", placeholder="例: #案件")
+    filtered_reports = reports if not search_tag else [r for r in reports if search_tag in r["タグ"]]
+
+    if not filtered_reports:
+        st.info("該当する投稿がありません。")
         return
-    
-    for idx, report in enumerate(reports):
+
+    for idx, report in enumerate(filtered_reports):
         with st.container():
             st.subheader(f"{report['投稿者']} - {report['投稿日時']}")
             st.write(report["実施内容"])
-            st.text(f"いいね！ {report['いいね']} / ナイスファイト！ {report['ナイスファイト']}")
-            
+            st.text(f"👍 いいね！ {report['いいね']} / 🎉 ナイスファイト！ {report['ナイスファイト']}")
+
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("いいね！", key=f"like_{idx}"):
+                if st.button("👍 いいね！", key=f"like_{idx}"):
                     report["いいね"] += 1
                     save_data(REPORTS_FILE, reports)
-                    st.experimental_rerun()
+                    st.rerun()
+
             with col2:
-                if st.button("ナイスファイト！", key=f"nice_fight_{idx}"):
+                if st.button("🎉 ナイスファイト！", key=f"nice_fight_{idx}"):
                     report["ナイスファイト"] += 1
                     save_data(REPORTS_FILE, reports)
-                    st.experimental_rerun()
+                    st.rerun()
 
-# マイページ
-def my_page():
-    st.title("マイページ")
-    user_reports = [r for r in reports if r["投稿者"] == st.session_state["user"]["name"]]
-    if not user_reports:
-        st.info("あなたの投稿はまだありません。")
-        return
-    
-    st.subheader(f"{st.session_state['user']['name']} さんの投稿一覧")
-    for report in user_reports:
-        st.write(f"{report['投稿日時']} - {report['実施内容']}")
-    
-    total_likes = sum(r["いいね"] for r in user_reports)
-    total_nice_fights = sum(r["ナイスファイト"] for r in user_reports)
-    st.text(f"総いいね数: {total_likes} / 総ナイスファイト数: {total_nice_fights}")
+            # コメント機能
+            st.subheader("💬 コメント")
+            for comment_idx, comment in enumerate(report["コメント"]):
+                st.text(f"📌 {comment['投稿者']}: {comment['内容']} ({comment['投稿日時']})")
+                if comment["投稿者"] == st.session_state["user"]["name"]:
+                    if st.button("🗑 削除", key=f"delete_comment_{idx}_{comment_idx}"):
+                        report["コメント"].pop(comment_idx)
+                        save_data(REPORTS_FILE, reports)
+                        st.rerun()
+
+            new_comment = st.text_input(f"コメントを入力（{report['投稿者']} さんの日報）", key=f"comment_{idx}")
+            if st.button("💬 コメント投稿", key=f"post_comment_{idx}"):
+                if new_comment.strip():
+                    new_comment_data = {
+                        "投稿者": st.session_state["user"]["name"],
+                        "内容": new_comment,
+                        "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M")
+                    }
+                    report["コメント"].append(new_comment_data)
+                    save_data(REPORTS_FILE, reports)
+
+                    # お知らせ追加
+                    new_notice = {
+                        "タイトル": "あなたの投稿にコメントがつきました！",
+                        "日付": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        "内容": f"{st.session_state['user']['name']} さんがコメントしました！",
+                        "リンク": idx,
+                        "既読": False
+                    }
+                    notices.append(new_notice)
+                    save_data(NOTICE_FILE, notices)
+
+                    st.success("コメントを投稿しました！")
+                    st.rerun()
 
 # お知らせ
 def notice():
@@ -116,9 +144,20 @@ def notice():
         st.info("現在お知らせはありません。")
         return
     
-    for notice in notices:
-        st.subheader(f"{notice['タイトル']} - {notice['日付']}")
-        st.write(notice["内容"])
+    for idx, notice in enumerate(notices):
+        with st.container():
+            st.subheader(f"{notice['タイトル']} - {notice['日付']}")
+            st.write(notice["内容"])
+
+            if "リンク" in notice:
+                if st.button("投稿を確認する", key=f"notice_{idx}"):
+                    timeline_index = notice["リンク"]
+                    st.session_state["jump_to_report"] = timeline_index
+                    notice["既読"] = True
+                    save_data(NOTICE_FILE, notices)
+                    st.rerun()
+            if not notice["既読"]:
+                st.text("🔴 未読")
 
 # メイン処理
 if "user" not in st.session_state:
@@ -127,12 +166,10 @@ if "user" not in st.session_state:
 if st.session_state["user"] is None:
     login()
 else:
-    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "マイページ", "お知らせ"])
+    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ"])
     if menu == "タイムライン":
         timeline()
     elif menu == "日報投稿":
         post_report()
-    elif menu == "マイページ":
-        my_page()
     elif menu == "お知らせ":
         notice()
