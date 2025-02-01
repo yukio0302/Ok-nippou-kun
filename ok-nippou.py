@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 
 # ファイルパス
-USER_DATA_FILE = "users.json"
+USER_DATA_FILE = "users_data.json"
 REPORTS_FILE = "reports.json"
 NOTICE_FILE = "notices.json"
 
