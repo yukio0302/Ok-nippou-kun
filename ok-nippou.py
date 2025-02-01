@@ -1,6 +1,6 @@
 import streamlit as st
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # ファイルパス
 USER_DATA_FILE = "users_data.json"
@@ -38,7 +38,7 @@ def login():
         user = next((u for u in users if u["code"] == user_code and u["password"] == password), None)
         if user:
             st.session_state["user"] = user
-            st.success(f"ようこそ、{user['name']} さん！（{user['depart']}）")
+            st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
             st.rerun()
         else:
             st.error("社員コードまたはパスワードが間違っています。")
@@ -48,11 +48,15 @@ def timeline():
     st.title("📜 タイムライン")
 
     # 🔍 フィルター（部署 + 検索）
-    depart_filter = st.selectbox("📂 部署フィルター", ["全て"] + list(set(u["depart"] for u in users)))
+    all_departments = sorted(set(dept for user in users for dept in user["depart"]))
+    depart_filter = st.selectbox("📂 部署フィルター", ["全て"] + all_departments)
     search_keyword = st.text_input("🔎 投稿検索", placeholder="キーワードを入力")
 
     # フィルタリング
-    filtered_reports = [r for r in reports if (depart_filter == "全て" or r["投稿者部署"] == depart_filter)]
+    filtered_reports = [
+        r for r in reports if depart_filter == "全て" or any(dept in r["投稿者部署"] for dept in st.session_state["user"]["depart"])
+    ]
+
     if search_keyword:
         filtered_reports = [r for r in filtered_reports if search_keyword in r["タグ"] or search_keyword in r["実施内容"]]
 
@@ -86,10 +90,6 @@ def notice():
                 st.subheader(f"{notice['タイトル']} - {notice['日付']}")
                 st.write(notice["内容"])
 
-                # コメント内容を表示
-                if "コメント" in notice:
-                    st.markdown(f"💬 **コメント:** {notice['コメント']}")
-
                 if "リンク" in notice:
                     if st.button("📌 投稿を確認する", key=f"notice_{idx}"):
                         notice["既読"] = True
@@ -105,6 +105,32 @@ def notice():
             with st.container():
                 st.subheader(f"{notice['タイトル']} - {notice['日付']}")
                 st.write(notice["内容"])
+
+# 📢 部署アナウンス（管理者のみ）
+def post_announcement():
+    if not st.session_state["user"]["admin"]:
+        st.error("⚠ あなたにはアナウンス投稿の権限がありません。")
+        return
+
+    st.title("📢 部署アナウンス投稿")
+
+    with st.form("announcement_form"):
+        target_dept = st.multiselect("📂 対象部署", list(set(dept for user in users for dept in user["depart"])))
+        content = st.text_area("📢 アナウンス内容")
+        submit = st.form_submit_button("📢 投稿する")
+
+        if submit and content and target_dept:
+            new_announcement = {
+                "タイトル": "📢 部署アナウンス",
+                "日付": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "内容": content,
+                "対象部署": target_dept,
+                "既読": False
+            }
+            notices.append(new_announcement)
+            save_data(NOTICE_FILE, notices)
+            st.success("✅ アナウンスを投稿しました！")
+            st.rerun()
 
 # 📝 日報投稿
 def post_report():
@@ -139,10 +165,12 @@ if "user" not in st.session_state:
 if st.session_state["user"] is None:
     login()
 else:
-    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ"])
+    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ", "部署アナウンス（管理者）"])
     if menu == "タイムライン":
         timeline()
     elif menu == "日報投稿":
         post_report()
     elif menu == "お知らせ":
         notice()
+    elif menu == "部署アナウンス（管理者）":
+        post_announcement()
