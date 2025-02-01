@@ -53,10 +53,7 @@ def timeline():
     search_keyword = st.text_input("🔎 投稿検索", placeholder="キーワードを入力")
 
     # フィルタリング
-    filtered_reports = []
-    for r in reports:
-        if depart_filter == "全て" or any(dept in r["投稿者部署"] for dept in st.session_state["user"]["depart"]):
-            filtered_reports.append(r)
+    filtered_reports = [r for r in reports if depart_filter == "全て" or any(dept in r["投稿者部署"] for dept in st.session_state["user"]["depart"])]
 
     if search_keyword:
         filtered_reports = [r for r in filtered_reports if search_keyword in r["タグ"] or search_keyword in r["実施内容"]]
@@ -73,7 +70,6 @@ def timeline():
             st.write(f"💬 所感: {report['所感・備考']}")
             st.text(f"👍 いいね！ {report['いいね']} / 🎉 ナイスファイト！ {report['ナイスファイト']}")
 
-            # いいね & ナイスファイト
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("👍 いいね！", key=f"like_{idx}"):
@@ -87,7 +83,6 @@ def timeline():
                     save_data(REPORTS_FILE, reports)
                     st.rerun()
 
-            # 🔴 コメント機能
             if "コメント" not in report:
                 report["コメント"] = []
 
@@ -100,7 +95,6 @@ def timeline():
                         save_data(REPORTS_FILE, reports)
                         st.rerun()
 
-            # 💬 コメント投稿
             new_comment = st.text_input(f"✏ コメントを入力（{report['投稿者']} さんの日報）", key=f"comment_{idx}")
             if st.button("💬 コメント投稿", key=f"post_comment_{idx}"):
                 if new_comment.strip():
@@ -112,7 +106,6 @@ def timeline():
                     report["コメント"].append(new_comment_data)
                     save_data(REPORTS_FILE, reports)
 
-                    # 🔔 お知らせに追加
                     new_notice = {
                         "タイトル": "あなたの投稿にコメントがつきました！",
                         "日付": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -126,31 +119,29 @@ def timeline():
                     st.success("コメントを投稿しました！")
                     st.rerun()
 
-# 📢 部署アナウンス（管理者のみ）
-def post_announcement():
-    if not st.session_state["user"]["admin"]:
-        st.error("⚠ あなたにはアナウンス投稿の権限がありません。")
-        return
+# 🔔 お知らせ
+def notice():
+    st.title("🔔 お知らせ")
 
-    st.title("📢 部署アナウンス投稿")
+    for notice in notices:
+        if "既読" not in notice:
+            notice["既読"] = False
+    save_data(NOTICE_FILE, notices)
 
-    with st.form("announcement_form"):
-        target_dept = st.multiselect("📂 対象部署", list(set(dept for user in users for dept in user["depart"])))
-        content = st.text_area("📢 アナウンス内容")
-        submit = st.form_submit_button("📢 投稿する")
+    tab_selected = st.radio("📌 お知らせ", ["未読", "既読"])
+    unread_notices = [n for n in notices if not n["既読"]]
+    read_notices = [n for n in notices if n["既読"]]
 
-        if submit and content and target_dept:
-            new_announcement = {
-                "タイトル": "📢 部署アナウンス",
-                "日付": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "内容": content,
-                "対象部署": target_dept,
-                "既読": False
-            }
-            notices.append(new_announcement)
-            save_data(NOTICE_FILE, notices)
-            st.success("✅ アナウンスを投稿しました！")
-            st.rerun()
+    if tab_selected == "未読":
+        for idx, notice in enumerate(unread_notices):
+            st.subheader(f"{notice['タイトル']} - {notice['日付']}")
+            st.write(notice["内容"])
+            if "リンク" in notice and isinstance(notice["リンク"], int) and notice["リンク"] < len(reports):
+                if st.button("📌 投稿を確認する", key=f"notice_{idx}"):
+                    st.session_state["jump_to_report"] = notice["リンク"]
+                    notice["既読"] = True
+                    save_data(NOTICE_FILE, notices)
+                    st.rerun()
 
 # メイン処理
 if "user" not in st.session_state:
@@ -159,10 +150,8 @@ if "user" not in st.session_state:
 if st.session_state["user"] is None:
     login()
 else:
-    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ", "部署アナウンス（管理者）"])
+    menu = st.sidebar.radio("メニュー", ["タイムライン", "お知らせ"])
     if menu == "タイムライン":
         timeline()
     elif menu == "お知らせ":
         notice()
-    elif menu == "部署アナウンス（管理者）":
-        post_announcement()
