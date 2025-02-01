@@ -75,13 +75,17 @@ def post_report():
 def timeline():
     st.title("📜 タイムライン")
 
-    # 🔍 タグ & キーワード検索
     search_keyword = st.text_input("🔎 投稿検索（タグ & 本文）", placeholder="キーワードを入力")
-    
-    # 検索ロジック（投稿のタグ or 本文にキーワードが含まれるか）
-    filtered_reports = reports if not search_keyword else [
-        r for r in reports if search_keyword in r["タグ"] or search_keyword in r["実施内容"]
-    ]
+
+    # 🔥 お知らせから指定された投稿があれば、それを先頭にする
+    jump_to_report = st.session_state.get("jump_to_report", None)
+    if jump_to_report is not None:
+        filtered_reports = [reports[jump_to_report]] + [r for i, r in enumerate(reports) if i != jump_to_report]
+        st.session_state["jump_to_report"] = None
+    else:
+        filtered_reports = reports if not search_keyword else [
+            r for r in reports if search_keyword in r["タグ"] or search_keyword in r["実施内容"]
+        ]
 
     if not filtered_reports:
         st.info("🔍 該当する投稿がありません。")
@@ -89,6 +93,10 @@ def timeline():
 
     for idx, report in enumerate(filtered_reports):
         with st.container():
+            if jump_to_report is not None and idx == 0:
+                st.markdown("### 🎯 該当の投稿")
+                st.markdown("---")
+
             st.subheader(f"{report['投稿者']} - {report['カテゴリ']} - {report['投稿日時']}")
 
             if report["タグ"]:
@@ -138,7 +146,7 @@ def timeline():
                         "タイトル": "あなたの投稿にコメントがつきました！",
                         "日付": datetime.now().strftime("%Y-%m-%d %H:%M"),
                         "内容": f"{st.session_state['user']['name']} さんがコメントしました！",
-                        "リンク": idx,
+                        "リンク": reports.index(report),
                         "既読": False
                     }
                     notices.append(new_notice)
@@ -149,22 +157,23 @@ def timeline():
 
 # お知らせ
 def notice():
-    st.title("お知らせ")
+    st.title("🔔 お知らせ")
     if not notices:
         st.info("現在お知らせはありません。")
         return
-    
+
     for idx, notice in enumerate(notices):
         with st.container():
             st.subheader(f"{notice['タイトル']} - {notice['日付']}")
             st.write(notice["内容"])
 
             if "リンク" in notice:
-                if st.button("投稿を確認する", key=f"notice_{idx}"):
+                if st.button("📌 投稿を確認する", key=f"notice_{idx}"):
                     st.session_state["jump_to_report"] = notice["リンク"]
                     notice["既読"] = True
                     save_data(NOTICE_FILE, notices)
                     st.rerun()
+
             if not notice["既読"]:
                 st.text("🔴 未読")
 
