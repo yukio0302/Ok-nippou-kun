@@ -32,7 +32,7 @@ st.set_page_config(page_title="日報管理システム", layout="wide")
 def login():
     st.title("ログイン")
     user_code = st.text_input("社員コード")
-    password = st.text_input("パスワード", type="password")
+    password = st.text_input("パスワード", type="password", help="パスワードを入力してください")
     login_button = st.button("ログイン")
     
     if login_button:
@@ -75,7 +75,6 @@ def post_report():
 def timeline():
     st.title("タイムライン")
 
-    # タグ検索
     search_tag = st.text_input("タグ検索", placeholder="例: #案件")
     filtered_reports = reports if not search_tag else [r for r in reports if search_tag in r["タグ"]]
 
@@ -102,7 +101,9 @@ def timeline():
                     save_data(REPORTS_FILE, reports)
                     st.rerun()
 
-            # コメント機能
+            if "コメント" not in report:
+                report["コメント"] = []
+
             st.subheader("💬 コメント")
             for comment_idx, comment in enumerate(report["コメント"]):
                 st.text(f"📌 {comment['投稿者']}: {comment['内容']} ({comment['投稿日時']})")
@@ -123,7 +124,6 @@ def timeline():
                     report["コメント"].append(new_comment_data)
                     save_data(REPORTS_FILE, reports)
 
-                    # お知らせ追加
                     new_notice = {
                         "タイトル": "あなたの投稿にコメントがつきました！",
                         "日付": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -151,8 +151,7 @@ def notice():
 
             if "リンク" in notice:
                 if st.button("投稿を確認する", key=f"notice_{idx}"):
-                    timeline_index = notice["リンク"]
-                    st.session_state["jump_to_report"] = timeline_index
+                    st.session_state["jump_to_report"] = notice["リンク"]
                     notice["既読"] = True
                     save_data(NOTICE_FILE, notices)
                     st.rerun()
