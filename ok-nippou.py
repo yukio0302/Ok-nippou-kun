@@ -27,13 +27,13 @@ notices = load_data(NOTICE_FILE, [])
 # Streamlit 初期設定
 st.set_page_config(page_title="日報管理システム", layout="wide")
 
-# 🔑 ログイン機能
+# 🔑 ログイン機能（ログイン後にタイムラインへ）
 def login():
     st.title("ログイン")
     user_code = st.text_input("社員コード")
     password = st.text_input("パスワード", type="password")
     login_button = st.button("ログイン")
-
+    
     if login_button:
         user = next((u for u in users if u["code"] == user_code and u["password"] == password), None)
         if user:
@@ -64,7 +64,7 @@ def timeline():
     for idx, report in enumerate(filtered_reports):
         with st.container():
             st.subheader(f"{report['投稿者']} - {report['投稿日時']}")
-            st.markdown(f"🏷 タグ: {', '.join(report['タグ'])}")
+            st.markdown(f"🏷 タグ: {report['タグ']}")
             st.write(f"📝 実施内容: {report['実施内容']}")
             st.write(f"💬 所感: {report['所感・備考']}")
             st.text(f"👍 いいね！ {report['いいね']} / 🎉 ナイスファイト！ {report['ナイスファイト']}")
@@ -82,34 +82,12 @@ def timeline():
                     save_data(REPORTS_FILE, reports)
                     st.experimental_rerun()
 
-            # 💬 コメント表示エリア
-            st.subheader("💬 コメント")
-            if "コメント" not in report:
-                report["コメント"] = []
-
-            for comment in report["コメント"]:
-                st.markdown(f"**{comment['投稿者']} ({comment['日時']}):** {comment['内容']}")
-
-            # ✍️ コメント入力欄
-            new_comment = st.text_area(f"💬 {report['投稿者']} さんの投稿にコメント", key=f"comment_input_{idx}")
-            if st.button("📤 コメントを投稿", key=f"comment_button_{idx}"):
-                if new_comment.strip():
-                    report["コメント"].append({
-                        "投稿者": st.session_state["user"]["name"],
-                        "日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                        "内容": new_comment
-                    })
-                    save_data(REPORTS_FILE, reports)
-                    st.success("コメントを追加しました！")
-                    st.experimental_rerun()
-                else:
-                    st.error("コメントを入力してください。")
-
-# 📝 日報投稿
+# 📝 日報投稿（過去の投稿管理付き）
 def post_report():
     st.title("📝 日報投稿")
     user = st.session_state["user"]
 
+    # 新規投稿フォーム
     category = st.text_input("📋 カテゴリ")
     tags = st.text_input("🏷 タグ (カンマ区切り)")
     content = st.text_area("📝 実施内容")
@@ -129,13 +107,12 @@ def post_report():
                 "実施内容": content,
                 "所感・備考": remarks,
                 "いいね": 0,
-                "ナイスファイト": 0,
-                "コメント": []
+                "ナイスファイト": 0
             })
             save_data(REPORTS_FILE, reports)
             st.success("日報を投稿しました！")
 
-# 🔔 お知らせ
+# 🔔 お知らせ（未読・既読管理）
 def show_notices():
     st.title("🔔 お知らせ")
     user_departments = st.session_state["user"]["depart"]
@@ -144,22 +121,47 @@ def show_notices():
     read_notices = [n for n in notices if n.get("既読") and any(dept in user_departments for dept in n.get("対象部署", []))]
 
     st.subheader("🔵 未読のお知らせ")
-    for notice in unread_notices:
+    if unread_notices:
+        for notice in unread_notices:
+            st.markdown("---")
+            st.subheader(f"📢 {notice['タイトル']}")
+            st.write(f"📅 **日付**: {notice['日付']}")
+            st.write(f"💬 **内容**: {notice['内容']}")
+            if st.button("✅ 既読にする", key=f"mark_read_{notice['タイトル']}"):
+                notice["既読"] = True
+                save_data(NOTICE_FILE, notices)
+                st.experimental_rerun()
+
+    st.subheader("🟢 既読のお知らせ")
+    for notice in read_notices:
+        st.markdown("---")
         st.subheader(f"📢 {notice['タイトル']}")
         st.write(f"📅 **日付**: {notice['日付']}")
         st.write(f"💬 **内容**: {notice['内容']}")
-        if st.button("✅ 既読にする", key=f"mark_read_{notice['タイトル']}"):
-            notice["既読"] = True
-            save_data(NOTICE_FILE, notices)
-            st.experimental_rerun()
 
-# 📢 部署内アナウンス（管理者のみ）
+# 📢 部署内アナウンス投稿（管理者限定）
 def post_announcement():
-    st.title("📢 部署内アナウンス（管理者のみ）")
+    st.title("📢 部署内アナウンス投稿（管理者のみ）")
 
     if not st.session_state["user"]["admin"]:
         st.error("この機能は管理者のみ利用できます。")
         return
+
+    title = st.text_input("📋 タイトル")
+    content = st.text_area("📝 内容")
+    departments = st.multiselect("📂 対象部署", sorted(set(dept for user in users for dept in user["depart"])))
+    submit_button = st.button("📤 アナウンスを送信する")
+
+    if submit_button and title and content and departments:
+        notices.append({
+            "タイトル": title,
+            "日付": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "内容": content,
+            "対象部署": departments,
+            "既読": False
+        })
+        save_data(NOTICE_FILE, notices)
+        st.success("アナウンスを送信しました！")
 
 # メイン処理
 if "user" not in st.session_state:
