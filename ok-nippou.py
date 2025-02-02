@@ -43,7 +43,7 @@ def login():
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
-# 📜 タイムライン機能
+# 📜 タイムライン（所感まで表示）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -54,7 +54,9 @@ def timeline():
     for idx, report in enumerate(reports):
         with st.container():
             st.subheader(f"{report['投稿者']} - {report['投稿日時']}")
-            st.write(f"📝 実施内容: {report['実施内容']}")
+            st.markdown(f"🏷 タグ: {', '.join(report['タグ'])}")
+            st.write(f"📝 **実施内容:** {report['実施内容']}")
+            st.write(f"💬 **所感:** {report['所感・備考']}")
             st.text(f"👍 いいね！ {report['いいね']} / 🎉 ナイスファイト！ {report['ナイスファイト']}")
 
             if st.button("👍 いいね！", key=f"like_{idx}"):
@@ -67,7 +69,7 @@ def timeline():
                 save_data(REPORTS_FILE, reports)
                 st.rerun()
 
-            # 💬 コメント機能
+            # 💬 コメント表示
             st.subheader("💬 コメント一覧")
             if "コメント" not in report:
                 report["コメント"] = []
@@ -126,7 +128,7 @@ def post_report():
             save_data(REPORTS_FILE, reports)
             st.success("日報を投稿しました！")
 
-    # 🔔 お知らせ（未読・既読管理つき）
+   # 🔔 お知らせ（投稿の詳細＋コメント内容を表示）
 def show_notices():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -134,7 +136,6 @@ def show_notices():
 
     st.title("🔔 お知らせ")
 
-    user_name = st.session_state["user"]["name"]
     unread_notices = [n for n in notices if not n.get("既読", False)]
     read_notices = [n for n in notices if n.get("既読", False)]
 
@@ -145,7 +146,17 @@ def show_notices():
             st.markdown("---")
             st.subheader(f"📢 {notice['タイトル']}")
             st.write(f"📅 **日付**: {notice['日付']}")
-            st.write(f"💬 **内容**: {notice['内容']}")
+
+            # 🔍 該当の投稿を表示（所感含む）
+            if "該当投稿" in notice:
+                st.markdown(f"**📝 該当の投稿:**")
+                st.write(f"**実施内容:** {notice['該当投稿']['実施内容']}")
+                st.write(f"**💬 所感:** {notice['該当投稿']['所感・備考']}")
+
+            # 💬 コメントの詳細を表示
+            if "コメント" in notice:
+                st.markdown(f"**💬 コメント:**")
+                st.write(f"**{notice['コメント']['投稿者']} さんのコメント:** {notice['コメント']['内容']}")
 
             # 🔘 「既読にする」ボタン
             if st.button("✅ 既読にする", key=f"mark_read_{idx}"):
@@ -163,7 +174,15 @@ def show_notices():
             st.markdown("---")
             st.subheader(f"📢 {notice['タイトル']}")
             st.write(f"📅 **日付**: {notice['日付']}")
-            st.write(f"💬 **内容**: {notice['内容']}")
+
+            if "該当投稿" in notice:
+                st.markdown(f"**📝 該当の投稿:**")
+                st.write(f"**実施内容:** {notice['該当投稿']['実施内容']}")
+                st.write(f"**💬 所感:** {notice['該当投稿']['所感・備考']}")
+
+            if "コメント" in notice:
+                st.markdown(f"**💬 コメント:**")
+                st.write(f"**{notice['コメント']['投稿者']} さんのコメント:** {notice['コメント']['内容']}")
 
     else:
         st.info("📭 既読のお知らせはありません。")
