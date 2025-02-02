@@ -27,6 +27,11 @@ notices = load_data(NOTICE_FILE, [])
 # Streamlit 初期設定
 st.set_page_config(page_title="日報管理システム", layout="wide")
 
+# 🖼 ユーザーの丸型アイコン生成
+def generate_avatar(name):
+    initials = name[:2].upper()
+    return f"🟢 {initials}"
+
 # 🔑 ログイン機能
 def login():
     st.title("ログイン")
@@ -47,19 +52,15 @@ def login():
 def timeline():
     st.title("📜 タイムライン")
 
-    # 🔍 フィルター
     all_departments = sorted(set(dept for user in users for dept in user["depart"]))
     depart_filter = st.selectbox("📂 部署フィルター", ["全て"] + all_departments)
     search_keyword = st.text_input("🔎 投稿検索", placeholder="キーワードを入力")
 
-    # フィルタリング
-    filtered_reports = []
-    for r in reports:
-        if depart_filter == "全て" or any(dept in r["投稿者部署"] for dept in st.session_state["user"]["depart"]):
-            filtered_reports.append(r)
-
-    if search_keyword:
-        filtered_reports = [r for r in filtered_reports if search_keyword in r["タグ"] or search_keyword in r["実施内容"]]
+    filtered_reports = [
+        r for r in reports if
+        (depart_filter == "全て" or any(dept in r["投稿者部署"] for dept in st.session_state["user"]["depart"]))
+        and (search_keyword in r["タグ"] or search_keyword in r["実施内容"])
+    ]
 
     if not filtered_reports:
         st.info("🔍 該当する投稿がありません。")
@@ -67,75 +68,65 @@ def timeline():
 
     for idx, report in enumerate(filtered_reports):
         with st.container():
-            st.subheader(f"{report['投稿者']} - {report['カテゴリ']} - {report['投稿日時']}")
-            st.markdown(f"🏷 タグ: {report['タグ']}")
-            st.write(f"📝 実施内容: {report['実施内容']}")
-            st.write(f"💬 所感: {report['所感・備考']}")
-            st.text(f"👍 いいね！ {report['いいね']} / 🎉 ナイスファイト！ {report['ナイスファイト']}")
+            st.markdown("---")
+            col1, col2 = st.columns([1, 8])
+            with col1:
+                st.text(generate_avatar(report["投稿者"]))
+            with col2:
+                st.subheader(f"{report['投稿者']} - {report['投稿日時']}")
+                st.markdown(f"🏷 **タグ**: {report['タグ']}")
+            st.write(f"📝 **実施内容**: {report['実施内容']}")
+            st.write(f"💬 **所感**: {report['所感・備考']}")
+            st.text(f"👍 {report['いいね']} いいね！ | 🎉 {report['ナイスファイト']} ナイスファイト！")
 
-            # いいね & ナイスファイト
-            col1, col2 = st.columns(2)
+            col1, col2 = st.columns([2, 2])
             with col1:
                 if st.button("👍 いいね！", key=f"like_{idx}"):
                     report["いいね"] += 1
                     save_data(REPORTS_FILE, reports)
                     st.rerun()
-
             with col2:
                 if st.button("🎉 ナイスファイト！", key=f"nice_fight_{idx}"):
                     report["ナイスファイト"] += 1
                     save_data(REPORTS_FILE, reports)
                     st.rerun()
 
-            # 🔴 コメント機能
-            if "コメント" not in report:
-                report["コメント"] = []  # ← 初期化を必ず行う
-
             st.subheader("💬 コメント一覧")
-            for comment_idx, comment in enumerate(report["コメント"]):
-                st.text(f"📌 {comment['投稿者']}: {comment['内容']} ({comment['投稿日時']})")
-                if comment["投稿者"] == st.session_state["user"]["name"]:
-                    if st.button("🗑 削除", key=f"delete_comment_{idx}_{comment_idx}"):
-                        report["コメント"].pop(comment_idx)
-                        save_data(REPORTS_FILE, reports)
-                        st.rerun()
+            for comment_idx, comment in enumerate(report.get("コメント", [])):
+                with st.container():
+                    col1, col2 = st.columns([1, 8])
+                    with col1:
+                        st.text(generate_avatar(comment["投稿者"]))
+                    with col2:
+                        st.write(f"📌 **{comment['投稿者']}** ({comment['投稿日時']}): {comment['内容']}")
+                        if comment["投稿者"] == st.session_state["user"]["name"]:
+                            if st.button("🗑 削除", key=f"delete_comment_{idx}_{comment_idx}"):
+                                report["コメント"].pop(comment_idx)
+                                save_data(REPORTS_FILE, reports)
+                                st.rerun()
 
-            # 💬 コメント投稿
             new_comment = st.text_input(f"✏ コメントを入力（{report['投稿者']} さんの日報）", key=f"comment_{idx}")
             if st.button("💬 コメント投稿", key=f"post_comment_{idx}"):
                 if new_comment.strip():
-                    new_comment_data = {
+                    report.setdefault("コメント", []).append({
                         "投稿者": st.session_state["user"]["name"],
                         "内容": new_comment,
                         "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M")
-                    }
-                    report["コメント"].append(new_comment_data)
+                    })
                     save_data(REPORTS_FILE, reports)
-
-                    # 🔔 お知らせに追加
-                    new_notice = {
-                        "タイトル": "あなたの投稿にコメントがつきました！",
-                        "日付": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                        "内容": f"{st.session_state['user']['name']} さんがコメントしました！",
-                        "リンク": idx,
-                        "既読": False
-                    }
-                    notices.append(new_notice)
-                    save_data(NOTICE_FILE, notices)
-
                     st.success("コメントを投稿しました！")
                     st.rerun()
 
 # 📢 部署アナウンス（管理者のみ）
 def post_announcement():
-    if not st.session_state["user"]["admin"]:
+    if not st.session_state["user"].get("admin", False):
         st.error("⚠ あなたにはアナウンス投稿の権限がありません。")
         return
 
     st.title("📢 部署アナウンス投稿")
 
     with st.form("announcement_form"):
-        target_dept = st.multiselect("📂 対象部署", list(set(dept for user in users for dept in user["depart"])))
+        target_dept = st.multiselect("📂 対象部署", sorted(set(dept for user in users for dept in user["depart"])))
         content = st.text_area("📢 アナウンス内容")
         submit = st.form_submit_button("📢 投稿する")
 
@@ -162,7 +153,5 @@ else:
     menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ", "部署アナウンス（管理者）"])
     if menu == "タイムライン":
         timeline()
-    elif menu == "お知らせ":
-        notice()
     elif menu == "部署アナウンス（管理者）":
         post_announcement()
