@@ -51,13 +51,11 @@ def timeline():
     depart_filter = st.selectbox("📂 部署フィルター", ["全て"] + all_departments)
     search_keyword = st.text_input("🔎 投稿検索", placeholder="キーワードを入力")
 
-    filtered_reports = []
-    for r in reports:
-        if depart_filter == "全て" or any(dept in r["投稿者部署"] for dept in st.session_state["user"]["depart"]):
-            filtered_reports.append(r)
-
-    if search_keyword:
-        filtered_reports = [r for r in filtered_reports if search_keyword in r["タグ"] or search_keyword in r["実施内容"]]
+    filtered_reports = [
+        r for r in reports if
+        (depart_filter == "全て" or any(dept in r["投稿者部署"] for dept in st.session_state["user"]["depart"]))
+        and (search_keyword in r["タグ"] or search_keyword in r["実施内容"])
+    ]
 
     if not filtered_reports:
         st.info("🔍 該当する投稿がありません。")
@@ -84,59 +82,32 @@ def timeline():
                     save_data(REPORTS_FILE, reports)
                     st.experimental_rerun()
 
-            # 💬 コメント機能
-            if "コメント" not in report:
-                report["コメント"] = []
+# 🔔 お知らせ（未読・既読管理）
+def show_notices():
+    st.title("🔔 お知らせ")
+    user_departments = st.session_state["user"]["depart"]
 
-            st.subheader("💬 コメント一覧")
-            for comment_idx, comment in enumerate(report["コメント"]):
-                st.text(f"📌 {comment['投稿者']}: {comment['内容']} ({comment['投稿日時']})")
-                if comment["投稿者"] == st.session_state["user"]["name"]:
-                    if st.button("🗑 削除", key=f"delete_comment_{idx}_{comment_idx}"):
-                        report["コメント"].pop(comment_idx)
-                        save_data(REPORTS_FILE, reports)
-                        st.experimental_rerun()
+    unread_notices = [n for n in notices if not n.get("既読") and any(dept in user_departments for dept in n.get("対象部署", []))]
+    read_notices = [n for n in notices if n.get("既読") and any(dept in user_departments for dept in n.get("対象部署", []))]
 
-            new_comment = st.text_input(f"✏ コメントを入力（{report['投稿者']} さんの日報）", key=f"comment_{idx}")
-            if st.button("💬 コメント投稿", key=f"post_comment_{idx}"):
-                if new_comment.strip():
-                    report["コメント"].append({
-                        "投稿者": st.session_state["user"]["name"],
-                        "内容": new_comment,
-                        "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M")
-                    })
-                    save_data(REPORTS_FILE, reports)
-                    st.experimental_rerun()
+    st.subheader("🔵 未読のお知らせ")
+    if unread_notices:
+        for notice in unread_notices:
+            st.markdown("---")
+            st.subheader(f"📢 {notice['タイトル']}")
+            st.write(f"📅 **日付**: {notice['日付']}")
+            st.write(f"💬 **内容**: {notice['内容']}")
+            if st.button("✅ 既読にする", key=f"mark_read_{notice['タイトル']}"):
+                notice["既読"] = True
+                save_data(NOTICE_FILE, notices)
+                st.experimental_rerun()
 
-# 📝 日報投稿（過去の投稿管理付き）
-def post_report():
-    st.title("📝 日報投稿")
-    user = st.session_state["user"]
-
-    # 新規投稿フォーム
-    category = st.text_input("📋 カテゴリ")
-    tags = st.text_input("🏷 タグ (カンマ区切り)")
-    content = st.text_area("📝 実施内容")
-    remarks = st.text_area("💬 所感・備考")
-    submit_button = st.button("📤 投稿する")
-
-    if submit_button:
-        if not category or not tags or not content:
-            st.error("カテゴリ、タグ、実施内容は必須項目です。")
-        else:
-            reports.append({
-                "投稿者": user["name"],
-                "投稿者部署": user["depart"],
-                "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "カテゴリ": category,
-                "タグ": tags.split(","),
-                "実施内容": content,
-                "所感・備考": remarks,
-                "いいね": 0,
-                "ナイスファイト": 0
-            })
-            save_data(REPORTS_FILE, reports)
-            st.success("日報を投稿しました！")
+    st.subheader("🟢 既読のお知らせ")
+    for notice in read_notices:
+        st.markdown("---")
+        st.subheader(f"📢 {notice['タイトル']}")
+        st.write(f"📅 **日付**: {notice['日付']}")
+        st.write(f"💬 **内容**: {notice['内容']}")
 
 # 📢 部署内アナウンス投稿（管理者限定）
 def post_announcement():
@@ -169,10 +140,11 @@ if "user" not in st.session_state:
 if st.session_state["user"] is None:
     login()
 else:
-    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ", "部署内アナウンス"])
+    menu = st.sidebar.radio("メニュー", ["タイムライン", "お知らせ", "部署内アナウンス"])
+
     if menu == "タイムライン":
         timeline()
-    elif menu == "日報投稿":
-        post_report()
     elif menu == "お知らせ":
+        show_notices()
+    elif menu == "部署内アナウンス":
         post_announcement()
