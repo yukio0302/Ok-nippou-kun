@@ -126,17 +126,48 @@ def post_report():
             save_data(REPORTS_FILE, reports)
             st.success("日報を投稿しました！")
 
-# 🔔 お知らせ
+    # 🔔 お知らせ（未読・既読管理つき）
 def show_notices():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
 
     st.title("🔔 お知らせ")
-    for notice in notices:
-        st.subheader(f"📢 {notice['タイトル']}")
-        st.write(f"📅 **日付**: {notice['日付']}")
-        st.write(f"💬 **内容**: {notice['内容']}")
+
+    user_name = st.session_state["user"]["name"]
+    unread_notices = [n for n in notices if not n.get("既読", False)]
+    read_notices = [n for n in notices if n.get("既読", False)]
+
+    # 🔵 未読のお知らせ
+    st.subheader("🔵 未読のお知らせ")
+    if unread_notices:
+        for idx, notice in enumerate(unread_notices):
+            st.markdown("---")
+            st.subheader(f"📢 {notice['タイトル']}")
+            st.write(f"📅 **日付**: {notice['日付']}")
+            st.write(f"💬 **内容**: {notice['内容']}")
+
+            # 🔘 「既読にする」ボタン
+            if st.button("✅ 既読にする", key=f"mark_read_{idx}"):
+                notice["既読"] = True
+                save_data(NOTICE_FILE, notices)
+                st.rerun()
+
+    else:
+        st.info("✅ 未読のお知らせはありません！")
+
+    # 🟢 既読のお知らせ
+    st.subheader("🟢 既読のお知らせ")
+    if read_notices:
+        for notice in read_notices:
+            st.markdown("---")
+            st.subheader(f"📢 {notice['タイトル']}")
+            st.write(f"📅 **日付**: {notice['日付']}")
+            st.write(f"💬 **内容**: {notice['内容']}")
+
+    else:
+        st.info("📭 既読のお知らせはありません。")
+
 
 # 📢 部署内アナウンス
 def post_announcement():
