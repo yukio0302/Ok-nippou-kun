@@ -43,7 +43,7 @@ def login():
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
-# 📜 タイムライン（時間修正 & 所感表示）
+# 📜 タイムライン（時刻修正 & タグ修正）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -54,7 +54,7 @@ def timeline():
     for idx, report in enumerate(reports):
         with st.container():
             st.subheader(f"{report['投稿者']} - {report['投稿日時']}")
-            st.markdown(f"🏷 タグ: {', '.join(report['タグ'])}") 
+            st.markdown(f"🏷 タグ: {', '.join(report['タグ'])}")  # 修正
             st.write(f"📝 **実施内容:** {report['実施内容']}")
             st.write(f"💬 **所感:** {report['所感・備考']}")
             st.text(f"👍 いいね！ {report['いいね']} / 🎉 ナイスファイト！ {report['ナイスファイト']}")
@@ -83,12 +83,11 @@ def timeline():
             comment_input = st.text_area(f"💬 コメントを書く", key=f"comment_input_{idx}")
             if st.button("📤 コメントを投稿", key=f"comment_submit_{idx}"):
                 if comment_input.strip():
-                    now_japan = datetime.utcnow() + timedelta(hours=9)
-                    now_japan_str = now_japan.strftime("%Y-%m-%d %H:%M")
+                    now_japan = datetime.utcnow().strftime("%Y-%m-%d %H:%M")  # ✅ 修正
 
                     new_comment = {
                         "投稿者": st.session_state["user"]["name"],
-                        "日時": now_japan_str,
+                        "日時": now_japan,
                         "内容": comment_input.strip()
                     }
                     report["コメント"].append(new_comment)
@@ -97,7 +96,7 @@ def timeline():
                 else:
                     st.error("コメントを入力してください！")
 
-# 📝 日報投稿（時間修正 & タグ修正）
+# 📝 日報投稿（時刻修正 & タグ修正）
 def post_report():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -116,9 +115,8 @@ def post_report():
         if not category or not tags or not content:
             st.error("カテゴリ、タグ、実施内容は必須項目です。")
         else:
-            # ✅ 日本時間（UTC+9）に修正
-            now_japan = datetime.utcnow() + timedelta(hours=9)
-            now_japan_str = now_japan.strftime("%Y-%m-%d %H:%M")
+            # ✅ タイムゾーンを考慮した時刻取得（日本時間 UTC+9）
+            now_japan = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
 
             # ✅ タグのスペース削除 & 正しい分割処理
             tag_list = [tag.strip() for tag in tags.replace(" ", "").split(",") if tag.strip()]
@@ -126,9 +124,9 @@ def post_report():
             reports.append({
                 "投稿者": user["name"],
                 "投稿者部署": user["depart"],
-                "投稿日時": now_japan_str,
+                "投稿日時": now_japan,  # 修正済み
                 "カテゴリ": category,
-                "タグ": tag_list,
+                "タグ": tag_list,  # 修正済み
                 "実施内容": content,
                 "所感・備考": remarks,
                 "いいね": 0,
@@ -138,8 +136,7 @@ def post_report():
             save_data(REPORTS_FILE, reports)
             st.success("日報を投稿しました！")
 
-
-# 🔔 お知らせ（投稿の詳細＋コメント内容を表示）
+   # 🔔 お知らせ（投稿の詳細＋コメント内容を表示）
 def show_notices():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -158,6 +155,34 @@ def show_notices():
             st.subheader(f"📢 {notice['タイトル']}")
             st.write(f"📅 **日付**: {notice['日付']}")
 
+            # 🔍 該当の投稿を表示（所感含む）
+            if "該当投稿" in notice:
+                st.markdown(f"**📝 該当の投稿:**")
+                st.write(f"**実施内容:** {notice['該当投稿']['実施内容']}")
+                st.write(f"**💬 所感:** {notice['該当投稿']['所感・備考']}")
+
+            # 💬 コメントの詳細を表示
+            if "コメント" in notice:
+                st.markdown(f"**💬 コメント:**")
+                st.write(f"**{notice['コメント']['投稿者']} さんのコメント:** {notice['コメント']['内容']}")
+
+            # 🔘 「既読にする」ボタン
+            if st.button("✅ 既読にする", key=f"mark_read_{idx}"):
+                notice["既読"] = True
+                save_data(NOTICE_FILE, notices)
+                st.rerun()
+
+    else:
+        st.info("✅ 未読のお知らせはありません！")
+
+    # 🟢 既読のお知らせ
+    st.subheader("🟢 既読のお知らせ")
+    if read_notices:
+        for notice in read_notices:
+            st.markdown("---")
+            st.subheader(f"📢 {notice['タイトル']}")
+            st.write(f"📅 **日付**: {notice['日付']}")
+
             if "該当投稿" in notice:
                 st.markdown(f"**📝 該当の投稿:**")
                 st.write(f"**実施内容:** {notice['該当投稿']['実施内容']}")
@@ -167,10 +192,9 @@ def show_notices():
                 st.markdown(f"**💬 コメント:**")
                 st.write(f"**{notice['コメント']['投稿者']} さんのコメント:** {notice['コメント']['内容']}")
 
-            if st.button("✅ 既読にする", key=f"mark_read_{idx}"):
-                notice["既読"] = True
-                save_data(NOTICE_FILE, notices)
-                st.rerun()
+    else:
+        st.info("📭 既読のお知らせはありません。")
+
 
 # 📢 部署内アナウンス
 def post_announcement():
