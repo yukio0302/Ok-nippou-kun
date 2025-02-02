@@ -43,7 +43,7 @@ def login():
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
-# 📜 タイムライン（所感まで表示）
+# 📜 タイムライン（時刻修正 & タグ修正）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -54,7 +54,7 @@ def timeline():
     for idx, report in enumerate(reports):
         with st.container():
             st.subheader(f"{report['投稿者']} - {report['投稿日時']}")
-            st.markdown(f"🏷 タグ: {', '.join(report['タグ'])}")
+            st.markdown(f"🏷 タグ: {', '.join(report['タグ'])}")  # 修正
             st.write(f"📝 **実施内容:** {report['実施内容']}")
             st.write(f"💬 **所感:** {report['所感・備考']}")
             st.text(f"👍 いいね！ {report['いいね']} / 🎉 ナイスファイト！ {report['ナイスファイト']}")
@@ -83,9 +83,11 @@ def timeline():
             comment_input = st.text_area(f"💬 コメントを書く", key=f"comment_input_{idx}")
             if st.button("📤 コメントを投稿", key=f"comment_submit_{idx}"):
                 if comment_input.strip():
+                    now_japan = datetime.utcnow().strftime("%Y-%m-%d %H:%M")  # ✅ 修正
+
                     new_comment = {
                         "投稿者": st.session_state["user"]["name"],
-                        "日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        "日時": now_japan,
                         "内容": comment_input.strip()
                     }
                     report["コメント"].append(new_comment)
@@ -94,7 +96,7 @@ def timeline():
                 else:
                     st.error("コメントを入力してください！")
 
-# 📝 日報投稿
+# 📝 日報投稿（時刻修正 & タグ修正）
 def post_report():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -113,12 +115,18 @@ def post_report():
         if not category or not tags or not content:
             st.error("カテゴリ、タグ、実施内容は必須項目です。")
         else:
+            # ✅ タイムゾーンを考慮した時刻取得（日本時間 UTC+9）
+            now_japan = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+
+            # ✅ タグのスペース削除 & 正しい分割処理
+            tag_list = [tag.strip() for tag in tags.replace(" ", "").split(",") if tag.strip()]
+
             reports.append({
                 "投稿者": user["name"],
                 "投稿者部署": user["depart"],
-                "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "投稿日時": now_japan,  # 修正済み
                 "カテゴリ": category,
-                "タグ": tags.split(","),
+                "タグ": tag_list,  # 修正済み
                 "実施内容": content,
                 "所感・備考": remarks,
                 "いいね": 0,
