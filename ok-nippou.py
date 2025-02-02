@@ -27,7 +27,7 @@ notices = load_data(NOTICE_FILE, [])
 # Streamlit 初期設定
 st.set_page_config(page_title="日報管理システム", layout="wide")
 
-# 🔑 ログイン機能
+# 🔑 ログイン機能（ログイン後にタイムラインへ）
 def login():
     st.title("ログイン")
     user_code = st.text_input("社員コード")
@@ -43,7 +43,7 @@ def login():
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
-# 📜 タイムライン
+# 📜 タイムライン（コメント機能付き）
 def timeline():
     st.title("📜 タイムライン")
 
@@ -81,6 +81,36 @@ def timeline():
                     report["ナイスファイト"] += 1
                     save_data(REPORTS_FILE, reports)
                     st.experimental_rerun()
+
+# 📝 日報投稿（過去の投稿管理付き）
+def post_report():
+    st.title("📝 日報投稿")
+    user = st.session_state["user"]
+
+    # 新規投稿フォーム
+    category = st.text_input("📋 カテゴリ")
+    tags = st.text_input("🏷 タグ (カンマ区切り)")
+    content = st.text_area("📝 実施内容")
+    remarks = st.text_area("💬 所感・備考")
+    submit_button = st.button("📤 投稿する")
+
+    if submit_button:
+        if not category or not tags or not content:
+            st.error("カテゴリ、タグ、実施内容は必須項目です。")
+        else:
+            reports.append({
+                "投稿者": user["name"],
+                "投稿者部署": user["depart"],
+                "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "カテゴリ": category,
+                "タグ": tags.split(","),
+                "実施内容": content,
+                "所感・備考": remarks,
+                "いいね": 0,
+                "ナイスファイト": 0
+            })
+            save_data(REPORTS_FILE, reports)
+            st.success("日報を投稿しました！")
 
 # 🔔 お知らせ（未読・既読管理）
 def show_notices():
@@ -140,10 +170,12 @@ if "user" not in st.session_state:
 if st.session_state["user"] is None:
     login()
 else:
-    menu = st.sidebar.radio("メニュー", ["タイムライン", "お知らせ", "部署内アナウンス"])
+    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ", "部署内アナウンス"])
 
     if menu == "タイムライン":
         timeline()
+    elif menu == "日報投稿":
+        post_report()
     elif menu == "お知らせ":
         show_notices()
     elif menu == "部署内アナウンス":
