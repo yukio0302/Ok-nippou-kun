@@ -39,7 +39,7 @@ def login():
         if user:
             st.session_state["user"] = user
             st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
-            st.experimental_rerun()
+            st.stop()  # ログイン後のエラー防止
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
@@ -120,57 +120,43 @@ def timeline():
                     st.success("コメントを投稿しました！")
                     st.experimental_rerun()
 
-# 📋 日報投稿機能
-def post_report():
-    st.title("📋 日報投稿")
-
-    with st.form("post_report_form"):
-        category = st.text_input("カテゴリ", placeholder="例: 定例会議")
-        tags = st.text_input("タグ", placeholder="例: 会議, ミーティング")
-        content = st.text_area("実施内容", placeholder="何を実施したのか詳細に記載してください。")
-        notes = st.text_area("所感・備考", placeholder="感じたことや次の改善点など")
-
-        submit = st.form_submit_button("投稿する")
-        if submit:
-            if category and tags and content:
-                new_report = {
-                    "投稿者": st.session_state["user"]["name"],
-                    "投稿者部署": st.session_state["user"]["depart"],
-                    "カテゴリ": category,
-                    "タグ": tags,
-                    "実施内容": content,
-                    "所感・備考": notes,
-                    "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "いいね": 0,
-                    "ナイスファイト": 0,
-                    "コメント": []
-                }
-                reports.append(new_report)
-                save_data(REPORTS_FILE, reports)
-                st.success("✅ 日報を投稿しました！")
-                st.experimental_rerun()
-            else:
-                st.error("⚠ 必須項目を入力してください。")
-
 # 🔔 お知らせ
 def show_notices():
     st.title("🔔 お知らせ")
     user_departments = st.session_state["user"]["depart"]
 
-    filtered_notices = [
-        n for n in notices if "対象部署" in n and isinstance(n["対象部署"], list) and any(dept in user_departments for dept in n["対象部署"])
+    # 未読のお知らせ
+    unread_notices = [
+        n for n in notices if not n.get("既読") and "対象部署" in n and isinstance(n["対象部署"], list) and any(dept in user_departments for dept in n["対象部署"])
+    ]
+    # 既読のお知らせ
+    read_notices = [
+        n for n in notices if n.get("既読") and "対象部署" in n and isinstance(n["対象部署"], list) and any(dept in user_departments for dept in n["対象部署"])
     ]
 
-    if not filtered_notices:
-        st.info("📭 現在、あなた宛てのお知らせはありません。")
-        return
+    st.subheader("🔵 未読のお知らせ")
+    if not unread_notices:
+        st.info("📭 現在、未読のお知らせはありません。")
+    else:
+        for notice in unread_notices:
+            st.markdown("---")
+            st.subheader(f"📢 {notice['タイトル']}")
+            st.write(f"📅 **日付**: {notice['日付']}")
+            st.write(f"💬 **内容**: {notice['内容']}")
+            if st.button("✅ 既読にする", key=f"mark_read_{notice['タイトル']}"):
+                notice["既読"] = True
+                save_data(NOTICE_FILE, notices)
+                st.experimental_rerun()
 
-    for notice in filtered_notices:
-        st.markdown("---")
-        st.subheader(f"📢 {notice['タイトル']}")
-        st.write(f"📅 **日付**: {notice['日付']}")
-        st.write(f"💬 **内容**: {notice['内容']}")
-        st.markdown(f"**対象部署**: {', '.join(notice.get('対象部署', []))}")
+    st.subheader("🟢 既読のお知らせ")
+    if not read_notices:
+        st.info("📭 現在、既読のお知らせはありません。")
+    else:
+        for notice in read_notices:
+            st.markdown("---")
+            st.subheader(f"📢 {notice['タイトル']}")
+            st.write(f"📅 **日付**: {notice['日付']}")
+            st.write(f"💬 **内容**: {notice['内容']}")
 
 # メイン処理
 if "user" not in st.session_state:
@@ -182,7 +168,5 @@ else:
     menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ"])
     if menu == "タイムライン":
         timeline()
-    elif menu == "日報投稿":
-        post_report()
     elif menu == "お知らせ":
         show_notices()
