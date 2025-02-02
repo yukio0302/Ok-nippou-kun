@@ -120,43 +120,45 @@ def timeline():
                     st.success("コメントを投稿しました！")
                     st.experimental_rerun()
 
-# 📢 部署アナウンス（管理者のみ）
-def post_announcement():
-    if not st.session_state["user"]["admin"]:
-        st.error("⚠ あなたにはアナウンス投稿の権限がありません。")
-        return
+# 📋 日報投稿機能
+def post_report():
+    st.title("📋 日報投稿")
 
-    st.title("📢 部署アナウンス投稿")
+    with st.form("post_report_form"):
+        category = st.text_input("カテゴリ", placeholder="例: 定例会議")
+        tags = st.text_input("タグ", placeholder="例: 会議, ミーティング")
+        content = st.text_area("実施内容", placeholder="何を実施したのか詳細に記載してください。")
+        notes = st.text_area("所感・備考", placeholder="感じたことや次の改善点など")
 
-    with st.form("announcement_form"):
-        target_dept = st.multiselect("📂 対象部署", list(set(dept for user in users for dept in user["depart"])))
-        content = st.text_area("📢 アナウンス内容")
-        submit = st.form_submit_button("📢 投稿する")
-
-        if submit and content and target_dept:
-            new_announcement = {
-                "タイトル": "📢 部署アナウンス",
-                "日付": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "内容": content,
-                "対象部署": target_dept,
-                "既読": False
-            }
-            notices.append(new_announcement)
-            save_data(NOTICE_FILE, notices)
-            st.success("✅ アナウンスを投稿しました！")
-            st.experimental_rerun()
+        submit = st.form_submit_button("投稿する")
+        if submit:
+            if category and tags and content:
+                new_report = {
+                    "投稿者": st.session_state["user"]["name"],
+                    "投稿者部署": st.session_state["user"]["depart"],
+                    "カテゴリ": category,
+                    "タグ": tags,
+                    "実施内容": content,
+                    "所感・備考": notes,
+                    "投稿日時": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "いいね": 0,
+                    "ナイスファイト": 0,
+                    "コメント": []
+                }
+                reports.append(new_report)
+                save_data(REPORTS_FILE, reports)
+                st.success("✅ 日報を投稿しました！")
+                st.experimental_rerun()
+            else:
+                st.error("⚠ 必須項目を入力してください。")
 
 # 🔔 お知らせ
 def show_notices():
     st.title("🔔 お知らせ")
     user_departments = st.session_state["user"]["depart"]
 
-    for n in notices:
-        if "対象部署" not in n or not isinstance(n["対象部署"], list):
-            st.warning(f"不正なお知らせデータ: {n}")
-
     filtered_notices = [
-        n for n in notices if any(dept in user_departments for dept in n.get("対象部署", []))
+        n for n in notices if "対象部署" in n and isinstance(n["対象部署"], list) and any(dept in user_departments for dept in n["対象部署"])
     ]
 
     if not filtered_notices:
@@ -177,10 +179,10 @@ if "user" not in st.session_state:
 if st.session_state["user"] is None:
     login()
 else:
-    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ", "部署アナウンス（管理者）"])
+    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ"])
     if menu == "タイムライン":
         timeline()
+    elif menu == "日報投稿":
+        post_report()
     elif menu == "お知らせ":
         show_notices()
-    elif menu == "部署アナウンス（管理者）":
-        post_announcement()
