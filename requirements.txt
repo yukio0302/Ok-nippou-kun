@@ -3,4 +3,4 @@ gspread
 oauth2client
 pandas
 firebase_admin
-db_utils
+sqlite3
