@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from db_utils import init_db, authenticate_user, load_notices, save_report, load_reports, mark_notice_as_read
 from db_utils import update_likes, add_comment
 
-
 # ✅ SQLite 初期化
 init_db()
 
@@ -25,43 +24,53 @@ def login():
             st.error("社員コードまたはパスワードが間違っています。")
 
 
-# ✅ タイムライン（いいね！ & コメント機能追加）
+# ✅ タイムライン（X風デザイン）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
 
     st.title("📜 タイムライン")
-
     reports = load_reports()
 
     for report in reports:
         with st.container():
             st.subheader(f"{report[1]} - {report[2]}")
-            st.write(f"🏷 カテゴリ: {report[3]}")
-            st.write(f"📍 場所: {report[4]}")
+            st.write(f"🏷 **カテゴリ:** {report[3]}")
+            st.write(f"📍 **場所:** {report[4]}")
             st.write(f"📝 **実施内容:** {report[5]}")
             st.write(f"💬 **所感:** {report[6]}")
-
-               # コメント表示
-            if report[9]:
-                st.write("📝 **コメント一覧:**")
-                for comment in report[9]:
-                    st.text(comment)
-            st.text(f"👍 いいね！ {report[7]} / 🎉 ナイスファイト！ {report[8]}")
             
-            # いいね & ナイスファイト ボタン
+            # いいね & ナイスファイト（アイコン表示）
+            st.markdown(
+                f"❤️ {report[7]}  👍 {report[8]}",
+                unsafe_allow_html=True
+            )
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("👍 いいね！", key=f"like_{report[0]}"):
+                if st.button("❤️ いいね！", key=f"like_{report[0]}"):
                     update_likes(report[0], "like")
                     st.rerun()
             with col2:
-                if st.button("🎉 ナイスファイト！", key=f"nice_{report[0]}"):
+                if st.button("👍 ナイスファイト！", key=f"nice_{report[0]}"):
                     update_likes(report[0], "nice")
                     st.rerun()
-
-            # コメント入力 & 送信ボタン
+            
+            # コメントリスト
+            if report[9]:
+                st.write("💬 **コメント:**")
+                for comment in report[9]:
+                    st.text(comment)
+                    if st.button("❤️", key=f"comment_like_{comment}"):
+                        update_likes(report[0], "comment_like")
+                        st.rerun()
+                    if st.button("💬 返信", key=f"reply_{comment}"):
+                        reply_text = st.text_input("返信を書く", key=f"reply_text_{comment}")
+                        if st.button("📤 送信", key=f"send_reply_{comment}"):
+                            add_comment(report[0], f"{st.session_state['user']['name']}: {reply_text.strip()}")
+                            st.rerun()
+            
+            # コメント入力欄
             comment_text = st.text_input("💬 コメントを書く", key=f"comment_{report[0]}")
             if st.button("📤 コメント送信", key=f"send_comment_{report[0]}"):
                 if comment_text.strip():
@@ -70,7 +79,7 @@ def timeline():
                 else:
                     st.warning("コメントを入力してください！")
 
-         
+
 
 # ✅ 日報投稿（ボタン連打防止 & 投稿フィードバック追加）
 def post_report():
