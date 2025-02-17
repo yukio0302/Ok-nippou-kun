@@ -4,4 +4,3 @@ oauth2client
 pandas
 firebase_admin
 sqlite3
-shutil
