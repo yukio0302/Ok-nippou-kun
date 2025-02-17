@@ -38,21 +38,26 @@ def init_db():
 
     conn.commit()
     conn.close()
-    print("データベースの初期化が完了しました。")
+    print("✅ データベースの初期化が完了しました。")
 
-# ✅ ユーザー認証（追加）
+# ✅ ユーザー認証（修正 & デバッグログ追加）
 def authenticate_user(employee_code, password):
     try:
-        with open("users_data.json", "r", encoding="utf-8") as file:
+        with open("users_data.json", "r", encoding="utf-8-sig") as file:  # `utf-8-sig` に修正
             users = json.load(file)
-
+        
+        print(f"🔍 ログイン試行: {employee_code}, {password}")  # ← デバッグ用ログ
+        
         for user in users:
-            if user["employee_code"] == employee_code and user["password"] == password:
+            print(f"   👉 検証中: {user['code']} / {user['password']}")  # ← デバッグ用ログ
+            if user["code"] == employee_code and user["password"] == password:
+                print("✅ ログイン成功！")
                 return user  # ログイン成功
 
+        print("❌ ログイン失敗: 該当ユーザーなし")
         return None  # ログイン失敗
     except Exception as e:
-        print(f"ユーザー認証エラー: {e}")
+        print(f"❌ ユーザー認証エラー: {e}")
         return None
 
 # ✅ 日報を保存
@@ -73,9 +78,9 @@ def save_report(report):
             json.dumps(report.get("コメント", []))
         ))
         conn.commit()
-        print("日報が正常に保存されました。")
+        print("✅ 日報が正常に保存されました。")
     except Exception as e:
-        print(f"日報の保存中にエラーが発生しました: {e}")
+        print(f"❌ 日報の保存中にエラーが発生しました: {e}")
     finally:
         conn.close()
 
@@ -94,12 +99,12 @@ def load_reports():
             for row in rows
         ]
     except Exception as e:
-        print(f"レポートの取得中にエラーが発生しました: {e}")
+        print(f"❌ レポートの取得中にエラーが発生しました: {e}")
         return []
     finally:
         conn.close()
 
-# ✅ お知らせを取得（追加）
+# ✅ お知らせを取得
 def load_notices():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -108,7 +113,7 @@ def load_notices():
         rows = cursor.fetchall()
         return rows
     except Exception as e:
-        print(f"お知らせの取得中にエラーが発生しました: {e}")
+        print(f"❌ お知らせの取得中にエラーが発生しました: {e}")
         return []
     finally:
         conn.close()
@@ -120,8 +125,8 @@ def mark_notice_as_read(notice_id):
     try:
         cursor.execute("UPDATE notices SET 既読 = 1 WHERE id = ?", (notice_id,))
         conn.commit()
-        print(f"お知らせ (ID: {notice_id}) を既読にしました。")
+        print(f"✅ お知らせ (ID: {notice_id}) を既読にしました。")
     except Exception as e:
-        print(f"お知らせの既読処理中にエラーが発生しました: {e}")
+        print(f"❌ お知らせの既読処理中にエラーが発生しました: {e}")
     finally:
         conn.close()
