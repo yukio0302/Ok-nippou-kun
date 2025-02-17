@@ -59,6 +59,41 @@ def authenticate_user(employee_code, password):
     except Exception as e:
         print(f"❌ ユーザー認証エラー: {e}")
         return None
+import sqlite3
+import json
+
+
+# ✅ いいね！とナイスファイト！を更新
+def update_likes(report_id, action):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    try:
+        if action == "like":
+            cursor.execute("UPDATE reports SET いいね = いいね + 1 WHERE id = ?", (report_id,))
+        elif action == "nice":
+            cursor.execute("UPDATE reports SET ナイスファイト = ナイスファイト + 1 WHERE id = ?", (report_id,))
+        conn.commit()
+    except Exception as e:
+        print(f"❌ いいね/ナイスファイトの更新エラー: {e}")
+    finally:
+        conn.close()
+
+# ✅ コメントを追加
+def add_comment(report_id, comment):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT コメント FROM reports WHERE id = ?", (report_id,))
+        current_comments = cursor.fetchone()
+        current_comments = json.loads(current_comments[0]) if current_comments and current_comments[0] else []
+        
+        current_comments.append(comment)
+        cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(current_comments), report_id))
+        conn.commit()
+    except Exception as e:
+        print(f"❌ コメント追加エラー: {e}")
+    finally:
+        conn.close()
 
 # ✅ 日報を保存
 def save_report(report):
