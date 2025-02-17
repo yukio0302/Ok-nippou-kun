@@ -1,9 +1,10 @@
 import sqlite3
 import json
-import sqlite3
+import os
 
 DB_FILE = "reports.db"
 
+# ✅ データベース初期化
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -39,8 +40,22 @@ def init_db():
     conn.close()
     print("データベースの初期化が完了しました。")
 
+# ✅ ユーザー認証（追加）
+def authenticate_user(employee_code, password):
+    try:
+        with open("users_data.json", "r", encoding="utf-8") as file:
+            users = json.load(file)
 
+        for user in users:
+            if user["employee_code"] == employee_code and user["password"] == password:
+                return user  # ログイン成功
 
+        return None  # ログイン失敗
+    except Exception as e:
+        print(f"ユーザー認証エラー: {e}")
+        return None
+
+# ✅ 日報を保存
 def save_report(report):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -64,6 +79,7 @@ def save_report(report):
     finally:
         conn.close()
 
+# ✅ 日報を取得（戻り値の形式を修正）
 def load_reports():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -71,18 +87,10 @@ def load_reports():
         cursor.execute("SELECT * FROM reports ORDER BY 実行日 DESC")
         rows = cursor.fetchall()
         return [
-            {
-                "id": row[0],
-                "投稿者": row[1],
-                "実行日": row[2],
-                "カテゴリ": row[3],
-                "場所": row[4],
-                "実施内容": row[5],
-                "所感": row[6],
-                "いいね": row[7],
-                "ナイスファイト": row[8],
-                "コメント": json.loads(row[9]) if row[9] else []
-            }
+            (
+                row[0], row[1], row[2], row[3], row[4],
+                row[5], row[6], row[7], row[8], json.loads(row[9]) if row[9] else []
+            )
             for row in rows
         ]
     except Exception as e:
@@ -91,6 +99,21 @@ def load_reports():
     finally:
         conn.close()
 
+# ✅ お知らせを取得（追加）
+def load_notices():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM notices ORDER BY 日付 DESC")
+        rows = cursor.fetchall()
+        return rows
+    except Exception as e:
+        print(f"お知らせの取得中にエラーが発生しました: {e}")
+        return []
+    finally:
+        conn.close()
+
+# ✅ お知らせを既読にする
 def mark_notice_as_read(notice_id):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
