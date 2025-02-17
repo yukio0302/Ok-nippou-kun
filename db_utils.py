@@ -1,8 +1,5 @@
 import sqlite3
 import json
-
-DB_FILE = "reports.db"
-
 import sqlite3
 
 DB_FILE = "reports.db"
