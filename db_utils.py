@@ -1,66 +1,66 @@
 import sqlite3
 import json
-from datetime import datetime
 
-# JSONファイルのパス
-USER_DATA_FILE = "users_data.json"
 DB_FILE = "reports.db"
 
-# ✅ SQLite 初期化
-def init_db():
+def save_report(report):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    
-    # 📜 投稿データ
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            投稿者 TEXT,
-            実行日 TEXT,
-            カテゴリ TEXT,
-            場所 TEXT,
-            実施内容 TEXT,
-            所感 TEXT,
-            いいね INTEGER DEFAULT 0,
-            ナイスファイト INTEGER DEFAULT 0,
-            コメント TEXT
-        )
-    """)
-
-    # 🔔 お知らせデータ
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS notices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            投稿者 TEXT,
-            内容 TEXT,
-            既読 INTEGER DEFAULT 0
-        )
-    """)
-
-    conn.commit()
-    conn.close()
-
-# ✅ ユーザーデータを読み込む（`users_data.json`）
-def load_users():
     try:
-        with open(USER_DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
+        cursor.execute("""
+            INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, コメント)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            report["投稿者"],
+            report["実行日"],
+            report["カテゴリ"],
+            report["場所"],
+            report["実施内容"],
+            report["所感"],
+            json.dumps(report.get("コメント", []))
+        ))
+        conn.commit()
+        print("日報が正常に保存されました。")
+    except Exception as e:
+        print(f"日報の保存中にエラーが発生しました: {e}")
+    finally:
+        conn.close()
 
-# ✅ ユーザー認証（ログイン）
-def authenticate_user(employee_code, password):
-    users = load_users()
-    for user in users:
-        if user["code"] == employee_code and user["password"] == password:
-            return user  # ユーザー情報を返す（ログイン成功）
-    return None  # ログイン失敗
-
-# ✅ お知らせデータを取得
-def load_notices():
+def load_reports():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM notices ORDER BY id DESC")
-    rows = cursor.fetchall()
-    conn.close()
-    return rows
+    try:
+        cursor.execute("SELECT * FROM reports ORDER BY 実行日 DESC")
+        rows = cursor.fetchall()
+        return [
+            {
+                "id": row[0],
+                "投稿者": row[1],
+                "実行日": row[2],
+                "カテゴリ": row[3],
+                "場所": row[4],
+                "実施内容": row[5],
+                "所感": row[6],
+                "いいね": row[7],
+                "ナイスファイト": row[8],
+                "コメント": json.loads(row[9]) if row[9] else []
+            }
+            for row in rows
+        ]
+    except Exception as e:
+        print(f"レポートの取得中にエラーが発生しました: {e}")
+        return []
+    finally:
+        conn.close()
+
+def mark_notice_as_read(notice_id):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE notices SET 既読 = 1 WHERE id = ?", (notice_id,))
+        conn.commit()
+        print(f"お知らせ (ID: {notice_id}) を既読にしました。")
+    except Exception as e:
+        print(f"お知らせの既読処理中にエラーが発生しました: {e}")
+    finally:
+        conn.close()
