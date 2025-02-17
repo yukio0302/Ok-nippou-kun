@@ -3,6 +3,47 @@ import json
 
 DB_FILE = "reports.db"
 
+import sqlite3
+
+DB_FILE = "reports.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    # reports テーブル作成
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            投稿者 TEXT NOT NULL,
+            実行日 TEXT NOT NULL,
+            カテゴリ TEXT,
+            場所 TEXT,
+            実施内容 TEXT,
+            所感 TEXT,
+            いいね INTEGER DEFAULT 0,
+            ナイスファイト INTEGER DEFAULT 0,
+            コメント TEXT
+        )
+    """)
+
+    # notices テーブル作成
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            内容 TEXT NOT NULL,
+            タイトル TEXT,
+            日付 TEXT,
+            既読 INTEGER DEFAULT 0
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+    print("データベースの初期化が完了しました。")
+
+
+
 def save_report(report):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
