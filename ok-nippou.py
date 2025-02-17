@@ -44,6 +44,12 @@ def timeline():
             st.write(f"💬 **所感:** {report[6]}")
             st.text(f"👍 いいね！ {report[7]} / 🎉 ナイスファイト！ {report[8]}")
 
+   # コメント表示
+            if report[9]:
+                st.write("📝 **コメント一覧:**")
+                for comment in report[9]:
+                    st.text(comment)
+            
             # いいね & ナイスファイト ボタン
             col1, col2 = st.columns(2)
             with col1:
@@ -64,11 +70,7 @@ def timeline():
                 else:
                     st.warning("コメントを入力してください！")
 
-            # コメント表示
-            if report[9]:
-                st.write("📝 **コメント一覧:**")
-                for comment in report[9]:
-                    st.text(comment)
+         
 
 # ✅ 日報投稿（ボタン連打防止 & 投稿フィードバック追加）
 def post_report():
