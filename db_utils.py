@@ -2,6 +2,8 @@ import sqlite3
 import json
 from datetime import datetime
 
+# JSONファイルのパス
+USER_DATA_FILE = "users_data.json"
 DB_FILE = "reports.db"
 
 # ✅ SQLite 初期化
@@ -24,7 +26,7 @@ def init_db():
             コメント TEXT
         )
     """)
-    
+
     # 🔔 お知らせデータ
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS notices (
@@ -34,29 +36,31 @@ def init_db():
             既読 INTEGER DEFAULT 0
         )
     """)
-    
-    conn.commit()
-    conn.close()
-
-# ✅ 投稿を保存
-def save_report(report):
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (report["投稿者"], report["実行日"], report["カテゴリ"], report["場所"],
-          report["実施内容"], report["所感"], 0, 0, json.dumps(report["コメント"])))
 
     conn.commit()
     conn.close()
 
-# ✅ 投稿データを取得
-def load_reports():
+# ✅ ユーザーデータを読み込む（`users_data.json`）
+def load_users():
+    try:
+        with open(USER_DATA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+# ✅ ユーザー認証（ログイン）
+def authenticate_user(employee_code, password):
+    users = load_users()
+    for user in users:
+        if user["code"] == employee_code and user["password"] == password:
+            return user  # ユーザー情報を返す（ログイン成功）
+    return None  # ログイン失敗
+
+# ✅ お知らせデータを取得
+def load_notices():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM reports ORDER BY id DESC")
+    cursor.execute("SELECT * FROM notices ORDER BY id DESC")
     rows = cursor.fetchall()
     conn.close()
     return rows
