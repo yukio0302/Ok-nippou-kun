@@ -42,13 +42,13 @@ def timeline():
             st.write(f"📍 場所: {report[4]}")
             st.write(f"📝 **実施内容:** {report[5]}")
             st.write(f"💬 **所感:** {report[6]}")
-            st.text(f"👍 いいね！ {report[7]} / 🎉 ナイスファイト！ {report[8]}")
 
-   # コメント表示
+               # コメント表示
             if report[9]:
                 st.write("📝 **コメント一覧:**")
                 for comment in report[9]:
                     st.text(comment)
+            st.text(f"👍 いいね！ {report[7]} / 🎉 ナイスファイト！ {report[8]}")
             
             # いいね & ナイスファイト ボタン
             col1, col2 = st.columns(2)
