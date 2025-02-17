@@ -40,7 +40,19 @@ def timeline():
             st.write(f"📍 **場所:** {report[4]}")
             st.write(f"📝 **実施内容:** {report[5]}")
             st.write(f"💬 **所感:** {report[6]}")
-            
+             # コメントリスト
+            if report[9]:
+                st.write("💬 **コメント:**")
+                for comment in report[9]:
+                    st.text(comment)
+                    if st.button("❤️", key=f"comment_like_{comment}"):
+                        update_likes(report[0], "comment_like")
+                        st.rerun()
+                    if st.button("💬 返信", key=f"reply_{comment}"):
+                        reply_text = st.text_input("返信を書く", key=f"reply_text_{comment}")
+                        if st.button("📤 送信", key=f"send_reply_{comment}"):
+                            add_comment(report[0], f"{st.session_state['user']['name']}: {reply_text.strip()}")
+                            st.rerun()
             # いいね & ナイスファイト（アイコン表示）
             st.markdown(
                 f"❤️ {report[7]}  👍 {report[8]}",
@@ -56,19 +68,7 @@ def timeline():
                     update_likes(report[0], "nice")
                     st.rerun()
             
-            # コメントリスト
-            if report[9]:
-                st.write("💬 **コメント:**")
-                for comment in report[9]:
-                    st.text(comment)
-                    if st.button("❤️", key=f"comment_like_{comment}"):
-                        update_likes(report[0], "comment_like")
-                        st.rerun()
-                    if st.button("💬 返信", key=f"reply_{comment}"):
-                        reply_text = st.text_input("返信を書く", key=f"reply_text_{comment}")
-                        if st.button("📤 送信", key=f"send_reply_{comment}"):
-                            add_comment(report[0], f"{st.session_state['user']['name']}: {reply_text.strip()}")
-                            st.rerun()
+           
             
             # コメント入力欄
             comment_text = st.text_input("💬 コメントを書く", key=f"comment_{report[0]}")
