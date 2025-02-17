@@ -22,30 +22,18 @@ def login():
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
-# ✅ タイムライン
+
+# ✅ タイムライン（いいね！ & コメント機能追加）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
 
     st.title("📜 タイムライン")
-    
-    # 🔍 検索＆期間フィルター
-    search_query = st.text_input("🔍 キーワード検索")
-    start_date = st.date_input("📅 開始日", datetime.utcnow() - timedelta(days=7))
-    end_date = st.date_input("📅 終了日", datetime.utcnow())
 
-    # 📜 投稿データを取得
     reports = load_reports()
 
-    # フィルタリング
-    filtered_reports = [
-        r for r in reports
-        if start_date.strftime("%Y-%m-%d") <= r[2] <= end_date.strftime("%Y-%m-%d") and
-           (search_query.lower() in r[5].lower() or search_query.lower() in r[3].lower())
-    ]
-
-    for report in filtered_reports:
+    for report in reports:
         with st.container():
             st.subheader(f"{report[1]} - {report[2]}")
             st.write(f"🏷 カテゴリ: {report[3]}")
@@ -54,7 +42,33 @@ def timeline():
             st.write(f"💬 **所感:** {report[6]}")
             st.text(f"👍 いいね！ {report[7]} / 🎉 ナイスファイト！ {report[8]}")
 
-# ✅ 日報投稿
+            # いいね & ナイスファイト ボタン
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("👍 いいね！", key=f"like_{report[0]}"):
+                    update_likes(report[0], "like")
+                    st.rerun()
+            with col2:
+                if st.button("🎉 ナイスファイト！", key=f"nice_{report[0]}"):
+                    update_likes(report[0], "nice")
+                    st.rerun()
+
+            # コメント入力 & 送信ボタン
+            comment_text = st.text_input("💬 コメントを書く", key=f"comment_{report[0]}")
+            if st.button("📤 コメント送信", key=f"send_comment_{report[0]}"):
+                if comment_text.strip():
+                    add_comment(report[0], f"{st.session_state['user']['name']}: {comment_text.strip()}")
+                    st.rerun()
+                else:
+                    st.warning("コメントを入力してください！")
+
+            # コメント表示
+            if report[9]:
+                st.write("📝 **コメント一覧:**")
+                for comment in report[9]:
+                    st.text(comment)
+
+# ✅ 日報投稿（ボタン連打防止 & 投稿フィードバック追加）
 def post_report():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -62,29 +76,30 @@ def post_report():
 
     st.title("📝 日報投稿")
 
-    execution_date = st.date_input("📅 実行日", datetime.utcnow())
     category = st.text_input("📋 カテゴリ")
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
     remarks = st.text_area("💬 所感")
-    uploaded_file = st.file_uploader("📷 画像をアップロード", type=["jpg", "png", "jpeg"])
 
-    submit_button = st.button("📤 投稿する")
+    submit_button = st.button("📤 投稿する", disabled=st.session_state.get("posting", False))
 
     if submit_button:
-        new_report = {
+        st.session_state["posting"] = True  # ボタンを一時的に無効化
+        save_report({
             "投稿者": st.session_state["user"]["name"],
-            "実行日": execution_date.strftime("%Y-%m-%d"),
+            "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
             "カテゴリ": category,
             "場所": location,
             "実施内容": content,
             "所感": remarks,
             "コメント": []
-        }
-
-        save_report(new_report)
-        st.success("日報を投稿しました！")
+        })
+        st.success("✅ 日報を投稿しました！")
+        time.sleep(2)  # 2秒待ってから画面更新
+        st.session_state["posting"] = False  # ボタンを再び有効化
         st.rerun()
+
+
 
 # ✅ お知らせ
 def show_notices():
