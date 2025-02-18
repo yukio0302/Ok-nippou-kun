@@ -44,6 +44,22 @@ def top_navigation():
     </div>
     """, unsafe_allow_html=True)
 
+# ✅ ログイン機能
+def login():
+    st.title("🔑 ログイン")
+    employee_code = st.text_input("社員コード")
+    password = st.text_input("パスワード", type="password")
+    login_button = st.button("ログイン")
+
+    if login_button:
+        user = authenticate_user(employee_code, password)
+        if user:
+            st.session_state["user"] = user
+            st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
+            st.rerun()
+        else:
+            st.error("社員コードまたはパスワードが間違っています。")
+
 # ✅ タイムライン（コメント＆いいね！機能）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -94,8 +110,90 @@ def timeline():
 
     top_navigation()
 
-# ✅ その他の機能（変更なし）
-# 省略...
+# ✅ 日報投稿（画像対応）
+def post_report():
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+
+    st.title("📝 日報投稿")
+
+    category = st.text_input("📋 カテゴリ")
+    location = st.text_input("📍 場所")
+    content = st.text_area("📝 実施内容")
+    remarks = st.text_area("💬 所感")
+    image = st.file_uploader("📷 添付画像", type=["png", "jpg", "jpeg"])
+
+    submit_button = st.button("📤 投稿する")
+    if submit_button:
+        image_data = image.read() if image else None
+        save_report({
+            "投稿者": st.session_state["user"]["name"],
+            "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
+            "カテゴリ": category,
+            "場所": location,
+            "実施内容": content,
+            "所感": remarks,
+            "コメント": [],
+            "画像": image_data
+        })
+        st.success("✅ 日報を投稿しました！")
+        st.rerun()
+
+# ✅ マイページ（投稿修正・削除対応）
+def my_page():
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+
+    st.title("👤 マイページ")
+
+    user_reports = [r for r in load_reports() if r[1] == st.session_state["user"]["name"]]
+
+    for report in user_reports:
+        with st.container():
+            st.subheader(f"{report[1]} - {report[2]}")
+            st.write(f"🏷 **カテゴリ:** {report[3]}")
+            st.write(f"📍 **場所:** {report[4]}")
+            st.write(f"📝 **実施内容:** {report[5]}")
+            st.write(f"💬 **所感:** {report[6]}")
+            if st.button("✏️ 修正", key=f"edit_{report[0]}"):
+                edit_report(report)
+                st.success("投稿を修正しました。")
+                st.rerun()
+            if st.button("🗑️ 削除", key=f"delete_{report[0]}"):
+                delete_report(report[0])
+                st.success("投稿を削除しました。")
+                st.rerun()
+
+    start_date = st.date_input("📅 CSV出力開始日", datetime.utcnow() - timedelta(days=7))
+    end_date = st.date_input("📅 CSV出力終了日", datetime.utcnow())
+
+    csv_data = pd.DataFrame(user_reports, columns=["投稿者", "実行日", "カテゴリ", "場所", "実施内容", "所感", "いいね", "ナイスファイト", "コメント"])
+    csv_data = csv_data[
+        (csv_data["実行日"] >= start_date.strftime("%Y-%m-%d")) &
+        (csv_data["実行日"] <= end_date.strftime("%Y-%m-%d"))
+    ]
+
+    st.download_button("📥 CSVダウンロード", csv_data.to_csv(index=False).encode("utf-8"), "my_report.csv", "text/csv")
+
+# ✅ お知らせ
+def show_notices():
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+
+    st.title("🔔 お知らせ")
+
+    notices = load_notices()
+    for notice in notices:
+        with st.container():
+            st.subheader(f"📢 {notice[2]}")
+            st.write(f"📅 **日付**: {notice[3]}")
+            st.write(f"📝 **内容:** {notice[1]}")
+            if st.button("✅ 既読にする", key=f"mark_read_{notice[0]}"):
+                mark_notice_as_read(notice[0])
+                st.rerun()
 
 # ✅ メニュー管理
 if "user" not in st.session_state:
