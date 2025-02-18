@@ -8,8 +8,6 @@ DB_FILE = "reports.db"
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-
-    # reports テーブル作成
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,8 +22,6 @@ def init_db():
             コメント TEXT
         )
     """)
-
-    # notices テーブル作成
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS notices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,46 +31,62 @@ def init_db():
             既読 INTEGER DEFAULT 0
         )
     """)
-
     conn.commit()
     conn.close()
     print("✅ データベースの初期化が完了しました。")
 
-# ✅ ユーザー認証（修正 & デバッグログ追加）
-def authenticate_user(employee_code, password):
-    try:
-        with open("users_data.json", "r", encoding="utf-8-sig") as file:  # `utf-8-sig` に修正
-            users = json.load(file)
-        
-        print(f"🔍 ログイン試行: {employee_code}, {password}")  # ← デバッグ用ログ
-        
-        for user in users:
-            print(f"   👉 検証中: {user['code']} / {user['password']}")  # ← デバッグ用ログ
-            if user["code"] == employee_code and user["password"] == password:
-                print("✅ ログイン成功！")
-                return user  # ログイン成功
-
-        print("❌ ログイン失敗: 該当ユーザーなし")
-        return None  # ログイン失敗
-    except Exception as e:
-        print(f"❌ ユーザー認証エラー: {e}")
-        return None
-import sqlite3
-import json
-
-
-# ✅ いいね！とナイスファイト！を更新
-def update_likes(report_id, action):
+# ✅ 日報を保存（修正済み）
+def save_report(report):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-        if action == "like":
-            cursor.execute("UPDATE reports SET いいね = いいね + 1 WHERE id = ?", (report_id,))
-        elif action == "nice":
-            cursor.execute("UPDATE reports SET ナイスファイト = ナイスファイト + 1 WHERE id = ?", (report_id,))
+        print(f"📌 保存データ: {report}")  # デバッグ用
+        cursor.execute("""
+            INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            report.get("投稿者", "不明"),
+            report.get("実行日", "未設定"),
+            report.get("カテゴリ", ""),
+            report.get("場所", ""),
+            report.get("実施内容", ""),
+            report.get("所感", ""),
+            0,  # 初期値
+            0,  # 初期値
+            json.dumps(report.get("コメント", []))
+        ))
         conn.commit()
+        print("✅ 日報が正常に保存されました。")
     except Exception as e:
-        print(f"❌ いいね/ナイスファイトの更新エラー: {e}")
+        print(f"❌ 日報の保存中にエラー: {e}")
+    finally:
+        conn.close()
+
+# ✅ 日報を取得（修正済み）
+def load_reports():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM reports ORDER BY 実行日 DESC")
+        rows = cursor.fetchall()
+        reports = []
+        for row in rows:
+            reports.append({
+                "id": row[0],
+                "投稿者": row[1],
+                "実行日": row[2],
+                "カテゴリ": row[3],
+                "場所": row[4],
+                "実施内容": row[5],
+                "所感": row[6],
+                "いいね": row[7],
+                "ナイスファイト": row[8],
+                "コメント": json.loads(row[9]) if row[9] else []
+            })
+        return reports
+    except Exception as e:
+        print(f"❌ レポート取得エラー: {e}")
+        return []
     finally:
         conn.close()
 
@@ -86,56 +98,28 @@ def add_comment(report_id, comment):
         cursor.execute("SELECT コメント FROM reports WHERE id = ?", (report_id,))
         current_comments = cursor.fetchone()
         current_comments = json.loads(current_comments[0]) if current_comments and current_comments[0] else []
-        
         current_comments.append(comment)
         cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(current_comments), report_id))
         conn.commit()
+        print("✅ コメント追加成功")
     except Exception as e:
         print(f"❌ コメント追加エラー: {e}")
     finally:
         conn.close()
 
-# ✅ 日報を保存
-def save_report(report):
+# ✅ いいね！とナイスファイト！を更新
+def update_likes(report_id, action):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-        cursor.execute("""
-            INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, コメント)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            report["投稿者"],
-            report["実行日"],
-            report["カテゴリ"],
-            report["場所"],
-            report["実施内容"],
-            report["所感"],
-            json.dumps(report.get("コメント", []))
-        ))
+        if action == "like":
+            cursor.execute("UPDATE reports SET いいね = いいね + 1 WHERE id = ?", (report_id,))
+        elif action == "nice":
+            cursor.execute("UPDATE reports SET ナイスファイト = ナイスファイト + 1 WHERE id = ?", (report_id,))
         conn.commit()
-        print("✅ 日報が正常に保存されました。")
+        print(f"✅ {action} が更新されました。")
     except Exception as e:
-        print(f"❌ 日報の保存中にエラーが発生しました: {e}")
-    finally:
-        conn.close()
-
-# ✅ 日報を取得（戻り値の形式を修正）
-def load_reports():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT * FROM reports ORDER BY 実行日 DESC")
-        rows = cursor.fetchall()
-        return [
-            (
-                row[0], row[1], row[2], row[3], row[4],
-                row[5], row[6], row[7], row[8], json.loads(row[9]) if row[9] else []
-            )
-            for row in rows
-        ]
-    except Exception as e:
-        print(f"❌ レポートの取得中にエラーが発生しました: {e}")
-        return []
+        print(f"❌ いいね/ナイスファイト更新エラー: {e}")
     finally:
         conn.close()
 
@@ -145,10 +129,9 @@ def load_notices():
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT * FROM notices ORDER BY 日付 DESC")
-        rows = cursor.fetchall()
-        return rows
+        return cursor.fetchall()
     except Exception as e:
-        print(f"❌ お知らせの取得中にエラーが発生しました: {e}")
+        print(f"❌ お知らせ取得エラー: {e}")
         return []
     finally:
         conn.close()
@@ -162,6 +145,6 @@ def mark_notice_as_read(notice_id):
         conn.commit()
         print(f"✅ お知らせ (ID: {notice_id}) を既読にしました。")
     except Exception as e:
-        print(f"❌ お知らせの既読処理中にエラーが発生しました: {e}")
+        print(f"❌ お知らせ既読エラー: {e}")
     finally:
         conn.close()
