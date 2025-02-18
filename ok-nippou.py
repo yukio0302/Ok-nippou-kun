@@ -1,21 +1,47 @@
 import sys
 import os
 
-print("🔍 現在のPython検索パス:")
-for p in sys.path:
-    print(p)
-
-print("📂 実行ディレクトリ:", os.getcwd())
-
-
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 from db_utils import init_db, authenticate_user, load_notices, save_report, load_reports, mark_notice_as_read
-from db_utils import update_likes, add_comment
+from db_utils import update_likes, add_comment, edit_report, delete_report
 
 # ✅ SQLite 初期化
 init_db()
+
+# ✅ スマホ対応のナビゲーションバー
+def bottom_navigation():
+    st.markdown("""
+    <style>
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: #f9f9f9;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            border-top: 1px solid #ccc;
+        }
+        .nav-bar a {
+            text-decoration: none;
+            color: #555;
+            font-size: 16px;
+            text-align: center;
+        }
+        .nav-bar img {
+            width: 30px;
+            height: 30px;
+        }
+    </style>
+    <div class="nav-bar">
+        <a href="#タイムライン"><img src="https://img.icons8.com/ios-filled/50/000000/home.png"/><br>タイムライン</a>
+        <a href="#日報投稿"><img src="https://img.icons8.com/ios-filled/50/000000/add.png"/><br>日報投稿</a>
+        <a href="#お知らせ"><img src="https://img.icons8.com/ios-filled/50/000000/notification.png"/><br>お知らせ</a>
+        <a href="#マイページ"><img src="https://img.icons8.com/ios-filled/50/000000/user.png"/><br>マイページ</a>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ✅ ログイン機能
 def login():
@@ -34,14 +60,19 @@ def login():
             st.error("社員コードまたはパスワードが間違っています。")
 
 
-# ✅ タイムライン（X風デザイン）
+# ✅ タイムライン（検索機能 & 画像表示対応）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
 
     st.title("📜 タイムライン")
+
+    search_query = st.text_input("🔍 キーワード検索", placeholder="カテゴリ、実施内容、所感などで検索")
     reports = load_reports()
+
+    if search_query:
+        reports = [r for r in reports if search_query.lower() in str(r).lower()]
 
     for report in reports:
         with st.container():
@@ -50,48 +81,13 @@ def timeline():
             st.write(f"📍 **場所:** {report[4]}")
             st.write(f"📝 **実施内容:** {report[5]}")
             st.write(f"💬 **所感:** {report[6]}")
-            
-            # いいね & ナイスファイト（アイコン表示）
-            st.markdown(
-                f"❤️ {report[7]}  👍 {report[8]}",
-                unsafe_allow_html=True
-            )
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("❤️ いいね！", key=f"like_{report[0]}"):
-                    update_likes(report[0], "like")
-                    st.rerun()
-            with col2:
-                if st.button("👍 ナイスファイト！", key=f"nice_{report[0]}"):
-                    update_likes(report[0], "nice")
-                    st.rerun()
-            
-            # コメントリスト
-            if report[9]:
-                st.write("💬 **コメント:**")
-                for comment in report[9]:
-                    st.text(comment)
-                    if st.button("❤️", key=f"comment_like_{comment}"):
-                        update_likes(report[0], "comment_like")
-                        st.rerun()
-                    if st.button("💬 返信", key=f"reply_{comment}"):
-                        reply_text = st.text_input("返信を書く", key=f"reply_text_{comment}")
-                        if st.button("📤 送信", key=f"send_reply_{comment}"):
-                            add_comment(report[0], f"{st.session_state['user']['name']}: {reply_text.strip()}")
-                            st.rerun()
-            
-            # コメント入力欄
-            comment_text = st.text_input("💬 コメントを書く", key=f"comment_{report[0]}")
-            if st.button("📤 コメント送信", key=f"send_comment_{report[0]}"):
-                if comment_text.strip():
-                    add_comment(report[0], f"{st.session_state['user']['name']}: {comment_text.strip()}")
-                    st.rerun()
-                else:
-                    st.warning("コメントを入力してください！")
+            if report[10]:  # 画像がある場合
+                st.image(report[10], caption="添付画像", use_column_width=True)
+
+    bottom_navigation()
 
 
-
-# ✅ 日報投稿（ボタン連打防止 & 投稿フィードバック追加）
+# ✅ 日報投稿（画像対応）
 def post_report():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -103,11 +99,11 @@ def post_report():
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
     remarks = st.text_area("💬 所感")
+    image = st.file_uploader("📷 添付画像", type=["png", "jpg", "jpeg"])
 
-    submit_button = st.button("📤 投稿する", disabled=st.session_state.get("posting", False))
-
+    submit_button = st.button("📤 投稿する")
     if submit_button:
-        st.session_state["posting"] = True  # ボタンを一時的に無効化
+        image_data = image.read() if image else None
         save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
@@ -115,13 +111,49 @@ def post_report():
             "場所": location,
             "実施内容": content,
             "所感": remarks,
-            "コメント": []
+            "コメント": [],
+            "画像": image_data
         })
         st.success("✅ 日報を投稿しました！")
-        time.sleep(2)  # 2秒待ってから画面更新
-        st.session_state["posting"] = False  # ボタンを再び有効化
         st.rerun()
 
+
+# ✅ マイページ（投稿修正・削除対応）
+def my_page():
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+
+    st.title("👤 マイページ")
+
+    user_reports = [r for r in load_reports() if r[1] == st.session_state["user"]["name"]]
+
+    for report in user_reports:
+        with st.container():
+            st.subheader(f"{report[1]} - {report[2]}")
+            st.write(f"🏷 **カテゴリ:** {report[3]}")
+            st.write(f"📍 **場所:** {report[4]}")
+            st.write(f"📝 **実施内容:** {report[5]}")
+            st.write(f"💬 **所感:** {report[6]}")
+            if st.button("✏️ 修正", key=f"edit_{report[0]}"):
+                edit_report(report)
+                st.success("投稿を修正しました。")
+                st.rerun()
+            if st.button("🗑️ 削除", key=f"delete_{report[0]}"):
+                delete_report(report[0])
+                st.success("投稿を削除しました。")
+                st.rerun()
+
+    start_date = st.date_input("📅 CSV出力開始日", datetime.utcnow() - timedelta(days=7))
+    end_date = st.date_input("📅 CSV出力終了日", datetime.utcnow())
+
+    csv_data = pd.DataFrame(user_reports, columns=["投稿者", "実行日", "カテゴリ", "場所", "実施内容", "所感", "いいね", "ナイスファイト", "コメント"])
+    csv_data = csv_data[
+        (csv_data["実行日"] >= start_date.strftime("%Y-%m-%d")) &
+        (csv_data["実行日"] <= end_date.strftime("%Y-%m-%d"))
+    ]
+
+    st.download_button("📥 CSVダウンロード", csv_data.to_csv(index=False).encode("utf-8"), "my_report.csv", "text/csv")
 
 
 # ✅ お知らせ
@@ -138,30 +170,10 @@ def show_notices():
             st.subheader(f"📢 {notice[2]}")
             st.write(f"📅 **日付**: {notice[3]}")
             st.write(f"📝 **内容:** {notice[1]}")
-
             if st.button("✅ 既読にする", key=f"mark_read_{notice[0]}"):
                 mark_notice_as_read(notice[0])
                 st.rerun()
 
-# ✅ マイページ
-def my_page():
-    if "user" not in st.session_state or st.session_state["user"] is None:
-        st.error("ログインしてください。")
-        return
-
-    st.title("👤 マイページ")
-
-    # 📜 自分の投稿一覧
-    user_reports = [r for r in load_reports() if r[1] == st.session_state["user"]["name"]]
-
-    # 📅 CSVダウンロード
-    start_date = st.date_input("📅 CSV出力開始日", datetime.utcnow() - timedelta(days=7))
-    end_date = st.date_input("📅 CSV出力終了日", datetime.utcnow())
-
-    csv_data = pd.DataFrame(user_reports, columns=["投稿者", "実行日", "カテゴリ", "場所", "実施内容", "所感", "いいね", "ナイスファイト", "コメント"])
-    csv_data = csv_data[(csv_data["実行日"] >= start_date.strftime("%Y-%m-%d")) & (csv_data["実行日"] <= end_date.strftime("%Y-%m-%d"))]
-
-    st.download_button("📥 CSVダウンロード", csv_data.to_csv(index=False).encode("utf-8"), "my_report.csv", "text/csv")
 
 # ✅ メニュー管理
 if "user" not in st.session_state:
