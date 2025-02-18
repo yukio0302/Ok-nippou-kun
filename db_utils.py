@@ -5,44 +5,52 @@ import os
 DB_FILE = "reports.db"
 
 # ✅ データベース初期化
-def init_db():
+def init_db(keep_existing=False):
+    """
+    データベースを初期化する関数。
+    keep_existing: True の場合、既存のデータを保持する。
+    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 
-    # reports テーブル作成
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            投稿者 TEXT NOT NULL,
-            実行日 TEXT NOT NULL,
-            カテゴリ TEXT,
-            場所 TEXT,
-            実施内容 TEXT,
-            所感 TEXT,
-            いいね INTEGER DEFAULT 0,
-            ナイスファイト INTEGER DEFAULT 0,
-            コメント TEXT,
-            画像 BLOB
-        )
-    """)
+    if not keep_existing:
+        # reports テーブル作成
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                投稿者 TEXT NOT NULL,
+                実行日 TEXT NOT NULL,
+                カテゴリ TEXT,
+                場所 TEXT,
+                実施内容 TEXT,
+                所感 TEXT,
+                いいね INTEGER DEFAULT 0,
+                ナイスファイト INTEGER DEFAULT 0,
+                コメント TEXT,
+                画像 BLOB
+            )
+        """)
 
-    # notices テーブル作成
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS notices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            内容 TEXT NOT NULL,
-            タイトル TEXT,
-            日付 TEXT,
-            既読 INTEGER DEFAULT 0
-        )
-    """)
+        # notices テーブル作成
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS notices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                内容 TEXT NOT NULL,
+                タイトル TEXT,
+                日付 TEXT,
+                既読 INTEGER DEFAULT 0
+            )
+        """)
 
     conn.commit()
     conn.close()
-    print("✅ データベースの初期化が完了しました。")
+    print("✅ データベースの初期化が完了しました（既存データ保持：", keep_existing, "）")
 
 # ✅ ユーザー認証
 def authenticate_user(employee_code, password):
+    """
+    ユーザーを認証する関数。
+    """
     try:
         with open("users_data.json", "r", encoding="utf-8-sig") as file:
             users = json.load(file)
@@ -57,6 +65,9 @@ def authenticate_user(employee_code, password):
 
 # ✅ 日報を保存
 def save_report(report):
+    """
+    日報を保存する関数。
+    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
@@ -82,6 +93,9 @@ def save_report(report):
 
 # ✅ 日報を取得
 def load_reports():
+    """
+    日報を取得する関数。
+    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
@@ -103,6 +117,9 @@ def load_reports():
 
 # ✅ 投稿を編集
 def edit_report(report):
+    """
+    投稿を編集する関数。
+    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
@@ -127,6 +144,9 @@ def edit_report(report):
 
 # ✅ 投稿を削除
 def delete_report(report_id):
+    """
+    投稿を削除する関数。
+    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
@@ -140,6 +160,9 @@ def delete_report(report_id):
 
 # ✅ コメントを追加
 def add_comment(report_id, comment):
+    """
+    コメントを追加する関数。
+    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
@@ -157,6 +180,9 @@ def add_comment(report_id, comment):
 
 # ✅ お知らせを取得
 def load_notices():
+    """
+    お知らせを取得する関数。
+    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
@@ -171,6 +197,9 @@ def load_notices():
 
 # ✅ お知らせを既読にする
 def mark_notice_as_read(notice_id):
+    """
+    お知らせを既読にする関数。
+    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
@@ -184,6 +213,9 @@ def mark_notice_as_read(notice_id):
 
 # ✅ いいね！とナイスファイト！を更新
 def update_likes(report_id, action):
+    """
+    いいね！やナイスファイトを更新する関数。
+    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
