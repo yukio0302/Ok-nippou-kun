@@ -1,6 +1,6 @@
 import sys
 import os
-import time  # 追加
+import time
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
@@ -60,7 +60,7 @@ def login():
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
-# ✅ タイムライン（コメント＆いいね！機能）
+# ✅ タイムライン
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -87,7 +87,6 @@ def timeline():
             st.write(f"💬 **所感:** {report[6]}")
             st.markdown(f"❤️ {report[7]} 👍 {report[8]}")
 
-            # いいねボタン
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("❤️ いいね！", key=f"like_{report[0]}"):
@@ -98,12 +97,10 @@ def timeline():
                     update_likes(report[0], "nice")
                     st.experimental_rerun()
 
-            # コメント表示
             st.write("💬 **コメント一覧:**")
             for comment in report[9]:
                 st.write(f"・{comment}")
 
-            # コメント入力＆送信
             comment_text = st.text_input("コメントを書く", key=f"comment_input_{report[0]}")
             if st.button("📤 コメント送信", key=f"send_comment_{report[0]}"):
                 if comment_text.strip():
@@ -114,7 +111,7 @@ def timeline():
 
     top_navigation()
 
-# ✅ 日報投稿（画像対応＆成功メッセージ表示）
+# ✅ 日報投稿
 def post_report():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -142,17 +139,49 @@ def post_report():
             "画像": image_data
         })
         st.success("✅ 日報を投稿しました！")
-        time.sleep(2)  # メッセージ表示後にリロード
+        time.sleep(2)
         st.experimental_rerun()
 
-# ✅ その他の機能（省略なし）
+# ✅ マイページ
 def my_page():
-    # マイページ実装
-    pass
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
 
+    st.title("👤 マイページ")
+
+    user_reports = [r for r in load_reports() if r[1] == st.session_state["user"]["name"]]
+
+    if not user_reports:
+        st.info("📭 表示する投稿がありません。")
+        return
+
+    for report in user_reports:
+        with st.container():
+            st.subheader(f"{report[1]} - {report[2]}")
+            st.write(f"🏷 **カテゴリ:** {report[3]}")
+            st.write(f"📍 **場所:** {report[4]}")
+            st.write(f"📝 **実施内容:** {report[5]}")
+            st.write(f"💬 **所感:** {report[6]}")
+
+# ✅ お知らせ
 def show_notices():
-    # お知らせ実装
-    pass
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+
+    st.title("🔔 お知らせ")
+
+    notices = load_notices()
+    if not notices:
+        st.info("📭 お知らせはありません。")
+        return
+
+    for notice in notices:
+        with st.container():
+            st.subheader(f"📢 {notice[2]}")
+            st.write(f"📅 **日付**: {notice[3]}")
+            st.write(f"📝 **内容:** {notice[1]}")
 
 # ✅ メニュー管理
 if "user" not in st.session_state:
