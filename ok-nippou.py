@@ -132,6 +132,7 @@ def show_notices():
             if st.button("✅ 既読にする", key=f"mark_read_{notice[0]}"):
                 mark_notice_as_read(notice[0])
                 st.rerun()
+
 # ✅ マイページ
 def my_page():
     if "user" not in st.session_state or st.session_state["user"] is None:
