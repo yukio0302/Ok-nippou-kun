@@ -132,8 +132,6 @@ def show_notices():
             if st.button("✅ 既読にする", key=f"mark_read_{notice[0]}"):
                 mark_notice_as_read(notice[0])
                 st.rerun()
-
-
 # ✅ マイページ
 def my_page():
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -143,38 +141,17 @@ def my_page():
     st.title("👤 マイページ")
 
     # 📜 自分の投稿一覧
-    df = load_reports()
-    if df.empty:
-        st.warning("まだ投稿がありません。")
-        return
+    user_reports = [r for r in load_reports() if r[1] == st.session_state["user"]["name"]]
 
-    user_name = st.session_state["user"]["name"]
-    user_reports = df[df["投稿者"] == user_name]
+    # 📅 CSVダウンロード
+    start_date = st.date_input("📅 CSV出力開始日", datetime.utcnow() - timedelta(days=7))
+    end_date = st.date_input("📅 CSV出力終了日", datetime.utcnow())
 
-    # 📅 CSVダウンロード用のフィルター
-    start_date = st.date_input("📅 CSV出力開始日", datetime.today() - timedelta(days=7))
-    end_date = st.date_input("📅 CSV出力終了日", datetime.today())
+    csv_data = pd.DataFrame(user_reports, columns=["投稿者", "実行日", "カテゴリ", "場所", "実施内容", "所感", "いいね", "ナイスファイト", "コメント"])
+    csv_data = csv_data[(csv_data["実行日"] >= start_date.strftime("%Y-%m-%d")) & (csv_data["実行日"] <= end_date.strftime("%Y-%m-%d"))]
 
-    # `実行日` を文字列（YYYY-MM-DD）に変換してフィルタリング
-    filtered_reports = user_reports[
-        (user_reports["実行日"] >= pd.to_datetime(start_date)) &
-        (user_reports["実行日"] <= pd.to_datetime(end_date))
-    ]
+    st.download_button("📥 CSVダウンロード", csv_data.to_csv(index=False).encode("utf-8"), "my_report.csv", "text/csv")
 
-    # ダウンロードボタン
-    if not filtered_reports.empty:
-        csv_data = filtered_reports.copy()
-        csv_data["実行日"] = csv_data["実行日"].dt.strftime("%Y-%m-%d")  # 文字列に変換
-        csv_data["コメント"] = csv_data["コメント"].apply(json.dumps)  # JSONを文字列化
-
-        st.download_button(
-            label="📥 CSVダウンロード",
-            data=csv_data.to_csv(index=False, encoding="utf-8-sig"),  # UTF-8 BOM付きでExcel対応
-            file_name="my_report.csv",
-            mime="text/csv",
-        )
-    else:
-        st.warning("指定期間内のデータがありません。")
 # ✅ メニュー管理
 if "user" not in st.session_state:
     st.session_state["user"] = None
