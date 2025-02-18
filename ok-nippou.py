@@ -1,3 +1,13 @@
+import sys
+import os
+
+print("🔍 現在のPython検索パス:")
+for p in sys.path:
+    print(p)
+
+print("📂 実行ディレクトリ:", os.getcwd())
+
+
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
