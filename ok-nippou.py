@@ -134,29 +134,6 @@ def show_notices():
                 st.rerun()
 
 
-# ✅ 日報データを取得（SQLite → DataFrame）
-def load_reports():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT * FROM reports ORDER BY 実行日 DESC")
-        rows = cursor.fetchall()
-
-        # カラム名をDBの定義に合わせる
-        columns = ["ID", "投稿者", "実行日", "カテゴリ", "場所", "実施内容", "所感", "いいね", "ナイスファイト", "コメント"]
-        df = pd.DataFrame(rows, columns=columns)
-
-        # `実行日` を `datetime` 型に変換（フォーマット統一）
-        df["実行日"] = pd.to_datetime(df["実行日"], errors="coerce")  # エラーが出たら NaT にする
-        df["コメント"] = df["コメント"].apply(lambda x: json.loads(x) if isinstance(x, str) else [])
-
-        return df
-    except Exception as e:
-        st.error(f"❌ データ取得エラー: {e}")
-        return pd.DataFrame()  # 空のDataFrameを返す
-    finally:
-        conn.close()
-
 # ✅ マイページ
 def my_page():
     if "user" not in st.session_state or st.session_state["user"] is None:
