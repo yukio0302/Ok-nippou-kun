@@ -5,6 +5,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 from db_utils import init_db, authenticate_user, load_notices, save_report, load_reports, mark_notice_as_read
+from db_utils import update_likes, add_comment, edit_report, delete_report
 
 # ✅ SQLite 初期化
 init_db()
