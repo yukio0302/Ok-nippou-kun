@@ -15,9 +15,6 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
 
-# ✅ ログイン状態を管理
-if "user" not in st.session_state:
-    st.session_state["user"] = None
 
 # ✅ ログイン機能
 def login():
