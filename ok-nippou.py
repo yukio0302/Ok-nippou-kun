@@ -8,10 +8,6 @@ from datetime import datetime, timedelta
 # サブコーディングから必要な関数をインポート
 from db_utils import init_db, authenticate_user, save_report, load_reports, load_notices, mark_notice_as_read, edit_report, delete_report
 
-# ✅ 画像の保存ディレクトリを設定
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
 
@@ -24,6 +20,59 @@ if "page" not in st.session_state:
 # ✅ ページ遷移関数
 def switch_page(page_name):
     st.session_state["page"] = page_name
+
+# ✅ ナビゲーションバー（復活！）
+def top_navigation():
+    st.markdown("""
+    <style>
+        .nav-bar {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            border-top: 1px solid #ccc;
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+        }
+        .nav-item {
+            text-align: center;
+            flex: 1;
+        }
+        .nav-item button {
+            background: none;
+            border: none;
+            color: #555;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+        .nav-item button:hover {
+            color: #000;
+        }
+        .nav-item img {
+            width: 28px;
+            height: 28px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        if st.button("🏠 タイムライン"):
+            switch_page("タイムライン")
+    with col2:
+        if st.button("✏️ 日報投稿"):
+            switch_page("日報投稿")
+    with col3:
+        if st.button("🔔 お知らせ"):
+            switch_page("お知らせ")
+    with col4:
+        if st.button("👤 マイページ"):
+            switch_page("マイページ")
 
 # ✅ ログイン機能
 def login():
@@ -49,20 +98,12 @@ def post_report():
         return
 
     st.title("📝 日報投稿")
+    top_navigation()
 
     category = st.text_input("📋 カテゴリ")
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
     remarks = st.text_area("💬 所感")
-
-    # ✅ 画像アップロード機能
-    uploaded_file = st.file_uploader("📷 画像をアップロード", type=["png", "jpg", "jpeg"])
-    image_path = None
-
-    if uploaded_file:
-        image_path = os.path.join(UPLOAD_DIR, uploaded_file.name)
-        with open(image_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
 
     submit_button = st.button("📤 投稿する")
     if submit_button:
@@ -73,7 +114,6 @@ def post_report():
             "場所": location,
             "実施内容": content,
             "所感": remarks,
-            "画像": image_path,
             "コメント": []
         })
         st.success("✅ 日報を投稿しました！")
@@ -87,6 +127,7 @@ def timeline():
         return
 
     st.title("📜 タイムライン")
+    top_navigation()
 
     reports = load_reports()
 
@@ -101,10 +142,6 @@ def timeline():
         st.write(f"📝 **実施内容:** {report['実施内容']}")
         st.write(f"💬 **所感:** {report['所感']}")
 
-        # ✅ 投稿画像を表示
-        if report["画像"]:
-            st.image(report["画像"], caption="投稿画像", use_column_width=True)
-
         st.markdown(f"❤️ {report['いいね']} 👍 {report['ナイスファイト']}")
         st.write("----")
 
@@ -115,6 +152,7 @@ def show_notices():
         return
 
     st.title("🔔 お知らせ")
+    top_navigation()
 
     notices = load_notices()
 
@@ -135,6 +173,7 @@ def my_page():
         return
 
     st.title("👤 マイページ")
+    top_navigation()
 
     reports = load_reports()
     my_reports = [r for r in reports if r["投稿者"] == st.session_state["user"]["name"]]
@@ -147,21 +186,6 @@ def my_page():
 
     for report in weekly_reports:
         st.write(f"- {report['実行日']}: {report['カテゴリ']} / {report['場所']}")
-
-    # ✅ 自分の投稿を表示（画像付き）
-    st.subheader("📷 投稿履歴")
-    for report in my_reports:
-        st.subheader(f"{report['実行日']} - {report['カテゴリ']} / {report['場所']}")
-        st.write(f"📝 {report['実施内容']}")
-        if report["画像"]:
-            st.image(report["画像"], caption="投稿画像", use_column_width=True)
-
-        if st.button(f"📝 編集 ({report['id']})"):
-            st.write("編集機能の実装（今後追加）")
-
-        if st.button(f"🗑 削除 ({report['id']})"):
-            delete_report(report["id"])
-            st.experimental_rerun()
 
 # ✅ メニュー管理
 if st.session_state["user"] is None:
