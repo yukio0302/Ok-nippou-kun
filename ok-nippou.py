@@ -21,7 +21,7 @@ if "page" not in st.session_state:
 # ✅ ページ遷移関数
 def switch_page(page_name):
     st.session_state["page"] = page_name
-    st.rerun()
+    st.experimental_rerun()
 
 # ✅ ナビゲーションバー
 def top_navigation():
@@ -120,31 +120,32 @@ def post_report():
             "コメント": []
         })
         st.success("✅ 日報を投稿しました！")
-        time.sleep(1)  # ← ここで1秒待機（即リロード防止）
-        st.rerun()
+        time.sleep(1)  # 投稿完了メッセージを見せるための一時停止
+        switch_page("タイムライン")  # 投稿後にタイムラインへ遷移
 
 # ✅ タイムライン
 def timeline():
-    if "user" not in st.session_state:
+    if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
 
     st.title("📜 タイムライン")
     top_navigation()
 
-    reports = load_reports()
+    reports = load_reports()  # データベースから日報を取得
 
     if not reports:
         st.info("📭 表示する投稿がありません。")
         return
 
     for report in reports:
-        st.subheader(f"{report[1]} - {report[2]}")
+        st.subheader(f"{report[1]} さんの日報 ({report[2]})")  # 投稿者と実行日
         st.write(f"🏷 **カテゴリ:** {report[3]}")
         st.write(f"📍 **場所:** {report[4]}")
         st.write(f"📝 **実施内容:** {report[5]}")
         st.write(f"💬 **所感:** {report[6]}")
         st.markdown(f"❤️ {report[7]} 👍 {report[8]}")
+        st.write("----")
 
 # ✅ メニュー管理（ログイン後に自動でタイムラインへ）
 if st.session_state["user"] is None:
@@ -155,6 +156,8 @@ else:
     elif st.session_state["page"] == "日報投稿":
         post_report()
     elif st.session_state["page"] == "お知らせ":
+        # 実装済みの関数を呼び出す
         show_notices()
     elif st.session_state["page"] == "マイページ":
+        # 実装済みの関数を呼び出す
         my_page()
