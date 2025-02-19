@@ -8,13 +8,22 @@ from datetime import datetime, timedelta
 # サブコーディングから必要な関数をインポート
 from db_utils import init_db, authenticate_user, save_report, load_reports, load_notices, mark_notice_as_read, edit_report, delete_report
 
-# 画像の保存ディレクトリを設定
+# ✅ 画像の保存ディレクトリを設定
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
 
+# ✅ ログイン状態を管理
+if "user" not in st.session_state:
+    st.session_state["user"] = None
+if "page" not in st.session_state:
+    st.session_state["page"] = "ログイン"
+
+# ✅ ページ遷移関数
+def switch_page(page_name):
+    st.session_state["page"] = page_name
 
 # ✅ ログイン機能
 def login():
@@ -28,28 +37,10 @@ def login():
         if user:
             st.session_state["user"] = user
             st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
-            time.sleep(1)  # ログイン成功後、少し待機
-            switch_page("タイムライン")  # タイムラインへ遷移
+            time.sleep(1)
+            switch_page("タイムライン")
         else:
             st.error("社員コードまたはパスワードが間違っています。")
-
-# ✅ メニュー管理（ログイン状態を確認）
-if st.session_state["user"] is None:
-    login()  # 🔥 ここで login() を呼び出す
-else:
-    if st.session_state["page"] == "タイムライン":
-        timeline()
-    elif st.session_state["page"] == "日報投稿":
-        post_report()
-    elif st.session_state["page"] == "お知らせ":
-        show_notices()
-    elif st.session_state["page"] == "マイページ":
-        my_page()
-
-
-# ✅ ページ遷移関数
-def switch_page(page_name):
-    st.session_state["page"] = page_name
 
 # ✅ 日報投稿
 def post_report():
@@ -82,7 +73,7 @@ def post_report():
             "場所": location,
             "実施内容": content,
             "所感": remarks,
-            "画像": image_path,  # 画像パスを保存
+            "画像": image_path,
             "コメント": []
         })
         st.success("✅ 日報を投稿しました！")
@@ -116,6 +107,26 @@ def timeline():
 
         st.markdown(f"❤️ {report['いいね']} 👍 {report['ナイスファイト']}")
         st.write("----")
+
+# ✅ お知らせ
+def show_notices():
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+
+    st.title("🔔 お知らせ")
+
+    notices = load_notices()
+
+    for notice in notices:
+        status = "未読" if notice["既読"] == 0 else "既読"
+        st.subheader(f"{notice['タイトル']} - {status}")
+        st.write(f"📅 {notice['日付']}")
+        st.write(f"{notice['内容']}")
+        if notice["既読"] == 0:
+            if st.button(f"既読にする ({notice['id']})"):
+                mark_notice_as_read(notice["id"])
+                st.experimental_rerun()
 
 # ✅ マイページ
 def my_page():
@@ -151,26 +162,6 @@ def my_page():
         if st.button(f"🗑 削除 ({report['id']})"):
             delete_report(report["id"])
             st.experimental_rerun()
-
-# ✅ お知らせ機能（そのまま維持）
-def show_notices():
-    if "user" not in st.session_state or st.session_state["user"] is None:
-        st.error("ログインしてください。")
-        return
-
-    st.title("🔔 お知らせ")
-
-    notices = load_notices()
-
-    for notice in notices:
-        status = "未読" if notice["既読"] == 0 else "既読"
-        st.subheader(f"{notice['タイトル']} - {status}")
-        st.write(f"📅 {notice['日付']}")
-        st.write(f"{notice['内容']}")
-        if notice["既読"] == 0:
-            if st.button(f"既読にする ({notice['id']})"):
-                mark_notice_as_read(notice["id"])
-                st.experimental_rerun()
 
 # ✅ メニュー管理
 if st.session_state["user"] is None:
