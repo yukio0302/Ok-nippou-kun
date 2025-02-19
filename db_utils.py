@@ -60,7 +60,6 @@ def authenticate_user(employee_code, password):
     except Exception as e:
         print(f"❌ ユーザー認証エラー: {e}")
         return None
-
 # ✅ 日報を保存
 def save_report(report):
     """
@@ -99,9 +98,6 @@ def load_reports():
     try:
         cursor.execute("SELECT * FROM reports ORDER BY 実行日 DESC")
         rows = cursor.fetchall()
-        
-        # データが正しく取得できたか確認（デバッグ用）
-        print("✅ 取得した日報データ:", rows)
 
         return [
             (
@@ -116,6 +112,7 @@ def load_reports():
         return []
     finally:
         conn.close()
+
 
 # ✅ 投稿を編集
 def edit_report(report):
