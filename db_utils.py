@@ -4,8 +4,8 @@ import os
 
 DB_FILE = "reports.db"
 
-# ✅ データベース初期化
-def init_db(keep_existing=False):
+# ✅ データベース初期化（データが消えないように修正）
+def init_db(keep_existing=True):
     """
     データベースを初期化する関数。
     keep_existing: True の場合、既存のデータを保持する。
@@ -13,38 +13,36 @@ def init_db(keep_existing=False):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 
-    if not keep_existing:
-        # reports テーブル作成
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS reports (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                投稿者 TEXT NOT NULL,
-                実行日 TEXT NOT NULL,
-                カテゴリ TEXT,
-                場所 TEXT,
-                実施内容 TEXT,
-                所感 TEXT,
-                いいね INTEGER DEFAULT 0,
-                ナイスファイト INTEGER DEFAULT 0,
-                コメント TEXT,
-                画像 BLOB
-            )
-        """)
+    # テーブルが存在しない場合のみ作成（データ消えない）
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            投稿者 TEXT NOT NULL,
+            実行日 TEXT NOT NULL,
+            カテゴリ TEXT,
+            場所 TEXT,
+            実施内容 TEXT,
+            所感 TEXT,
+            いいね INTEGER DEFAULT 0,
+            ナイスファイト INTEGER DEFAULT 0,
+            コメント TEXT,
+            画像 BLOB
+        )
+    """)
 
-        # notices テーブル作成
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS notices (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                内容 TEXT NOT NULL,
-                タイトル TEXT,
-                日付 TEXT,
-                既読 INTEGER DEFAULT 0
-            )
-        """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            内容 TEXT NOT NULL,
+            タイトル TEXT,
+            日付 TEXT,
+            既読 INTEGER DEFAULT 0
+        )
+    """)
 
     conn.commit()
     conn.close()
-    print("✅ データベースの初期化が完了しました（既存データ保持：", keep_existing, "）")
+    print(f"✅ データベースの初期化が完了しました（既存データ保持: {keep_existing}）")
 
 # ✅ ユーザー認証
 def authenticate_user(employee_code, password):
@@ -81,7 +79,7 @@ def save_report(report):
             report["場所"],
             report["実施内容"],
             report["所感"],
-            json.dumps(report.get("コメント", [])),
+            json.dumps(report.get("コメント", [])),  # コメントをJSON形式で保存
             report.get("画像")
         ))
         conn.commit()
@@ -101,6 +99,10 @@ def load_reports():
     try:
         cursor.execute("SELECT * FROM reports ORDER BY 実行日 DESC")
         rows = cursor.fetchall()
+        
+        # データが正しく取得できたか確認（デバッグ用）
+        print("✅ 取得した日報データ:", rows)
+
         return [
             (
                 row[0], row[1], row[2], row[3], row[4],
