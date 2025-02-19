@@ -1,35 +1,30 @@
 import sqlite3
 import json
+from datetime import datetime
 
 DB_FILE = "reports.db"  # データベースファイル名
 
-# ✅ データベース初期化
+# ✅ データベース初期化（画像カラム削除 & 投稿日時追加）
 def init_db(keep_existing=True):
-    """
-    データベースを初期化する関数。
-    keep_existing: True の場合、既存のデータを保持する。
-    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 
-    # reports テーブルが存在しない場合のみ作成
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             投稿者 TEXT NOT NULL,
             実行日 TEXT NOT NULL,
+            投稿日時 TEXT NOT NULL,
             カテゴリ TEXT,
             場所 TEXT,
             実施内容 TEXT,
             所感 TEXT,
             いいね INTEGER DEFAULT 0,
             ナイスファイト INTEGER DEFAULT 0,
-            コメント TEXT DEFAULT '[]',  -- JSON文字列として初期化
-            画像 BLOB
+            コメント TEXT DEFAULT '[]'  -- JSON文字列として初期化
         )
     """)
 
-    # notices テーブルが存在しない場合のみ作成
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS notices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,13 +37,9 @@ def init_db(keep_existing=True):
 
     conn.commit()
     conn.close()
-    print(f"✅ データベースの初期化が完了しました（既存データ保持: {keep_existing}）")
 
 # ✅ ユーザー認証
 def authenticate_user(employee_code, password):
-    """
-    ユーザーを認証する関数。
-    """
     try:
         with open("users_data.json", "r", encoding="utf-8-sig") as file:
             users = json.load(file)
@@ -67,61 +58,50 @@ def authenticate_user(employee_code, password):
         print(f"❌ ユーザー認証エラー: {e}")
         return None
 
-# ✅ 日報を保存
+# ✅ 日報を保存（投稿日時を追加）
 def save_report(report):
-    """
-    日報を保存する関数。
-    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, コメント, 画像)
+            INSERT INTO reports (投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
             report["実行日"],
+            report["投稿日時"],  # 新しく追加
             report["カテゴリ"],
             report["場所"],
             report["実施内容"],
             report["所感"],
-            json.dumps(report.get("コメント", [])),  # コメントをJSON形式で保存
-            report.get("画像")
+            json.dumps(report.get("コメント", []))  # コメントを JSON 形式で保存
         ))
         conn.commit()
-        print("✅ 日報が正常に保存されました。")
     except sqlite3.Error as e:
         print(f"❌ 日報の保存中にエラーが発生しました: {e}")
     finally:
         conn.close()
 
-
-# ✅ 日報を取得（画像カラム削除）
+# ✅ 日報を取得（投稿日時も取得）
 def load_reports():
-    """
-    日報を取得する関数。
-    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT id, 投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント FROM reports ORDER BY 実行日 DESC")
+        cursor.execute("SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント FROM reports ORDER BY 投稿日時 DESC")
         rows = cursor.fetchall()
-
-        # デバッグ用：取得したデータを表示
-        print("✅ 取得した日報データ:", rows)
-
         return [
             {
                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
-                "カテゴリ": row[3],
-                "場所": row[4],
-                "実施内容": row[5],
-                "所感": row[6],
-                "いいね": row[7],
-                "ナイスファイト": row[8],
-                "コメント": json.loads(row[9]) if row[9] else []
+                "投稿日時": row[3],  # 投稿日時を追加
+                "カテゴリ": row[4],
+                "場所": row[5],
+                "実施内容": row[6],
+                "所感": row[7],
+                "いいね": row[8],
+                "ナイスファイト": row[9],
+                "コメント": json.loads(row[10]) if row[10] else []  # JSON 形式のコメントをリストに変換
             }
             for row in rows
         ]
@@ -130,17 +110,34 @@ def load_reports():
         return []
     finally:
         conn.close()
+
+# ✅ コメントを保存
+def save_comment(report_id, comment):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    try:
+        # 既存のコメントを取得
+        cursor.execute("SELECT コメント FROM reports WHERE id = ?", (report_id,))
+        row = cursor.fetchone()
+        if row:
+            comments = json.loads(row[0]) if row[0] else []
+            comments.append(comment)
+
+            # 更新
+            cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
+            conn.commit()
+    except sqlite3.Error as e:
+        print(f"❌ コメントの保存中にエラーが発生しました: {e}")
+    finally:
+        conn.close()
+
 # ✅ お知らせを取得
 def load_notices():
-    """
-    お知らせを取得する関数。
-    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT * FROM notices ORDER BY 日付 DESC")
         rows = cursor.fetchall()
-
         return [
             {
                 "id": row[0],
@@ -159,58 +156,23 @@ def load_notices():
 
 # ✅ お知らせを既読にする
 def mark_notice_as_read(notice_id):
-    """
-    お知らせを既読にする関数。
-    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
         cursor.execute("UPDATE notices SET 既読 = 1 WHERE id = ?", (notice_id,))
         conn.commit()
-        print(f"✅ お知らせ (ID: {notice_id}) を既読にしました。")
     except sqlite3.Error as e:
         print(f"❌ お知らせ既読処理中にエラーが発生しました: {e}")
     finally:
         conn.close()
 
-# ✅ 投稿を編集
-def edit_report(report):
-    """
-    投稿を編集する関数。
-    """
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            UPDATE reports
-            SET カテゴリ = ?, 場所 = ?, 実施内容 = ?, 所感 = ?, 画像 = ?
-            WHERE id = ?
-        """, (
-            report["カテゴリ"],
-            report["場所"],
-            report["実施内容"],
-            report["所感"],
-            report["画像"],
-            report["id"]
-        ))
-        conn.commit()
-        print(f"✅ 日報 (ID: {report['id']}) を編集しました。")
-    except sqlite3.Error as e:
-        print(f"❌ 日報編集中にエラーが発生しました: {e}")
-    finally:
-        conn.close()
-
-# ✅ 投稿を削除
+# ✅ 日報を削除
 def delete_report(report_id):
-    """
-    投稿を削除する関数。
-    """
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
         cursor.execute("DELETE FROM reports WHERE id = ?", (report_id,))
         conn.commit()
-        print(f"✅ 日報 (ID: {report_id}) を削除しました。")
     except sqlite3.Error as e:
         print(f"❌ 日報削除中にエラーが発生しました: {e}")
     finally:
