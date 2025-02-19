@@ -91,7 +91,7 @@ def login():
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
-# ✅ 日報投稿（投稿後に即時反映）
+# ✅ 日報投稿
 def post_report():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -110,7 +110,6 @@ def post_report():
         save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
-            "投稿日時": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時を保存
             "カテゴリ": category,
             "場所": location,
             "実施内容": content,
@@ -118,9 +117,10 @@ def post_report():
             "コメント": []
         })
         st.success("✅ 日報を投稿しました！")
-        st.experimental_rerun()  # 即時反映
+        time.sleep(1)
+        switch_page("タイムライン")
 
-# ✅ タイムライン（投稿日時の表示 & コメント機能）
+# ✅ タイムライン
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -137,28 +137,13 @@ def timeline():
 
     for report in reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
-        st.write(f"🕒 **投稿日時:** {report['投稿日時']}")  # 投稿日時を表示
         st.write(f"🏷 **カテゴリ:** {report['カテゴリ']}")
         st.write(f"📍 **場所:** {report['場所']}")
         st.write(f"📝 **実施内容:** {report['実施内容']}")
         st.write(f"💬 **所感:** {report['所感']}")
 
-        # ✅ コメント表示
-        st.subheader("💬 コメント")
-        for comment in report["コメント"]:
-            st.write(f"- {comment}")
-
-        # ✅ コメント入力フォーム
-        new_comment = st.text_input(f"✏️ コメントを入力 (投稿ID: {report['id']})", key=f"comment_{report['id']}")
-        if st.button(f"💬 コメントする (投稿ID: {report['id']})"):
-            if new_comment:
-                save_comment(report["id"], new_comment)
-                st.experimental_rerun()  # 即時反映
-            else:
-                st.warning("コメントを入力してください！")
-
+        st.markdown(f"❤️ {report['いいね']} 👍 {report['ナイスファイト']}")
         st.write("----")
-
 
 # ✅ お知らせ
 def show_notices():
