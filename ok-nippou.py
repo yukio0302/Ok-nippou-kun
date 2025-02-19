@@ -9,6 +9,7 @@ from db_utils import (
     update_likes, add_comment, edit_report, delete_report, mark_notice_as_read
 )
 
+
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
 
