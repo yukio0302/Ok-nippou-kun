@@ -12,6 +12,17 @@ from db_utils import (
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
 
+# ✅ ログイン状態を管理（ログイン状態を記録するセッション変数）
+if "user" not in st.session_state:
+    st.session_state["user"] = None
+if "page" not in st.session_state:
+    st.session_state["page"] = "ログイン"
+
+# ✅ ページ遷移関数
+def switch_page(page_name):
+    st.session_state["page"] = page_name
+    st.rerun()
+
 # ✅ ナビゲーションバー（スマホ対応・少し下に表示）
 def top_navigation():
     st.markdown("""
@@ -42,14 +53,14 @@ def top_navigation():
         }
     </style>
     <div class="nav-bar">
-        <a href="#タイムライン"><img src="https://img.icons8.com/ios-filled/50/000000/home.png"/><br>タイムライン</a>
-        <a href="#日報投稿"><img src="https://img.icons8.com/ios-filled/50/000000/add.png"/><br>日報投稿</a>
-        <a href="#お知らせ"><img src="https://img.icons8.com/ios-filled/50/000000/notification.png"/><br>お知らせ</a>
-        <a href="#マイページ"><img src="https://img.icons8.com/ios-filled/50/000000/user.png"/><br>マイページ</a>
+        <a href="タイムライン" onclick="switch_page('タイムライン')"><img src="https://img.icons8.com/ios-filled/50/000000/home.png"/><br>タイムライン</a>
+        <a href="日報投稿" onclick="switch_page('日報投稿')"><img src="https://img.icons8.com/ios-filled/50/000000/add.png"/><br>日報投稿</a>
+        <a href="お知らせ" onclick="switch_page('お知らせ')"><img src="https://img.icons8.com/ios-filled/50/000000/notification.png"/><br>お知らせ</a>
+        <a href="マイページ" onclick="switch_page('マイページ')"><img src="https://img.icons8.com/ios-filled/50/000000/user.png"/><br>マイページ</a>
     </div>
     """, unsafe_allow_html=True)
 
-# ✅ ログイン機能
+# ✅ ログイン機能（ログイン成功後にタイムラインへ自動遷移）
 def login():
     st.title("🔑 ログイン")
     employee_code = st.text_input("社員コード")
@@ -61,8 +72,8 @@ def login():
         if user:
             st.session_state["user"] = user
             st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
-            time.sleep(1)  # ← ここで1秒待機してから遷移（エラー防止）
-            st.experimental_rerun()
+            time.sleep(1)  # ← ここで1秒待機（エラー防止）
+            switch_page("タイムライン")  # 自動でタイムラインに遷移
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
@@ -93,7 +104,7 @@ def post_report():
         })
         st.success("✅ 日報を投稿しました！")
         time.sleep(1)  # ← ここで1秒待機（即リロード防止）
-        st.experimental_rerun()
+        st.rerun()
 
 # ✅ タイムライン
 def timeline():
@@ -118,65 +129,15 @@ def timeline():
         st.write(f"💬 **所感:** {report[6]}")
         st.markdown(f"❤️ {report[7]} 👍 {report[8]}")
 
-# ✅ お知らせ
-def show_notices():
-    if "user" not in st.session_state:
-        st.error("ログインしてください。")
-        return
-
-    st.title("🔔 お知らせ")
-    top_navigation()
-
-    notices = load_notices()
-    if not notices:
-        st.info("📭 お知らせはありません。")
-        return
-
-    for notice in notices:
-        st.subheader(f"📢 {notice[2]}")
-        st.write(f"📅 **日付**: {notice[3]}")
-        st.write(f"📝 **内容:** {notice[1]}")
-
-        if st.button("✅ 既読にする", key=f"read_{notice[0]}"):
-            mark_notice_as_read(notice[0])
-            st.experimental_rerun()
-
-# ✅ マイページ
-def my_page():
-    if "user" not in st.session_state:
-        st.error("ログインしてください。")
-        return
-
-    st.title("👤 マイページ")
-    top_navigation()
-
-    user_reports = [r for r in load_reports() if r[1] == st.session_state["user"]["name"]]
-
-    if not user_reports:
-        st.info("📭 表示する投稿がありません。")
-        return
-
-    for report in user_reports:
-        st.subheader(f"{report[1]} - {report[2]}")
-        st.write(f"🏷 **カテゴリ:** {report[3]}")
-        st.write(f"📍 **場所:** {report[4]}")
-        st.write(f"📝 **実施内容:** {report[5]}")
-        st.write(f"💬 **所感:** {report[6]}")
-
-# ✅ メニュー管理
-if "user" not in st.session_state:
-    st.session_state["user"] = None
-
+# ✅ メニュー管理（ログイン後に自動でタイムラインへ）
 if st.session_state["user"] is None:
     login()
 else:
-    menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ", "マイページ"])
-    
-    if menu == "タイムライン":
+    if st.session_state["page"] == "タイムライン":
         timeline()
-    elif menu == "日報投稿":
+    elif st.session_state["page"] == "日報投稿":
         post_report()
-    elif menu == "お知らせ":
+    elif st.session_state["page"] == "お知らせ":
         show_notices()
-    elif menu == "マイページ":
+    elif st.session_state["page"] == "マイページ":
         my_page()
