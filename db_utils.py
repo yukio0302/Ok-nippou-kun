@@ -131,6 +131,49 @@ def load_reports():
     finally:
         conn.close()
 
+# ✅ お知らせを取得
+def load_notices():
+    """
+    お知らせを取得する関数。
+    """
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM notices ORDER BY 日付 DESC")
+        rows = cursor.fetchall()
+
+        return [
+            {
+                "id": row[0],
+                "内容": row[1],
+                "タイトル": row[2],
+                "日付": row[3],
+                "既読": row[4]
+            }
+            for row in rows
+        ]
+    except sqlite3.Error as e:
+        print(f"❌ お知らせ取得中にエラーが発生しました: {e}")
+        return []
+    finally:
+        conn.close()
+
+# ✅ お知らせを既読にする
+def mark_notice_as_read(notice_id):
+    """
+    お知らせを既読にする関数。
+    """
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE notices SET 既読 = 1 WHERE id = ?", (notice_id,))
+        conn.commit()
+        print(f"✅ お知らせ (ID: {notice_id}) を既読にしました。")
+    except sqlite3.Error as e:
+        print(f"❌ お知らせ既読処理中にエラーが発生しました: {e}")
+    finally:
+        conn.close()
+
 # ✅ 投稿を編集
 def edit_report(report):
     """
@@ -171,26 +214,5 @@ def delete_report(report_id):
         print(f"✅ 日報 (ID: {report_id}) を削除しました。")
     except sqlite3.Error as e:
         print(f"❌ 日報削除中にエラーが発生しました: {e}")
-    finally:
-        conn.close()
-
-# ✅ コメントを追加
-def add_comment(report_id, comment):
-    """
-    コメントを追加する関数。
-    """
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT コメント FROM reports WHERE id = ?", (report_id,))
-        current_comments = cursor.fetchone()
-        current_comments = json.loads(current_comments[0]) if current_comments and current_comments[0] else []
-        
-        current_comments.append(comment)
-        cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(current_comments), report_id))
-        conn.commit()
-        print(f"✅ コメントを追加しました (ID: {report_id})。")
-    except sqlite3.Error as e:
-        print(f"❌ コメント追加中にエラーが発生しました: {e}")
     finally:
         conn.close()
