@@ -61,6 +61,7 @@ def login():
         if user:
             st.session_state["user"] = user
             st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
+            time.sleep(1)  # ← ここで1秒待機してから遷移（エラー防止）
             st.experimental_rerun()
         else:
             st.error("社員コードまたはパスワードが間違っています。")
@@ -91,7 +92,7 @@ def post_report():
             "コメント": []
         })
         st.success("✅ 日報を投稿しました！")
-        time.sleep(1)  # エラー防止のため1秒待機
+        time.sleep(1)  # ← ここで1秒待機（即リロード防止）
         st.experimental_rerun()
 
 # ✅ タイムライン
