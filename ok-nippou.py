@@ -3,44 +3,57 @@ import os
 import time
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta
-from db_utils import init_db, authenticate_user, load_notices, save_report, load_reports, mark_notice_as_read
-from db_utils import update_likes, add_comment, edit_report, delete_report
+from datetime import datetime
+from db_utils import (
+    init_db, authenticate_user, load_notices, save_report, load_reports,
+    update_likes, add_comment, edit_report, delete_report, mark_notice_as_read
+)
 
 # ✅ SQLite 初期化（既存データを保持）
 init_db(keep_existing=True)
 
-# ✅ ナビゲーションバー（画面上部固定）
+# ✅ ナビゲーションバー（画面上部より少し下に固定）
 def top_navigation():
     st.markdown("""
     <style>
         .nav-bar {
             position: fixed;
-            top: 0;
+            top: 60px; /* 画面上部より少し下に配置 */
             width: 100%;
             background-color: #f9f9f9;
             display: flex;
             justify-content: space-around;
             padding: 10px 0;
             border-bottom: 1px solid #ccc;
-            z-index: 9999;
+            z-index: 9999; /* 他の要素より上に表示 */
         }
         .nav-bar a {
             text-decoration: none;
             color: #555;
-            font-size: 16px;
+            font-size: 14px;
             text-align: center;
         }
         .nav-bar img {
             width: 30px;
             height: 30px;
         }
+        /* スマホ対応 (幅600px以下の場合) */
+        @media (max-width: 600px) {
+            .nav-bar {
+                flex-direction: row;
+                font-size: 12px;
+            }
+            .nav-bar img {
+                width: 25px;
+                height: 25px;
+            }
+        }
     </style>
     <div class="nav-bar">
-        <a href="#タイムライン"><img src="https://img.icons8.com/ios-filled/50/000000/home.png"/><br>タイムライン</a>
-        <a href="#日報投稿"><img src="https://img.icons8.com/ios-filled/50/000000/add.png"/><br>日報投稿</a>
-        <a href="#お知らせ"><img src="https://img.icons8.com/ios-filled/50/000000/notification.png"/><br>お知らせ</a>
-        <a href="#マイページ"><img src="https://img.icons8.com/ios-filled/50/000000/user.png"/><br>マイページ</a>
+        <a href="#timeline"><img src="https://img.icons8.com/ios-filled/50/000000/home.png"/><br>タイムライン</a>
+        <a href="#post"><img src="https://img.icons8.com/ios-filled/50/000000/add.png"/><br>日報投稿</a>
+        <a href="#notices"><img src="https://img.icons8.com/ios-filled/50/000000/notification.png"/><br>お知らせ</a>
+        <a href="#mypage"><img src="https://img.icons8.com/ios-filled/50/000000/user.png"/><br>マイページ</a>
     </div>
     """, unsafe_allow_html=True)
 
@@ -56,7 +69,7 @@ def login():
         if user:
             st.session_state["user"] = user
             st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
-            st.rerun()
+            st.experimental_rerun()
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
@@ -68,15 +81,11 @@ def timeline():
 
     st.title("📜 タイムライン")
 
-    search_query = st.text_input("🔍 キーワード検索", placeholder="カテゴリ、実施内容、所感などで検索")
     reports = load_reports()
 
     if not reports:
         st.info("📭 表示する投稿がありません。日報を投稿してみましょう！")
         return
-
-    if search_query:
-        reports = [r for r in reports if search_query.lower() in str(r).lower()]
 
     for report in reports:
         with st.container():
@@ -109,8 +118,6 @@ def timeline():
                 else:
                     st.warning("コメントを入力してください！")
 
-    top_navigation()
-
 # ✅ 日報投稿
 def post_report():
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -123,11 +130,9 @@ def post_report():
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
     remarks = st.text_area("💬 所感")
-    image = st.file_uploader("📷 添付画像", type=["png", "jpg", "jpeg"])
 
     submit_button = st.button("📤 投稿する")
     if submit_button:
-        image_data = image.read() if image else None
         save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
@@ -135,11 +140,9 @@ def post_report():
             "場所": location,
             "実施内容": content,
             "所感": remarks,
-            "コメント": [],
-            "画像": image_data
+            "コメント": []
         })
         st.success("✅ 日報を投稿しました！")
-        time.sleep(2)
         st.experimental_rerun()
 
 # ✅ マイページ
@@ -164,25 +167,6 @@ def my_page():
             st.write(f"📝 **実施内容:** {report[5]}")
             st.write(f"💬 **所感:** {report[6]}")
 
-# ✅ お知らせ
-def show_notices():
-    if "user" not in st.session_state or st.session_state["user"] is None:
-        st.error("ログインしてください。")
-        return
-
-    st.title("🔔 お知らせ")
-
-    notices = load_notices()
-    if not notices:
-        st.info("📭 お知らせはありません。")
-        return
-
-    for notice in notices:
-        with st.container():
-            st.subheader(f"📢 {notice[2]}")
-            st.write(f"📅 **日付**: {notice[3]}")
-            st.write(f"📝 **内容:** {notice[1]}")
-
 # ✅ メニュー管理
 if "user" not in st.session_state:
     st.session_state["user"] = None
@@ -190,9 +174,9 @@ if "user" not in st.session_state:
 if st.session_state["user"] is None:
     login()
 else:
-    top_navigation()
+    top_navigation()  # ナビゲーションバーを追加
     menu = st.sidebar.radio("メニュー", ["タイムライン", "日報投稿", "お知らせ", "マイページ"])
-    
+
     if menu == "タイムライン":
         timeline()
     elif menu == "日報投稿":
