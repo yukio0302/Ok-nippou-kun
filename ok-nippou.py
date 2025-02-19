@@ -18,8 +18,6 @@ init_db(keep_existing=True)
 # ✅ ログイン状態を管理
 if "user" not in st.session_state:
     st.session_state["user"] = None
-if "page" not in st.session_state:
-    st.session_state["page"] = "ログイン"
 
 # ✅ ログイン機能
 def login():
