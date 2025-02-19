@@ -21,6 +21,37 @@ if "user" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state["page"] = "ログイン"
 
+# ✅ ログイン機能
+def login():
+    st.title("🔑 ログイン")
+    employee_code = st.text_input("社員コード")
+    password = st.text_input("パスワード", type="password")
+    login_button = st.button("ログイン")
+
+    if login_button:
+        user = authenticate_user(employee_code, password)
+        if user:
+            st.session_state["user"] = user
+            st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
+            time.sleep(1)  # ログイン成功後、少し待機
+            switch_page("タイムライン")  # タイムラインへ遷移
+        else:
+            st.error("社員コードまたはパスワードが間違っています。")
+
+# ✅ メニュー管理（ログイン状態を確認）
+if st.session_state["user"] is None:
+    login()  # 🔥 ここで login() を呼び出す
+else:
+    if st.session_state["page"] == "タイムライン":
+        timeline()
+    elif st.session_state["page"] == "日報投稿":
+        post_report()
+    elif st.session_state["page"] == "お知らせ":
+        show_notices()
+    elif st.session_state["page"] == "マイページ":
+        my_page()
+
+
 # ✅ ページ遷移関数
 def switch_page(page_name):
     st.session_state["page"] = page_name
