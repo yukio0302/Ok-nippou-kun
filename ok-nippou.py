@@ -4,7 +4,8 @@ import time
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from db_utils import (init_db, authenticate_user, load_notices, save_report, load_reports,
+from db_utils import (
+    init_db, authenticate_user, load_notices, save_report, load_reports,
     update_likes, add_comment, edit_report, delete_report, mark_notice_as_read
 )
 
