@@ -23,7 +23,7 @@ def switch_page(page_name):
     st.session_state["page"] = page_name
     st.rerun()
 
-# ✅ ナビゲーションバー（スマホ対応・少し下に表示）
+# ✅ ナビゲーションバー
 def top_navigation():
     st.markdown("""
     <style>
@@ -40,25 +40,42 @@ def top_navigation():
             box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
             z-index: 9999;
         }
-        .nav-bar a {
-            text-decoration: none;
-            color: #555;
-            font-size: 14px;
+        .nav-item {
             text-align: center;
             flex: 1;
         }
-        .nav-bar img {
+        .nav-item button {
+            background: none;
+            border: none;
+            color: #555;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+        .nav-item button:hover {
+            color: #000;
+        }
+        .nav-item img {
             width: 28px;
             height: 28px;
         }
     </style>
-    <div class="nav-bar">
-        <a href="タイムライン" onclick="switch_page('タイムライン')"><img src="https://img.icons8.com/ios-filled/50/000000/home.png"/><br>タイムライン</a>
-        <a href="日報投稿" onclick="switch_page('日報投稿')"><img src="https://img.icons8.com/ios-filled/50/000000/add.png"/><br>日報投稿</a>
-        <a href="お知らせ" onclick="switch_page('お知らせ')"><img src="https://img.icons8.com/ios-filled/50/000000/notification.png"/><br>お知らせ</a>
-        <a href="マイページ" onclick="switch_page('マイページ')"><img src="https://img.icons8.com/ios-filled/50/000000/user.png"/><br>マイページ</a>
-    </div>
     """, unsafe_allow_html=True)
+
+    # Streamlitのコンポーネントでナビゲーションボタンを実装
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        if st.button("🏠 タイムライン"):
+            switch_page("タイムライン")
+    with col2:
+        if st.button("✏️ 日報投稿"):
+            switch_page("日報投稿")
+    with col3:
+        if st.button("🔔 お知らせ"):
+            switch_page("お知らせ")
+    with col4:
+        if st.button("👤 マイページ"):
+            switch_page("マイページ")
 
 # ✅ ログイン機能（ログイン成功後にタイムラインへ自動遷移）
 def login():
