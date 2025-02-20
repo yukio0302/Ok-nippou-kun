@@ -153,19 +153,24 @@ def update_reaction(report_id, reaction_type):
 
 # ✅ コメントを保存（修正済み）
 def save_comment(report_id, commenter, comment):
-    """指定した投稿にコメントを追加（NULLのチェックを強化）"""
+    """指定した投稿にコメントを追加（NULL対策 & エラーチェック強化）"""
+    if not report_id or not commenter or not comment.strip():
+        print(f"⚠️ コメント保存スキップ: report_id={report_id}, commenter={commenter}, comment={comment}")
+        return  # 不正なデータなら保存しない
+
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT コメント FROM reports WHERE id = ?", (report_id,))
         row = cursor.fetchone()
 
-        # NULLチェック → 空リストで初期化
+        # ✅ `None` の場合は空リストで初期化
         comments = json.loads(row[0]) if row and row[0] else []
 
+        # ✅ 新しいコメントを追加
         comments.append({
             "投稿者": commenter,
-            "コメント": comment,
+            "コメント": comment.strip(),
             "日時": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         })
 
