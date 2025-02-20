@@ -107,7 +107,7 @@ def post_report():
         time.sleep(1)
         switch_page("タイムライン")
 
-# ✅ タイムライン
+# ✅ タイムライン（リアクション & コメント機能付き）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -129,8 +129,34 @@ def timeline():
         st.write(f"📝 **実施内容:** {report['実施内容']}")
         st.write(f"💬 **所感:** {report['所感']}")
 
-        st.markdown(f"❤️ {report['いいね']} 👍 {report['ナイスファイト']}")
+        # ✅ いいね！＆ナイスファイト！ボタン
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button(f"❤️ {report['いいね']} いいね！", key=f"like_{report['id']}"):
+                update_reaction(report["id"], "いいね")
+                st.rerun()
+        with col2:
+            if st.button(f"👍 {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
+                update_reaction(report["id"], "ナイスファイト")
+                st.rerun()
+
+        # ✅ コメント欄
+        with st.expander("💬 コメントを見る・追加する"):
+            if report["コメント"]:
+                for c in report["コメント"]:
+                    st.write(f"👤 {c['投稿者']} ({c['日時']}): {c['コメント']}")
+
+            new_comment = st.text_area(f"✏️ {st.session_state['user']['name']} さんのコメント", key=f"comment_{report['id']}")
+            if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
+                if new_comment.strip():
+                    save_comment(report["id"], st.session_state["user"]["name"], new_comment)
+                    st.success("✅ コメントを投稿しました！")
+                    st.rerun()
+                else:
+                    st.warning("⚠️ 空白のコメントは投稿できません！")
+
         st.write("----")
+
 
 # ✅ お知らせ
 def show_notices():
