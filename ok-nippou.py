@@ -22,7 +22,7 @@ def switch_page(page_name):
     st.session_state["page"] = page_name
     st.experimental_rerun()  # 即時リロードで1回クリックで遷移！
 
-# ✅ ナビゲーションバー（復活！）
+# ✅ ナビゲーションバー（1回クリックで遷移）
 def top_navigation():
     st.markdown("""
     <style>
@@ -54,10 +54,6 @@ def top_navigation():
         .nav-item button:hover {
             color: #000;
         }
-        .nav-item img {
-            width: 28px;
-            height: 28px;
-        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -74,6 +70,7 @@ def top_navigation():
     with col4:
         if st.button("👤 マイページ"):
             switch_page("マイページ")
+
 
 # ✅ ログイン機能
 def login():
