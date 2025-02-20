@@ -17,10 +17,10 @@ if "user" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state["page"] = "ログイン"
 
-# ✅ ページ遷移関数
+# ✅ ページ遷移関数（修正済み）
 def switch_page(page_name):
     st.session_state["page"] = page_name
-     st.experimental_rerun()  # 即時リロードで1回クリックで遷移！
+    st.experimental_rerun()  # 即時リロードで1回クリックで遷移！
 
 # ✅ ナビゲーションバー（復活！）
 def top_navigation():
