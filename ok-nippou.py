@@ -146,19 +146,19 @@ def timeline():
                 for c in report["コメント"]:
                     st.write(f"👤 {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
-            # ✅ `report["id"]` が None じゃないかチェック
-            if report["id"] is None:
-                st.error("⚠️ この投稿の ID が見つかりません。")
+            # ✅ IDが `None` の場合のチェック（防止策）
+            if report.get("id") is None:
+                st.error("⚠️ 投稿の ID が見つかりません。")
                 continue
-            
-            # ✅ `st.session_state["user"]["name"]` が None じゃないかチェック
+
+            # ✅ ログインユーザー名の取得
             commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
-            
-            # ✅ ユニークなキーを設定（コメントの入力欄がバグらないように）
+
+            # ✅ テキストエリアのキーをユニークに（バグ防止）
             new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
-            
+
             if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
-                if new_comment.strip():
+                if new_comment and new_comment.strip():
                     save_comment(report["id"], commenter_name, new_comment)
                     st.success("✅ コメントを投稿しました！")
                     st.rerun()
