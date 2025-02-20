@@ -161,7 +161,6 @@ def timeline():
                 if new_comment and new_comment.strip():
                     print(f"🛠️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
 save_comment(report["id"], commenter_name, new_comment)
-                    save_comment(report["id"], commenter_name, new_comment)
                     st.success("✅ コメントを投稿しました！")
                     st.rerun()
                 else:
