@@ -89,6 +89,7 @@ def top_navigation():
         st.session_state.page = "タイムライン"
 
     st.write(f"### 現在のページ: {st.session_state.page}")
+    top_navigation()
 
 # ✅ ログイン機能（修正済み）
 def login():
