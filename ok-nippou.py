@@ -22,8 +22,6 @@ def switch_page(page_name):
     """ページを切り替える（即時リロードはなし！）"""
     st.session_state["page"] = page_name
 # ✅ ナビゲーションバー（修正済み）
-import streamlit as st
-
 def top_navigation():
     st.markdown("""
     <style>
@@ -33,17 +31,15 @@ def top_navigation():
             left: 0;
             width: 100%;
             background-color: #ffffff;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2列 */
             gap: 10px;
-            padding: 10px 0;
+            padding: 10px;
             border-bottom: 1px solid #ccc;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             z-index: 9999;
         }
         .nav-item {
-            flex: 1 1 45%; /* 2列配置 */
             text-align: center;
             font-size: 14px;
             padding: 10px;
@@ -56,6 +52,11 @@ def top_navigation():
             color: black;
             font-weight: bold;
             background-color: #ddd;
+        }
+        @media (max-width: 600px) {
+            .nav-bar {
+                grid-template-columns: repeat(2, 1fr); /* スマホでも2列を維持 */
+            }
         }
     </style>
     """, unsafe_allow_html=True)
