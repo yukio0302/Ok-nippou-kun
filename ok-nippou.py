@@ -22,6 +22,8 @@ def switch_page(page_name):
     """ページを切り替える（即時リロードはなし！）"""
     st.session_state["page"] = page_name
 # ✅ ナビゲーションバー（修正済み）
+import streamlit as st
+
 def top_navigation():
     st.markdown("""
     <style>
@@ -56,24 +58,27 @@ def top_navigation():
             background-color: #ddd;
         }
     </style>
-    
-    <div class="nav-bar">
-        <div class="nav-item" onclick="selectPage('タイムライン')">⏳ タイムライン</div>
-        <div class="nav-item" onclick="selectPage('日報投稿')">✏️ 日報投稿</div>
-        <div class="nav-item" onclick="selectPage('お知らせ')">🔔 お知らせ</div>
-        <div class="nav-item" onclick="selectPage('マイページ')">👤 マイページ</div>
-    </div>
-    
-    <script>
-        function selectPage(page) {
-            fetch("/update_session?page=" + page, {method: "POST"})
-            .then(() => location.reload());
-        }
-    </script>
     """, unsafe_allow_html=True)
-
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("⏳ タイムライン"):
+            st.session_state.page = "タイムライン"
+            st.rerun()
+        if st.button("🔔 お知らせ"):
+            st.session_state.page = "お知らせ"
+            st.rerun()
+    with col2:
+        if st.button("✏️ 日報投稿"):
+            st.session_state.page = "日報投稿"
+            st.rerun()
+        if st.button("👤 マイページ"):
+            st.session_state.page = "マイページ"
+            st.rerun()
+    
     if "page" not in st.session_state:
         st.session_state.page = "タイムライン"
+
 # ✅ ログイン機能（修正済み）
 def login():
     st.title("🔑 ログイン")
