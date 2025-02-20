@@ -140,31 +140,27 @@ def timeline():
                 update_reaction(report["id"], "ナイスファイト")
                 st.rerun()
 
-        # ✅ コメント欄
+          # コメント欄
         with st.expander("💬 コメントを見る・追加する"):
             if report["コメント"]:
                 for c in report["コメント"]:
                     st.write(f"👤 {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
-            # ✅ IDが `None` の場合のチェック（防止策）
             if report.get("id") is None:
                 st.error("⚠️ 投稿の ID が見つかりません。")
                 continue
 
-            # ✅ ログインユーザー名の取得
             commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
-
-            # ✅ テキストエリアのキーをユニークに（バグ防止）
             new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
 
             if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
                 if new_comment and new_comment.strip():
                     print(f"🛠️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
-save_comment(report["id"], commenter_name, new_comment)
-st.success("✅ コメントを投稿しました！")
-st.rerun()
-else:
-st.warning("⚠️ 空白のコメントは投稿できません！")
+                    save_comment(report["id"], commenter_name, new_comment)
+                    st.success("✅ コメントを投稿しました！")
+                    st.rerun()
+                else:
+                    st.warning("⚠️ 空白のコメントは投稿できません！")
 
 st.write("----")
 
