@@ -107,7 +107,7 @@ def post_report():
         time.sleep(1)
         switch_page("タイムライン")
 
-# ✅ タイムライン（リアクション & コメント機能付き）
+# ✅ タイムライン（コメント機能修正）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -146,17 +146,26 @@ def timeline():
                 for c in report["コメント"]:
                     st.write(f"👤 {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
-            new_comment = st.text_area(f"✏️ {st.session_state['user']['name']} さんのコメント", key=f"comment_{report['id']}")
+            # ✅ `report["id"]` が None じゃないかチェック
+            if report["id"] is None:
+                st.error("⚠️ この投稿の ID が見つかりません。")
+                continue
+            
+            # ✅ `st.session_state["user"]["name"]` が None じゃないかチェック
+            commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
+            
+            # ✅ ユニークなキーを設定（コメントの入力欄がバグらないように）
+            new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
+            
             if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
                 if new_comment.strip():
-                    save_comment(report["id"], st.session_state["user"]["name"], new_comment)
+                    save_comment(report["id"], commenter_name, new_comment)
                     st.success("✅ コメントを投稿しました！")
                     st.rerun()
                 else:
                     st.warning("⚠️ 空白のコメントは投稿できません！")
 
         st.write("----")
-
 
 # ✅ お知らせ
 def show_notices():
