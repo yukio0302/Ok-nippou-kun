@@ -135,10 +135,25 @@ def edit_report(report_id, updated_report):
         print(f"❌ 日報編集エラー: {e}")
     finally:
         conn.close()
+# ✅ リアクション（いいね！ or ナイスファイト！）を更新
+def update_reaction(report_id, reaction_type):
+    """指定した投稿の「いいね！」または「ナイスファイト！」を1増やす"""
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    try:
+        if reaction_type == "いいね":
+            cursor.execute("UPDATE reports SET いいね = いいね + 1 WHERE id = ?", (report_id,))
+        elif reaction_type == "ナイスファイト":
+            cursor.execute("UPDATE reports SET ナイスファイト = ナイスファイト + 1 WHERE id = ?", (report_id,))
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"❌ リアクション更新エラー: {e}")
+    finally:
+        conn.close()
 
 # ✅ コメントを保存
-def save_comment(report_id, comment):
-    """日報にコメントを追加する。"""
+def save_comment(report_id, commenter, comment):
+    """指定した投稿にコメントを追加"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
@@ -146,7 +161,7 @@ def save_comment(report_id, comment):
         row = cursor.fetchone()
         if row:
             comments = json.loads(row[0]) if row[0] else []
-            comments.append(comment)
+            comments.append({"投稿者": commenter, "コメント": comment, "日時": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")})
 
             cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
             conn.commit()
