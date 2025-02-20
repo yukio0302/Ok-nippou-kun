@@ -20,6 +20,7 @@ if "page" not in st.session_state:
 # ✅ ページ遷移関数
 def switch_page(page_name):
     st.session_state["page"] = page_name
+     st.experimental_rerun()  # 即時リロードで1回クリックで遷移！
 
 # ✅ ナビゲーションバー（復活！）
 def top_navigation():
