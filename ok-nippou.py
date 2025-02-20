@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 # サブコーディングから必要な関数をインポート
-from db_utils import init_db, authenticate_user, save_report, load_reports, load_notices, mark_notice_as_read, edit_report, delete_report
+from db_utils import init_db, authenticate_user, save_report, load_reports, load_notices, mark_notice_as_read, edit_report, delete_report, update_reaction, save_comment
 
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
@@ -159,6 +159,8 @@ def timeline():
 
             if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
                 if new_comment and new_comment.strip():
+                    print(f"🛠️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
+save_comment(report["id"], commenter_name, new_comment)
                     save_comment(report["id"], commenter_name, new_comment)
                     st.success("✅ コメントを投稿しました！")
                     st.rerun()
