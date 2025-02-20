@@ -65,23 +65,6 @@ def top_navigation():
     </div>
     """, unsafe_allow_html=True)
 
-    with col1:
-        if st.button("🏠 タイムライン"):
-            st.session_state["page"] = "タイムライン"
-            st.rerun()  # ✅ ここでリロードする！
-    with col2:
-        if st.button("✏️ 日報投稿"):
-            st.session_state["page"] = "日報投稿"
-            st.rerun()
-    with col3:
-        if st.button("🔔 お知らせ"):
-            st.session_state["page"] = "お知らせ"
-            st.rerun()
-    with col4:
-        if st.button("👤 マイページ"):
-            st.session_state["page"] = "マイページ"
-            st.rerun()
-
 # ✅ ログイン機能（修正済み）
 def login():
     st.title("🔑 ログイン")
