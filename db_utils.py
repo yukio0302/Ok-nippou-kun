@@ -151,24 +151,31 @@ def update_reaction(report_id, reaction_type):
     finally:
         conn.close()
 
-# ✅ コメントを保存
+# ✅ コメントを保存（修正済み）
 def save_comment(report_id, commenter, comment):
-    """指定した投稿にコメントを追加"""
+    """指定した投稿にコメントを追加（NULLのチェックを強化）"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT コメント FROM reports WHERE id = ?", (report_id,))
         row = cursor.fetchone()
-        if row:
-            comments = json.loads(row[0]) if row[0] else []
-            comments.append({"投稿者": commenter, "コメント": comment, "日時": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")})
 
-            cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
-            conn.commit()
+        # NULLチェック → 空リストで初期化
+        comments = json.loads(row[0]) if row and row[0] else []
+
+        comments.append({
+            "投稿者": commenter,
+            "コメント": comment,
+            "日時": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        })
+
+        cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
+        conn.commit()
     except sqlite3.Error as e:
         print(f"❌ コメント保存エラー: {e}")
     finally:
         conn.close()
+
 
 # ✅ お知らせを取得
 def load_notices():
