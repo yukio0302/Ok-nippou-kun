@@ -163,10 +163,10 @@ def timeline():
 save_comment(report["id"], commenter_name, new_comment)
 st.success("✅ コメントを投稿しました！")
 st.rerun()
-                else:
-                    st.warning("⚠️ 空白のコメントは投稿できません！")
+else:
+st.warning("⚠️ 空白のコメントは投稿できません！")
 
-        st.write("----")
+st.write("----")
 
 # ✅ お知らせ
 def show_notices():
