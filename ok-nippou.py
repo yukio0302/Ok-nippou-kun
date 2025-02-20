@@ -21,49 +21,43 @@ if "page" not in st.session_state:
 def switch_page(page_name):
     """ページを切り替える（即時リロードはなし！）"""
     st.session_state["page"] = page_name
-# スマホ向け2行2列ナビゲーションバー（固定表示）
+# ✅ ナビゲーションバー（修正済み）
 def top_navigation():
     st.markdown("""
     <style>
         .nav-bar {
             position: fixed;
-            top: 0;
+            top: 60px;
             left: 0;
             width: 100%;
             background-color: #ffffff;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 5px;
+            display: flex;
+            justify-content: space-around;
             padding: 10px 0;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-top: 1px solid #ccc;
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
             z-index: 9999;
         }
-        .nav-bar button {
-            font-size: 16px;
-            padding: 10px;
-            border: none;
-            background: #f9f9f9;
-            color: #333;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .nav-bar button:hover {
-            background: #eaeaea;
-        }
-        .nav-bar button:active {
-            background: #ddd;
-        }
-        body {
-            padding-top: 120px; /* ナビゲーションバーの高さ分調整 */
-        }
     </style>
-    <div class="nav-bar">
-        <button onclick="window.location.reload()">🏠 タイムライン</button>
-        <button onclick="window.location.reload()">✏️ 日報投稿</button>
-        <button onclick="window.location.reload()">🔔 お知らせ</button>
-        <button onclick="window.location.reload()">👤 マイページ</button>
-    </div>
     """, unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        if st.button("🏠 タイムライン"):
+            st.session_state["page"] = "タイムライン"
+            st.rerun()  # ✅ ここでリロードする！
+    with col2:
+        if st.button("✏️ 日報投稿"):
+            st.session_state["page"] = "日報投稿"
+            st.rerun()
+    with col3:
+        if st.button("🔔 お知らせ"):
+            st.session_state["page"] = "お知らせ"
+            st.rerun()
+    with col4:
+        if st.button("👤 マイページ"):
+            st.session_state["page"] = "マイページ"
+            st.rerun()
 
 # ✅ ログイン機能（修正済み）
 def login():
