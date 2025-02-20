@@ -27,7 +27,7 @@ def top_navigation():
     <style>
         .nav-bar {
             position: fixed;
-            top: 60px;
+            bottom: 0;
             left: 0;
             width: 100%;
             background-color: #ffffff;
@@ -38,26 +38,57 @@ def top_navigation():
             box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
             z-index: 9999;
         }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+            cursor: pointer;
+            color: #666;
+        }
+        .nav-item.active {
+            color: black;
+            font-weight: bold;
+        }
+        .badge {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background-color: red;
+            color: white;
+            font-size: 10px;
+            padding: 3px 6px;
+            border-radius: 50%;
+        }
     </style>
+    
+    <div class="nav-bar">
+        <div class="nav-item" onclick="selectPage('タイムライン')">
+            ⏳<br>タイムライン
+        </div>
+        <div class="nav-item" onclick="selectPage('日報投稿')">
+            ✏️<br>日報投稿
+        </div>
+        <div class="nav-item" onclick="selectPage('お知らせ')">
+            🔔<br>お知らせ
+        </div>
+        <div class="nav-item" onclick="selectPage('マイページ')">
+            👤<br>マイページ
+        </div>
+    </div>
+    
+    <script>
+        function selectPage(page) {
+            fetch("/update_session?page=" + page, {method: "POST"})
+            .then(() => location.reload());
+        }
+    </script>
     """, unsafe_allow_html=True)
 
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        if st.button("🏠 タイムライン"):
-            st.session_state["page"] = "タイムライン"
-            st.rerun()  # ✅ ここでリロードする！
-    with col2:
-        if st.button("✏️ 日報投稿"):
-            st.session_state["page"] = "日報投稿"
-            st.rerun()
-    with col3:
-        if st.button("🔔 お知らせ"):
-            st.session_state["page"] = "お知らせ"
-            st.rerun()
-    with col4:
-        if st.button("👤 マイページ"):
-            st.session_state["page"] = "マイページ"
-            st.rerun()
+    if "page" not in st.session_state:
+        st.session_state.page = "タイムライン"
+
+    st.write(f"### 現在のページ: {st.session_state.page}")
 
 # ✅ ログイン機能（修正済み）
 def login():
