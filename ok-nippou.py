@@ -19,10 +19,9 @@ if "page" not in st.session_state:
 
 # ✅ ページ遷移関数（修正済み）
 def switch_page(page_name):
+    """ページを切り替える（即時リロードはなし！）"""
     st.session_state["page"] = page_name
-    st.experimental_rerun()  # 即時リロードで1回クリックで遷移！
-
-# ✅ ナビゲーションバー（1回クリックで遷移）
+# ✅ ナビゲーションバー（修正済み）
 def top_navigation():
     st.markdown("""
     <style>
@@ -39,40 +38,28 @@ def top_navigation():
             box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
             z-index: 9999;
         }
-        .nav-item {
-            text-align: center;
-            flex: 1;
-        }
-        .nav-item button {
-            background: none;
-            border: none;
-            color: #555;
-            font-size: 14px;
-            cursor: pointer;
-            padding: 5px 10px;
-        }
-        .nav-item button:hover {
-            color: #000;
-        }
     </style>
     """, unsafe_allow_html=True)
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         if st.button("🏠 タイムライン"):
-            switch_page("タイムライン")
+            st.session_state["page"] = "タイムライン"
+            st.rerun()  # ✅ ここでリロードする！
     with col2:
         if st.button("✏️ 日報投稿"):
-            switch_page("日報投稿")
+            st.session_state["page"] = "日報投稿"
+            st.rerun()
     with col3:
         if st.button("🔔 お知らせ"):
-            switch_page("お知らせ")
+            st.session_state["page"] = "お知らせ"
+            st.rerun()
     with col4:
         if st.button("👤 マイページ"):
-            switch_page("マイページ")
+            st.session_state["page"] = "マイページ"
+            st.rerun()
 
-
-# ✅ ログイン機能
+# ✅ ログイン機能（修正済み）
 def login():
     st.title("🔑 ログイン")
     employee_code = st.text_input("社員コード")
@@ -85,9 +72,11 @@ def login():
             st.session_state["user"] = user
             st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
             time.sleep(1)
-            switch_page("タイムライン")
+            st.session_state["page"] = "タイムライン"
+            st.rerun()  # ✅ ここで即リロード！
         else:
             st.error("社員コードまたはパスワードが間違っています。")
+
 
 # ✅ 日報投稿
 def post_report():
