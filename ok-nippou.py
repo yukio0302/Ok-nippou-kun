@@ -21,27 +21,50 @@ if "page" not in st.session_state:
 def switch_page(page_name):
     """ページを切り替える（即時リロードはなし！）"""
     st.session_state["page"] = page_name
-# ✅ ナビゲーションバー（修正済み）
+# スマホ向け2行2列ナビゲーションバー（固定表示）
 def top_navigation():
     st.markdown("""
     <style>
         .nav-bar {
             position: fixed;
-            top: 60px;
+            top: 0;
             left: 0;
             width: 100%;
             background-color: #ffffff;
-            display: flex;
-            justify-content: space-around;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
             padding: 10px 0;
-            border-top: 1px solid #ccc;
-            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             z-index: 9999;
         }
+        .nav-bar button {
+            font-size: 16px;
+            padding: 10px;
+            border: none;
+            background: #f9f9f9;
+            color: #333;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .nav-bar button:hover {
+            background: #eaeaea;
+        }
+        .nav-bar button:active {
+            background: #ddd;
+        }
+        body {
+            padding-top: 120px; /* ナビゲーションバーの高さ分調整 */
+        }
     </style>
+    <div class="nav-bar">
+        <button onclick="window.location.reload()">🏠 タイムライン</button>
+        <button onclick="window.location.reload()">✏️ 日報投稿</button>
+        <button onclick="window.location.reload()">🔔 お知らせ</button>
+        <button onclick="window.location.reload()">👤 マイページ</button>
+    </div>
     """, unsafe_allow_html=True)
 
-    col1, col2, col3, col4 = st.columns(4)
     with col1:
         if st.button("🏠 タイムライン"):
             st.session_state["page"] = "タイムライン"
