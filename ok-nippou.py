@@ -224,21 +224,21 @@ def timeline():
                 update_reaction(report["id"], "ナイスファイト")
                 st.rerun()
 
-                  # コメント欄
-        comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
-        with st.expander(f"💬 ({comment_count}件)のコメントを見る・追加する "):  # 件数を表示
-            if report["コメント"]:
-                for c in report["コメント"]:
-                    st.write(f"👤 {c['投稿者']} ({c['日時']}): {c['コメント']}")
+                 # コメント欄
+comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
+with st.expander(f"💬 ({comment_count}件)のコメントを見る・追加する "):  # 件数を表示
+    if report["コメント"]:
+        for c in report["コメント"]:
+            st.write(f"👤 {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
-            if report.get("id") is None:
-                st.error("⚠️ 投稿の ID が見つかりません。")
-                continue
+    if report.get("id") is None:
+        st.error("⚠️ 投稿の ID が見つかりません。")
+        continue
 
-            commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
-            new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
+    commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
+    new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
 
-           if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
+    if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
         if new_comment and new_comment.strip():
             # 現在時刻に9時間1分を加算
             current_time = datetime.now() + timedelta(hours=9, minutes=1)
