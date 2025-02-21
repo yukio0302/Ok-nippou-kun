@@ -180,11 +180,16 @@ def timeline():
         selected_department = st.selectbox("📌 表示する部署を選択", all_departments, index=0)
         st.session_state["selected_department"] = selected_department
 
-    # ✅ フィルタ処理
+        # ✅ 投稿の「部署」をリスト化（万が一 `str` で保存されていた場合に対応）
+    for report in reports:
+        if isinstance(report["部署"], str):
+            report["部署"] = [report["部署"]]
+
+   # ✅ フィルタ処理
     if st.session_state["filter_mode"] == "所属部署":
-        reports = [report for report in reports if "部署" in report and isinstance(report["部署"], str) and report["部署"] in user_departments]
+        reports = [report for report in reports if set(report["部署"]) & set(user_departments)]  # 🔥 ここ修正済み
     elif st.session_state["filter_mode"] == "他の部署" and st.session_state["selected_department"]:
-        reports = [report for report in reports if "部署" in report and isinstance(report["部署"], str) and report["部署"] == st.session_state["selected_department"]]
+        reports = [report for report in reports if st.session_state["selected_department"] in report["部署"]]
 
     # ✅ 検索フィルタ（フィルタ後のデータに適用）
     if search_query:
