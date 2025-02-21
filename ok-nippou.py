@@ -240,6 +240,9 @@ def timeline():
 
             if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
                 if new_comment and new_comment.strip():
+                    current_time = datetime.now() + timedelta(hours=9, minutes=1)
+            # 時間を適切なフォーマットに変換
+            formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
                     print(f"🛠️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
                     save_comment(report["id"], commenter_name, new_comment)
                     st.success("✅ コメントを投稿しました！")
