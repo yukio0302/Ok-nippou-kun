@@ -238,19 +238,23 @@ def timeline():
             commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
             new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
 
-            if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
-                if new_comment and new_comment.strip():
-                    current_time = datetime.now() + timedelta(hours=9, minutes=1)
-                    # 時間を適切なフォーマットに変換
+           if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
+        if new_comment and new_comment.strip():
+            # 現在時刻に9時間1分を加算
+            current_time = datetime.now() + timedelta(hours=9, minutes=1)
+
+            # 時間を適切なフォーマットに変換
             formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
 
             # デバッグ用の出力
             print(f"🛠️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}, time={formatted_time}")
-                    save_comment(report["id"], commenter_name, new_comment)
-                    st.success("✅ コメントを投稿しました！")
-                    st.rerun()
-                else:
-                    st.warning("⚠️ 空白のコメントは投稿できません！")
+
+            # コメント保存
+            save_comment(report["id"], commenter_name, new_comment, formatted_time)
+            st.success("✅ コメントを投稿しました！")
+            st.rerun()
+        else:
+            st.warning("⚠️ 空白のコメントは投稿できません！")
 
 st.write("----")
 
