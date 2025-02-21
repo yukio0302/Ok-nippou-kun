@@ -224,27 +224,29 @@ def timeline():
                 update_reaction(report["id"], "ナイスファイト")
                 st.rerun()
 
-          # コメント欄
-        with st.expander("💬 コメントを見る・追加する"):
-            if report["コメント"]:
-                for c in report["コメント"]:
-                    st.write(f"👤 {c['投稿者']} ({c['日時']}): {c['コメント']}")
+ # コメント欄
+comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント数を取得
+with st.expander(f"💬 コメントを見る・追加する（コメント{comment_count}件）"):
+    if report["コメント"]:
+        for c in report["コメント"]:
+            st.write(f"👤 {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
-            if report.get("id") is None:
-                st.error("⚠️ 投稿の ID が見つかりません。")
-                continue
+    if report.get("id") is None:
+        st.error("⚠️ 投稿の ID が見つかりません。")
+        continue
 
-            commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
-            new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
+    commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
+    new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
 
-            if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
-                if new_comment and new_comment.strip():
-                    print(f"🛠️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
-                    save_comment(report["id"], commenter_name, new_comment)
-                    st.success("✅ コメントを投稿しました！")
-                    st.rerun()
-                else:
-                    st.warning("⚠️ 空白のコメントは投稿できません！")
+    if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
+        if new_comment and new_comment.strip():
+            print(f"🛠️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
+            save_comment(report["id"], commenter_name, new_comment)
+            st.success("✅ コメントを投稿しました！")
+            st.rerun()
+        else:
+            st.warning("⚠️ 空白のコメントは投稿できません！")
+
 
 st.write("----")
 
