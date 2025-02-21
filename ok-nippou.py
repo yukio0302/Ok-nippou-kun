@@ -231,9 +231,10 @@ with st.expander(f"💬 コメントを見る・追加する（コメント{comm
         for c in report["コメント"]:
             st.write(f"👤 {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
-  if report.get("id") is None:
+if report.get("id") is None:
     st.error("⚠️ 投稿の ID が見つかりません。")
     return  # 処理を終了
+
 
     commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
     new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
