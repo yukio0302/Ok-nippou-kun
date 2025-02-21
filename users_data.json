@@ -71,6 +71,9 @@
 {"code": "901188", "password": "okanaga", "name": "佐藤　裕美", "depart":[ "企画部"],"admin": false},
 {"code": "901189", "password": "okanaga", "name": "田野口　唯那", "depart":[ "業務部"],"admin": false},
 {"code": "901191", "password": "okanaga", "name": "今井　靖夫", "depart":[ "総務部"],"admin": false},
+{"code": "909085", "password": "okanaga", "name": "長妻　玲", "depart":[ "業務部"],"admin": false},
+{"code": "909093", "password": "okanaga", "name": "村山　真琴", "depart":[ "業務部"],"admin": false},
+{"code": "909094", "password": "okanaga", "name": "金子　知恵", "depart":[ "業務部"],"admin": false},
 {"code": "901194", "password": "okanaga", "name": "丸崎　果穂", "depart":[ "国際流通"],"admin": false}
 
 ]
