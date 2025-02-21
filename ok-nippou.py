@@ -180,9 +180,10 @@ def timeline():
         selected_department = st.selectbox("📌 表示する部署を選択", all_departments, index=0)
         st.session_state["selected_department"] = selected_department
 
-        # ✅ 投稿の「部署」をリスト化（万が一 `str` で保存されていた場合に対応）
+  # ✅ 投稿の「部署」をリスト化（万が一 `str` や `None` だった場合に対応）
     for report in reports:
-        if isinstance(report["部署"], str):
+        report["部署"] = report.get("部署", [])  # 🔥 `部署` がない場合は空リストをセット
+        if not isinstance(report["部署"], list):  # 🔥 `str` だった場合はリスト化
             report["部署"] = [report["部署"]]
 
    # ✅ フィルタ処理
