@@ -138,11 +138,27 @@ def timeline():
     top_navigation()
 
     reports = load_reports()
-
+    
+ # ✅ 検索ボックスを追加
+    search_query = st.text_input("🔍 投稿を検索", "")
+    
     if not reports:
         st.info("📭 表示する投稿がありません。")
         return
+    # ✅ 検索機能の実装（投稿の中身 or カテゴリに検索ワードが含まれるか）
+    if search_query:
+        reports = [
+            report for report in reports
+            if search_query.lower() in report["実施内容"].lower()
+            or search_query.lower() in report["所感"].lower()
+            or search_query.lower() in report["カテゴリ"].lower()
+        ]
 
+    # ✅ 検索結果がない場合の表示
+    if not reports:
+        st.warning("🔎 該当する投稿が見つかりませんでした。")
+        return
+        
     for report in reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
         st.write(f"🏷 **カテゴリ:** {report['カテゴリ']}")
