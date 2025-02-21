@@ -4,7 +4,9 @@ import time
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-
+# ヘルパー関数: 現在時刻に9時間を加算する
+def get_current_time():
+    return datetime.now() + timedelta(hours=9)
 # サブコーディングから必要な関数をインポート
 from db_utils import init_db, authenticate_user, save_report, load_reports, load_notices, mark_notice_as_read, edit_report, delete_report, update_reaction, save_comment
 
