@@ -139,13 +139,48 @@ def timeline():
 
     reports = load_reports()
     
- # ✅ 検索ボックスを追加
+ # ✅ 検索ボックス
     search_query = st.text_input("🔍 投稿を検索", "")
-    
-    if not reports:
-        st.info("📭 表示する投稿がありません。")
-        return
-    # ✅ 検索機能の実装（投稿の中身 or カテゴリに検索ワードが含まれるか）
+
+    # ✅ 全部署リスト（固定）
+    all_departments = ["業務部", "営業部", "企画部", "国際流通", "総務部", "情報統括", "マーケティング室"]
+
+    # ✅ ユーザーの所属部署を取得
+    user_departments = st.session_state["user"]["depart"]
+
+    # ✅ フィルタ状態をセッションで管理（デフォルトは「全体表示」）
+    if "filter_mode" not in st.session_state:
+        st.session_state["filter_mode"] = "全体表示"
+        st.session_state["selected_department"] = None
+
+    # ✅ フィルタ切り替えボタン
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("🌎 全体表示"):
+            st.session_state["filter_mode"] = "全体表示"
+            st.session_state["selected_department"] = None
+            st.rerun()
+    with col2:
+        if st.button("🏢 所属部署の投稿を見る"):
+            st.session_state["filter_mode"] = "所属部署"
+            st.session_state["selected_department"] = None
+            st.rerun()
+    with col3:
+        if st.button("🔍 他の部署の投稿を見る"):
+            st.session_state["filter_mode"] = "他の部署"
+
+    # ✅ 他の部署を選ぶセレクトボックス（選択時のみ表示）
+    if st.session_state["filter_mode"] == "他の部署":
+        selected_department = st.selectbox("📌 表示する部署を選択", all_departments, index=0)
+        st.session_state["selected_department"] = selected_department
+
+     # ✅ フィルタ処理
+    if st.session_state["filter_mode"] == "所属部署":
+        reports = [report for report in reports if report["部署"] in user_departments]
+    elif st.session_state["filter_mode"] == "他の部署" and st.session_state["selected_department"]:
+        reports = [report for report in reports if report["部署"] == st.session_state["selected_department"]]
+
+    # ✅ 検索フィルタ（フィルタ後のデータに適用）
     if search_query:
         reports = [
             report for report in reports
@@ -154,10 +189,10 @@ def timeline():
             or search_query.lower() in report["カテゴリ"].lower()
         ]
 
-    # ✅ 検索結果がない場合の表示
     if not reports:
         st.warning("🔎 該当する投稿が見つかりませんでした。")
         return
+
         
     for report in reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
