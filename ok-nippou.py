@@ -145,8 +145,14 @@ def timeline():
     # ✅ 全部署リスト（固定）
     all_departments = ["業務部", "営業部", "企画部", "国際流通", "総務部", "情報統括", "マーケティング室"]
 
-    # ✅ ユーザーの所属部署を取得
-    user_departments = st.session_state["user"]["depart"]
+  # ✅ ユーザーの所属部署を取得（エラー防止）
+    user_departments = st.session_state["user"].get("depart", [])  # `depart` がなければ空リスト
+
+    # ✅ `depart` が `str` の場合はリスト化
+    if isinstance(user_departments, str):
+        user_departments = [user_departments]
+
+    print(f"🛠️ デバッグ: user_departments = {user_departments}")  # ← 確認用（デプロイ後は削除）
 
     # ✅ フィルタ状態をセッションで管理（デフォルトは「全体表示」）
     if "filter_mode" not in st.session_state:
@@ -174,11 +180,11 @@ def timeline():
         selected_department = st.selectbox("📌 表示する部署を選択", all_departments, index=0)
         st.session_state["selected_department"] = selected_department
 
-     # ✅ フィルタ処理
+    # ✅ フィルタ処理
     if st.session_state["filter_mode"] == "所属部署":
-        reports = [report for report in reports if report["部署"] in user_departments]
+        reports = [report for report in reports if "部署" in report and isinstance(report["部署"], str) and report["部署"] in user_departments]
     elif st.session_state["filter_mode"] == "他の部署" and st.session_state["selected_department"]:
-        reports = [report for report in reports if report["部署"] == st.session_state["selected_department"]]
+        reports = [report for report in reports if "部署" in report and isinstance(report["部署"], str) and report["部署"] == st.session_state["selected_department"]]
 
     # ✅ 検索フィルタ（フィルタ後のデータに適用）
     if search_query:
