@@ -84,8 +84,8 @@ def save_report(report):
 
 # ✅ 日報を取得
 def load_reports():
-    """全日報を取得し、日本時間で表示（投稿日時がNoneのときの対応を追加）"""
-    conn = sqlite3.connect(DB_FILE)
+    """全日報を取得し、日本時間で表示（エラー回避のためのログ追加）"""
+    conn = sqlite3.connect("reports.db")
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -97,14 +97,16 @@ def load_reports():
         reports = []
 
         for row in rows:
-            # ✅ 投稿日時が None の場合は現在の日時を設定（デフォルト値）
-            raw_datetime = row[3] if row[3] else datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            raw_datetime = row[3]  # 投稿日時
+            if raw_datetime is None or raw_datetime.strip() == "":  # None または 空文字なら現在時刻をセット
+                raw_datetime = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
             try:
-                # ✅ 文字列を UTC から日本時間に変換
+                print(f"🛠 デバッグ: raw_datetime = {raw_datetime}")  # 🔥 ここでデバッグ出力
                 posted_at_jst = (datetime.strptime(raw_datetime, "%Y-%m-%d %H:%M:%S") + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                posted_at_jst = "不明な日時"  # もしフォーマットが異なる場合のエラー回避策
+            except ValueError as e:
+                print(f"⚠️ 日付変換エラー: {raw_datetime} -> {e}")  # エラー内容を表示
+                posted_at_jst = "不明な日時"
 
             reports.append({
                 "id": row[0],
@@ -119,7 +121,7 @@ def load_reports():
                 "ナイスファイト": row[9],
                 "コメント": json.loads(row[10]) if row[10] else []
             })
-        
+
         return reports
 
     except sqlite3.Error as e:
@@ -127,7 +129,6 @@ def load_reports():
         return []
     finally:
         conn.close()
-
 # ✅ 日報を編集（新規追加）
 def edit_report(report_id, updated_report):
     """指定された日報を更新する。"""
