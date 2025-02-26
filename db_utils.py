@@ -84,7 +84,7 @@ def save_report(report):
 
 # ✅ 日報を取得
 def load_reports():
-    """全日報を取得し、日本時間で表示"""
+    """全日報を取得し、日本時間で表示（投稿日時がNoneのときの対応を追加）"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
@@ -94,12 +94,23 @@ def load_reports():
             ORDER BY 投稿日時 DESC
         """)
         rows = cursor.fetchall()
-        return [
-            {
+        reports = []
+
+        for row in rows:
+            # ✅ 投稿日時が None の場合は現在の日時を設定（デフォルト値）
+            raw_datetime = row[3] if row[3] else datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+            try:
+                # ✅ 文字列を UTC から日本時間に変換
+                posted_at_jst = (datetime.strptime(raw_datetime, "%Y-%m-%d %H:%M:%S") + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                posted_at_jst = "不明な日時"  # もしフォーマットが異なる場合のエラー回避策
+
+            reports.append({
                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
-                "投稿日時": (datetime.strptime(row[3], "%Y-%m-%d %H:%M:%S") + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),  # ✅ +9時間
+                "投稿日時": posted_at_jst,
                 "カテゴリ": row[4],
                 "場所": row[5],
                 "実施内容": row[6],
@@ -107,9 +118,10 @@ def load_reports():
                 "いいね": row[8],
                 "ナイスファイト": row[9],
                 "コメント": json.loads(row[10]) if row[10] else []
-            }
-            for row in rows
-        ]
+            })
+        
+        return reports
+
     except sqlite3.Error as e:
         print(f"❌ 日報取得エラー: {e}")
         return []
