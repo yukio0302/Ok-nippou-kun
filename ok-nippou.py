@@ -189,10 +189,13 @@ def timeline():
             report["部署"] = [report["部署"]]
 
    # ✅ フィルタ処理
-    if st.session_state["filter_mode"] == "所属部署":
-        reports = [report for report in reports if set(report["部署"]) & set(user_departments)]  # 🔥 ここ修正済み
-    elif st.session_state["filter_mode"] == "他の部署" and st.session_state["selected_department"]:
-        reports = [report for report in reports if st.session_state["selected_department"] in report["部署"]]
+if st.session_state["filter_mode"] == "全体表示":
+    reports = load_reports()  # 🔥 修正: フィルターなしで全投稿を取得
+elif st.session_state["filter_mode"] == "所属部署":
+    reports = [report for report in reports if set(report["部署"]) & set(user_departments)]
+elif st.session_state["filter_mode"] == "他の部署" and st.session_state["selected_department"]:
+    reports = [report for report in reports if st.session_state["selected_department"] in report["部署"]]
+
 
     # ✅ 検索フィルタ（フィルタ後のデータに適用）
     if search_query:
