@@ -84,7 +84,7 @@ def save_report(report):
 
 # ✅ 日報を取得
 def load_reports():
-    """全日報を取得し、投稿日時順（降順）で返す。"""
+    """全日報を取得し、日本時間で表示"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
@@ -99,7 +99,7 @@ def load_reports():
                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
-                "投稿日時": row[3],
+                "投稿日時": (datetime.strptime(row[3], "%Y-%m-%d %H:%M:%S") + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),  # ✅ +9時間
                 "カテゴリ": row[4],
                 "場所": row[5],
                 "実施内容": row[6],
