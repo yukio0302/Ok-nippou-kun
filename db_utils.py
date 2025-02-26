@@ -154,7 +154,7 @@ def update_reaction(report_id, reaction_type):
     finally:
         conn.close()
 
-# ✅ コメントを保存（修正済み）
+# ✅ コメントを保存（日本時間に修正）
 def save_comment(report_id, commenter, comment):
     """指定した投稿にコメントを追加（NULL対策 & エラーチェック強化）"""
     if not report_id or not commenter or not comment.strip():
@@ -170,11 +170,11 @@ def save_comment(report_id, commenter, comment):
         # ✅ `None` の場合は空リストで初期化
         comments = json.loads(row[0]) if row and row[0] else []
 
-        # ✅ 新しいコメントを追加
+        # ✅ 新しいコメントを追加（+9時間）
         comments.append({
             "投稿者": commenter,
             "コメント": comment.strip(),
-              "日時": (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # ✅ 日本時間に修正！
+            "日時": (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # ✅ 日本時間に修正！
         })
 
         cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
