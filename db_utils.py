@@ -1,6 +1,7 @@
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
+
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
     return datetime.now() + timedelta(hours=9)
