@@ -188,14 +188,13 @@ def timeline():
         if not isinstance(report["部署"], list):  # 🔥 `str` だった場合はリスト化
             report["部署"] = [report["部署"]]
 
-   # ✅ フィルタ処理
-if st.session_state["filter_mode"] == "全体表示":
-    reports = load_reports()  # 🔥 修正: フィルターなしで全投稿を取得
-elif st.session_state["filter_mode"] == "所属部署":
-    reports = [report for report in reports if set(report["部署"]) & set(user_departments)]
-elif st.session_state["filter_mode"] == "他の部署" and st.session_state["selected_department"]:
-    reports = [report for report in reports if st.session_state["selected_department"] in report["部署"]]
-
+  # ✅ フィルタ処理
+    if st.session_state["filter_mode"] == "全体表示":
+        reports = load_reports()  # 🔥 修正: フィルターなしで全投稿を取得
+    elif st.session_state["filter_mode"] == "所属部署":
+        reports = [report for report in reports if set(report["部署"]) & set(user_departments)]
+    elif st.session_state["filter_mode"] == "他の部署" and st.session_state["selected_department"]:
+        reports = [report for report in reports if st.session_state["selected_department"] in report["部署"]]
 
     # ✅ 検索フィルタ（フィルタ後のデータに適用）
     if search_query:
@@ -206,9 +205,11 @@ elif st.session_state["filter_mode"] == "他の部署" and st.session_state["sel
             or search_query.lower() in report["カテゴリ"].lower()
         ]
 
+    # ✅ 🔥 ここでインデントを修正して return が関数の中にあることを確認
     if not reports:
         st.warning("🔎 該当する投稿が見つかりませんでした。")
-        return
+        return  # ✅ 関数の中に properly インデントされていればOK
+
 
         
     for report in reports:
