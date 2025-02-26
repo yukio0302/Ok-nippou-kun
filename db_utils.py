@@ -156,10 +156,10 @@ def update_reaction(report_id, reaction_type):
 
 # ✅ コメントを保存（修正済み）
 def save_comment(report_id, commenter, comment):
-    """指定した投稿にコメントを追加（NULL対策 & エラーチェック強化）"""
+    """コメントを投稿し、日本時間で記録"""
     if not report_id or not commenter or not comment.strip():
         print(f"⚠️ コメント保存スキップ: report_id={report_id}, commenter={commenter}, comment={comment}")
-        return  # 不正なデータなら保存しない
+        return  
 
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -167,14 +167,12 @@ def save_comment(report_id, commenter, comment):
         cursor.execute("SELECT コメント FROM reports WHERE id = ?", (report_id,))
         row = cursor.fetchone()
 
-        # ✅ `None` の場合は空リストで初期化
         comments = json.loads(row[0]) if row and row[0] else []
 
-        # ✅ 新しいコメントを追加
         comments.append({
             "投稿者": commenter,
             "コメント": comment.strip(),
-            "日時": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            "日時": (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # ✅ +9時間
         })
 
         cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
