@@ -174,7 +174,7 @@ def save_comment(report_id, commenter, comment):
         comments.append({
             "投稿者": commenter,
             "コメント": comment.strip(),
-            "日時": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+              "日時": (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # ✅ 日本時間に修正！
         })
 
         cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
