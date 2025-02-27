@@ -114,26 +114,9 @@ def post_report():
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
     remarks = st.text_area("💬 所感")
-    
-    # ✅ 画像アップロード（任意）
-    uploaded_file = st.file_uploader("📷 写真をアップロード（任意）", type=["png", "jpg", "jpeg"])
 
-    # ✅ 画像を保存するフォルダを作成
-    save_folder = "uploads"
-    os.makedirs(save_folder, exist_ok=True)  
-
-    image_path = None  # デフォルトは「画像なし」
-
-    if uploaded_file is not None:
-        # 画像の保存パスを決定
-        image_path = os.path.join(save_folder, uploaded_file.name)
-        
-        # 画像を保存
-        with open(image_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-
-    # 投稿ボタン
-    if st.button("📤 投稿する"):
+    submit_button = st.button("📤 投稿する")
+    if submit_button:
         save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
@@ -141,11 +124,12 @@ def post_report():
             "場所": location,
             "実施内容": content,
             "所感": remarks,
-            "コメント": [],
-            "画像": image_path  # ✅ 画像のパスを保存
+            "コメント": []
         })
         st.success("✅ 日報を投稿しました！")
-        st.rerun()
+        time.sleep(1)
+        switch_page("タイムライン")
+
 # ✅ タイムライン（コメント機能修正）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -234,11 +218,6 @@ def timeline():
         st.write(f"📍 **場所:** {report['場所']}")
         st.write(f"📝 **実施内容:** {report['実施内容']}")
         st.write(f"💬 **所感:** {report['所感']}")
-         # ✅ 画像があれば表示
-        if report.get("画像"):
-            st.image(report["画像"], caption="📸 投稿画像", use_column_width=True)
-
-        st.write("---")
 
         # ✅ いいね！＆ナイスファイト！ボタン
         col1, col2 = st.columns(2)
