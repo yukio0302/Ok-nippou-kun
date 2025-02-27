@@ -90,12 +90,16 @@ def load_reports():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-        cursor.execute("""
-            SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+       cursor.execute("""
+            SELECT id, 投稿者, 実施日, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
             ORDER BY 投稿日時 DESC
         """)
         rows = cursor.fetchall()
+
+        # ✅ デバッグ用にデータを表示（エラーが出るデータを確認する）
+        print("📌 データ取得結果:", rows)
+
         return [
             {
                 "id": row[0],
