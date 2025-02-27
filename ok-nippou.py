@@ -234,11 +234,13 @@ def timeline():
         st.write(f"📍 **場所:** {report['場所']}")
         st.write(f"📝 **実施内容:** {report['実施内容']}")
         st.write(f"💬 **所感:** {report['所感']}")
-         # ✅ 画像があれば表示
-        if report.get("画像"):
-            st.image(report["画像"], caption="📸 投稿画像", use_column_width=True)
+        # ✅ 画像がある場合のみ表示
+    if report.get("画像"):
+        st.image(report["画像"], caption="📸 投稿画像", use_column_width=True)
+    else:
+        st.write("📷 画像なし")
 
-        st.write("---")
+    st.write("---")
 
         # ✅ いいね！＆ナイスファイト！ボタン
         col1, col2 = st.columns(2)
