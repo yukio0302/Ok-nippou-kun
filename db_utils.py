@@ -27,6 +27,7 @@ def init_db(keep_existing=True):
             いいね INTEGER DEFAULT 0,
             ナイスファイト INTEGER DEFAULT 0,
             コメント TEXT DEFAULT '[]'
+            画像 TEXT
         )
     """)
 
@@ -97,7 +98,7 @@ def load_reports():
         rows = cursor.fetchall()
         return [
             {
-                "id": row[0],
+                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
                 "投稿日時": row[3],
@@ -107,7 +108,8 @@ def load_reports():
                 "所感": row[7],
                 "いいね": row[8],
                 "ナイスファイト": row[9],
-                "コメント": json.loads(row[10]) if row[10] else []
+                "コメント": json.loads(row[10]) if row[10] else [],
+                "画像": row[11]  # ✅ 画像のパスを追加
             }
             for row in rows
         ]
@@ -116,7 +118,7 @@ def load_reports():
         return []
     finally:
         conn.close()
-
+        
 # ✅ 日報を編集（新規追加）
 def edit_report(report_id, updated_report):
     """指定された日報を更新する。"""
