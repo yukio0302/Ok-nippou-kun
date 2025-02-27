@@ -75,7 +75,8 @@ def save_report(report):
             report["場所"],
             report["実施内容"],
             report["所感"],
-            json.dumps(report.get("コメント", []))
+            json.dumps(report.get("コメント", [])),
+            report.get("画像", "")  # ✅ 画像のパスを保存
         ))
         conn.commit()
     except sqlite3.Error as e:
