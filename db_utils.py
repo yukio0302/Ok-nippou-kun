@@ -109,7 +109,7 @@ def load_reports():
                 "所感": row[8],
                 "いいね": row[9],
                 "ナイスファイト": row[10],
-                "コメント": json.loads(row[11]) if row[11] and row[11] != "null" else []  # ✅ ここを修正！
+                "コメント": json.loads(row[11]) if row[11] and isinstance(row[11], str) else []  # ✅ ここを修正！
             }
             for row in rows
         ]
