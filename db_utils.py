@@ -65,23 +65,25 @@ def save_report(report):
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO reports (投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO reports (投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント, 画像)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
             report["実行日"],
-            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時（UTC）
+            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
             report["カテゴリ"],
             report["場所"],
             report["実施内容"],
             report["所感"],
-            json.dumps(report.get("コメント", []))
+            json.dumps(report.get("コメント", [])),
+            report.get("画像")  # ✅ 画像パスを保存（None の場合もあり）
         ))
         conn.commit()
     except sqlite3.Error as e:
         print(f"❌ 日報保存エラー: {e}")
     finally:
         conn.close()
+
 
 # ✅ 日報を取得
 def load_reports():
