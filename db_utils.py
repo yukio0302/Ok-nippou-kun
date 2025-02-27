@@ -27,7 +27,6 @@ def init_db(keep_existing=True):
             いいね INTEGER DEFAULT 0,
             ナイスファイト INTEGER DEFAULT 0,
             コメント TEXT DEFAULT '[]'
-            画像 TEXT
         )
     """)
 
@@ -71,13 +70,12 @@ def save_report(report):
         """, (
             report["投稿者"],
             report["実行日"],
-            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # ✅ 投稿日時（UTC）
+            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時（UTC）
             report["カテゴリ"],
             report["場所"],
             report["実施内容"],
             report["所感"],
-            json.dumps(report.get("コメント", [])),
-            report["画像"] if report["画像"] else None  # ✅ 画像のパスを保存
+            json.dumps(report.get("コメント", []))
         ))
         conn.commit()
     except sqlite3.Error as e:
@@ -99,7 +97,7 @@ def load_reports():
         rows = cursor.fetchall()
         return [
             {
-                 "id": row[0],
+                "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
                 "投稿日時": row[3],
@@ -109,8 +107,7 @@ def load_reports():
                 "所感": row[7],
                 "いいね": row[8],
                 "ナイスファイト": row[9],
-                "コメント": json.loads(row[10]) if row[10] else [],
-                "画像": row[11]  # ✅ 画像のパスを追加
+                "コメント": json.loads(row[10]) if row[10] else []
             }
             for row in rows
         ]
@@ -119,7 +116,7 @@ def load_reports():
         return []
     finally:
         conn.close()
-        
+
 # ✅ 日報を編集（新規追加）
 def edit_report(report_id, updated_report):
     """指定された日報を更新する。"""
