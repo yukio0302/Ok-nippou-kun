@@ -110,6 +110,7 @@ def load_reports():
                 "いいね": row[8],
                 "ナイスファイト": row[9],
                 "コメント": json.loads(row[10]) if row[10] else []
+                 "画像": row[11] if len(row) > 11 else None
             }
             for row in rows
         ]
