@@ -145,7 +145,10 @@ def post_report():
             "画像": image_path  # ✅ 画像のパスを保存
         })
         st.success("✅ 日報を投稿しました！")
-        st.rerun()
+         # ✅ 少し待ってからページをリロード（これでメッセージが見える）
+    time.sleep(1.5)
+    
+    st.rerun()
 # ✅ タイムライン（コメント機能修正）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
