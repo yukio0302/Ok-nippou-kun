@@ -110,6 +110,7 @@ def post_report():
     st.title("📝 日報投稿")
     top_navigation()
 
+    execution_date = st.date_input("📅 実施日")
     category = st.text_input("📋 カテゴリ")
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
@@ -119,6 +120,7 @@ def post_report():
     if submit_button:
         save_report({
             "投稿者": st.session_state["user"]["name"],
+            "実施日": execution_date,   
             "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
             "カテゴリ": category,
             "場所": location,
