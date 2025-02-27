@@ -226,21 +226,19 @@ def timeline():
         st.warning("🔎 該当する投稿が見つかりませんでした。")
         return  # ✅ 関数の中に properly インデントされていればOK
 
-# ✅ タイムライン表示（画像対応）
-for report in reports:
-    st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
-    st.write(f"🏷 **カテゴリ:** {report['カテゴリ']}")
-    st.write(f"📍 **場所:** {report['場所']}")
-    st.write(f"📝 **実施内容:** {report['実施内容']}")
-    st.write(f"💬 **所感:** {report['所感']}")
 
-    # ✅ 画像がある場合のみ表示
-    if report.get("画像"):
-        st.image(report["画像"], caption="📸 投稿画像", use_column_width=True)
-    else:
-        st.write("📷 画像なし")
+        
+    for report in reports:
+        st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
+        st.write(f"🏷 **カテゴリ:** {report['カテゴリ']}")
+        st.write(f"📍 **場所:** {report['場所']}")
+        st.write(f"📝 **実施内容:** {report['実施内容']}")
+        st.write(f"💬 **所感:** {report['所感']}")
+         # ✅ 画像があれば表示
+        if report.get("画像"):
+            st.image(report["画像"], caption="📸 投稿画像", use_column_width=True)
 
-    st.write("---")
+        st.write("---")
 
         # ✅ いいね！＆ナイスファイト！ボタン
         col1, col2 = st.columns(2)
