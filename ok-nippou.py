@@ -9,6 +9,7 @@ def get_current_time():
     return datetime.now() + timedelta(hours=9)
 # サブコーディングから必要な関数をインポート
 from db_utils import init_db, authenticate_user, save_report, load_reports, load_notices, mark_notice_as_read, edit_report, delete_report, update_reaction, save_comment
+from PIL import Image  # 追加（画像処理用）
 
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
@@ -115,8 +116,24 @@ def post_report():
     content = st.text_area("📝 実施内容")
     remarks = st.text_area("💬 所感")
 
+    # ✅ 画像アップロード（任意）
+    uploaded_file = st.file_uploader("📷 写真をアップロード（任意）", type=["png", "jpg", "jpeg"])
+
     submit_button = st.button("📤 投稿する")
     if submit_button:
+        image_path = None  # デフォルトは None（画像なし）
+
+        if uploaded_file is not None:
+            save_folder = "uploads"
+            os.makedirs(save_folder, exist_ok=True)  # `uploads` フォルダを作成（なければ）
+            
+            # 画像の保存パスを作成
+            image_path = os.path.join(save_folder, uploaded_file.name)
+            
+            # 画像を保存
+            with open(image_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
         save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
@@ -124,7 +141,8 @@ def post_report():
             "場所": location,
             "実施内容": content,
             "所感": remarks,
-            "コメント": []
+            "コメント": [],
+            "画像": image_path  # ✅ 画像パスを保存
         })
         st.success("✅ 日報を投稿しました！")
         time.sleep(1)
@@ -219,6 +237,10 @@ def timeline():
         st.write(f"📝 **実施内容:** {report['実施内容']}")
         st.write(f"💬 **所感:** {report['所感']}")
 
+# ✅ 画像があれば表示
+        if report.get("画像"):
+            st.image(report["画像"], caption="📸 投稿画像", use_column_width=True)
+        
         # ✅ いいね！＆ナイスファイト！ボタン
         col1, col2 = st.columns(2)
         with col1:
