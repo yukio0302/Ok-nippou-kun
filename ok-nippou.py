@@ -211,8 +211,6 @@ def timeline():
     if not reports:
         st.warning("🔎 該当する投稿が見つかりませんでした。")
         return  # ✅ 関数の中に properly インデントされていればOK
-
-
         
     for report in reports:
     st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']} 投稿)")
@@ -222,8 +220,6 @@ def timeline():
     st.write(f"📝 **実施内容:** {report['実施内容']}")
     st.write(f"💬 **所感:** {report['所感']}")
     st.write("---")
-
-
 
         # ✅ いいね！＆ナイスファイト！ボタン
         col1, col2 = st.columns(2)
