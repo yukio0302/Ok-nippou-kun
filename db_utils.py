@@ -27,7 +27,6 @@ def init_db(keep_existing=True):
             いいね INTEGER DEFAULT 0,
             ナイスファイト INTEGER DEFAULT 0,
             コメント TEXT DEFAULT '[]'
-            画像 TEXT DEFAULT NULL
         )
     """)
 
