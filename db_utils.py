@@ -71,12 +71,13 @@ def save_report(report):
         """, (
             report["投稿者"],
             report["実行日"],
-            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時（UTC）
+            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # ✅ 投稿日時（UTC）
             report["カテゴリ"],
             report["場所"],
             report["実施内容"],
             report["所感"],
-            json.dumps(report.get("コメント", []))
+            json.dumps(report.get("コメント", [])),
+            report["画像"] if report["画像"] else None  # ✅ 画像のパスを保存
         ))
         conn.commit()
     except sqlite3.Error as e:
