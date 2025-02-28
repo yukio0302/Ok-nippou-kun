@@ -65,10 +65,6 @@ def save_report(report):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-        execution_date = report["実施日"] if report["実施日"] else None  # ✅ そのまま保存（NULLもOK）
-
-        print(f"🛠️ デバッグ: 保存する実施日 = {execution_date}")  # 🔥 実施日が正しく渡ってるか確認
-
         cursor.execute("""
             INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -77,6 +73,7 @@ def save_report(report):
             report["実行日"],
             execution_date,  # ✅ NULLも許容
             datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  
+            report["実施日"],
             report["カテゴリ"],
             report["場所"],
             report["実施内容"],
