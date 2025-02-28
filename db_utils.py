@@ -157,7 +157,7 @@ def update_reaction(report_id, reaction_type):
 
 # ✅ コメントを保存（日本時間に修正）
 def save_comment(report_id, commenter, comment):
-    """指定した投稿にコメントを追加（NULL対策 & エラーチェック強化）"""
+    """指定した投稿にコメントを追加し、投稿者に通知を送る"""
     if not report_id or not commenter or not comment.strip():
         print(f"⚠️ コメント保存スキップ: report_id={report_id}, commenter={commenter}, comment={comment}")
         return  # 不正なデータなら保存しない
@@ -165,26 +165,42 @@ def save_comment(report_id, commenter, comment):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT コメント FROM reports WHERE id = ?", (report_id,))
+        # ✅ コメントを取得・追加
+        cursor.execute("SELECT 投稿者, コメント FROM reports WHERE id = ?", (report_id,))
         row = cursor.fetchone()
 
-        # ✅ `None` の場合は空リストで初期化
-        comments = json.loads(row[0]) if row and row[0] else []
+        if not row:
+            print(f"❌ エラー: report_id={report_id} の投稿が見つかりません")
+            return
 
-        # ✅ 新しいコメントを追加（+9時間）
+        post_author = row[0]  # 投稿者
+        comments = json.loads(row[1]) if row[1] else []
+
         comments.append({
             "投稿者": commenter,
             "コメント": comment.strip(),
-            "日時": (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # ✅ 日本時間に修正！
+            "日時": (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
         })
 
         cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
+
+        # ✅ 投稿者に通知を送る
+        if commenter != post_author:  # 自分のコメントは通知しない
+            cursor.execute("""
+                INSERT INTO notices (タイトル, 内容, 日付, 既読)
+                VALUES (?, ?, ?, ?)
+            """, (
+                "あなたの投稿にコメントがつきました！",
+                f"📢 {commenter} さんがあなたの投稿にコメントしました:\n\n『{comment}』",
+                (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
+                0
+            ))
+
         conn.commit()
     except sqlite3.Error as e:
         print(f"❌ コメント保存エラー: {e}")
     finally:
         conn.close()
-
 
 # ✅ お知らせを取得
 def load_notices():
