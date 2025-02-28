@@ -20,7 +20,7 @@ def init_db(keep_existing=True):
             投稿者 TEXT NOT NULL,
             実行日 TEXT NOT NULL,
             投稿日時 TEXT NOT NULL,
-            実施日 TEXT,
+            カテゴリ TEXT,
             場所 TEXT,
             実施内容 TEXT,
             所感 TEXT,
@@ -65,13 +65,13 @@ def save_report(report):
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
+            INSERT INTO reports (投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
             report["実行日"],
             datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時（UTC）
-            report["実施日"],
+            report["カテゴリ"],
             report["場所"],
             report["実施内容"],
             report["所感"],
@@ -101,7 +101,7 @@ def load_reports():
                 "投稿者": row[1],
                 "実行日": row[2],
                 "投稿日時": row[3],
-                "実施日": row[4],
+                "カテゴリ": row[4],
                 "場所": row[5],
                 "実施内容": row[6],
                 "所感": row[7],
@@ -125,10 +125,10 @@ def edit_report(report_id, updated_report):
     try:
         cursor.execute("""
             UPDATE reports
-            SET 実施日 = ?, 場所 = ?, 実施内容 = ?, 所感 = ?
+            SET カテゴリ = ?, 場所 = ?, 実施内容 = ?, 所感 = ?
             WHERE id = ?
         """, (
-            updated_report["実施日"],
+            updated_report["カテゴリ"],
             updated_report["場所"],
             updated_report["実施内容"],
             updated_report["所感"],
