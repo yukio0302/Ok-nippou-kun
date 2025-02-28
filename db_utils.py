@@ -19,6 +19,7 @@ def init_db(keep_existing=True):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             投稿者 TEXT NOT NULL,
             実行日 TEXT NOT NULL,
+            実施日 TEXT NOT NULL,
             投稿日時 TEXT NOT NULL,
             カテゴリ TEXT,
             場所 TEXT,
