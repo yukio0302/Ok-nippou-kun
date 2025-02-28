@@ -165,7 +165,7 @@ def save_comment(report_id, commenter, comment):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-        # ✅ コメントを取得・追加
+        # ✅ 投稿の情報を取得
         cursor.execute("SELECT 投稿者, コメント FROM reports WHERE id = ?", (report_id,))
         row = cursor.fetchone()
 
@@ -176,27 +176,30 @@ def save_comment(report_id, commenter, comment):
         post_author = row[0]  # 投稿者
         comments = json.loads(row[1]) if row[1] else []
 
-        comments.append({
+        # ✅ 新しいコメントを追加
+        new_comment = {
             "投稿者": commenter,
             "コメント": comment.strip(),
             "日時": (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-        })
+        }
+        comments.append(new_comment)
 
         cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
 
-        # ✅ 投稿者に通知を送る
-        if commenter != post_author:  # 自分のコメントは通知しない
+        # ✅ 投稿者に通知を送る（自分のコメントは通知しない）
+        if commenter != post_author:
             cursor.execute("""
                 INSERT INTO notices (タイトル, 内容, 日付, 既読)
                 VALUES (?, ?, ?, ?)
             """, (
                 "あなたの投稿にコメントがつきました！",
-                f"📢 {commenter} さんがあなたの投稿にコメントしました:\n\n『{comment}』",
+                f"📢 {commenter} さんがコメントしました:\n\n『{comment.strip()}』",
                 (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
-                0
+                0  # 🔥 未読状態で保存
             ))
 
         conn.commit()
+        print(f"✅ 通知が追加されました: 投稿者={post_author}, コメント={commenter}")
     except sqlite3.Error as e:
         print(f"❌ コメント保存エラー: {e}")
     finally:
@@ -208,12 +211,17 @@ def load_notices():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT * FROM notices ORDER BY 日付 DESC")
+        cursor.execute("SELECT id, 内容, タイトル, 日付, 既読 FROM notices ORDER BY 日付 DESC")
         rows = cursor.fetchall()
-        return [
+
+        notices = [
             {"id": row[0], "内容": row[1], "タイトル": row[2], "日付": row[3], "既読": row[4]}
             for row in rows
         ]
+
+        print(f"🛠️ デバッグ: 読み込んだお知らせ = {notices}")  # ✅ 追加
+
+        return notices
     except sqlite3.Error as e:
         print(f"❌ お知らせ取得エラー: {e}")
         return []
