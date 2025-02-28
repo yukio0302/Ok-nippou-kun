@@ -110,7 +110,7 @@ def post_report():
     st.title("📝 日報投稿")
     top_navigation()
 
-    category = st.text_input("📋 "実施日")
+    category = st.text_input("📋 実施日")
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
     remarks = st.text_area("💬 所感")
