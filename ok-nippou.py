@@ -255,7 +255,7 @@ def timeline():
 
 st.write("----")
 
-# ✅ お知らせ
+# ✅ お知らせを表示（新着を強調し、既読は折りたたみ）
 def show_notices():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -266,15 +266,34 @@ def show_notices():
 
     notices = load_notices()
 
-    for notice in notices:
-        status = "未読" if notice["既読"] == 0 else "既読"
-        st.subheader(f"{notice['タイトル']} - {status}")
-        st.write(f"📅 {notice['日付']}")
-        st.write(f"{notice['内容']}")
-        if notice["既読"] == 0:
-            if st.button(f"既読にする ({notice['id']})"):
-                mark_notice_as_read(notice["id"])
-                st.experimental_rerun()
+    if not notices:
+        st.info("📭 お知らせはありません。")
+        return
+
+    # ✅ 未読のお知らせを上部に表示（強調）
+    new_notices = [n for n in notices if n["既読"] == 0]
+    old_notices = [n for n in notices if n["既読"] == 1]
+
+    if new_notices:
+        st.subheader("🆕 新着お知らせ")
+        for notice in new_notices:
+            with st.container():
+                st.markdown(f"### {notice['タイトル']} ✅")
+                st.write(f"📅 {notice['日付']}")
+                st.write(notice["内容"])
+                if st.button("✔️ 既読にする", key=f"read_{notice['id']}"):
+                    mark_notice_as_read(notice["id"])
+                    st.rerun()
+        st.write("---")
+
+    # ✅ 既読のお知らせは折りたたみ表示
+    if old_notices:
+        with st.expander("📂 過去のお知らせを見る"):
+            for notice in old_notices:
+                st.markdown(f"**{notice['タイトル']}**")
+                st.write(f"📅 {notice['日付']}")
+                st.write(notice["内容"])
+
 
 # ✅ マイページ
 def my_page():
