@@ -1,260 +1,122 @@
-import sqlite3
+import requests
 import json
 from datetime import datetime, timedelta
 
-# ヘルパー関数: 現在時刻に9時間を加算する
+GIST_URL = "https://gist.github.com/yukio0302/5ecd23170f905e0d789f2986f9c17bff"  # GistのURLをここに設定
+API_TOKEN = None  # APIトークンが必要な場合はここに設定
+
 def get_current_time():
     return datetime.now() + timedelta(hours=9)
 
-DB_FILE = "reports.db"  # データベースファイル名
+def load_data():
+    """Gistからデータを読み込む"""
+    headers = {"Authorization": f"token {API_TOKEN}"} if API_TOKEN else {}
+    response = requests.get(f"{GIST_URL}/raw", headers=headers)
+    if response.status_code == 200:
+        return json.loads(response.content)
+    else:
+        print(f"Gistからのデータ読み込みエラー: {response.status_code}")
+        return {"reports": [], "notices": []}  # エラー時は空のデータを返す
 
-# ✅ データベース初期化（投稿日時カラムを含む）
+def save_data(data):
+    """Gistにデータを保存する"""
+    headers = {"Authorization": f"token {API_TOKEN}"} if API_TOKEN else {}
+    payload = {"files": {"data.json": {"content": json.dumps(data)}}}
+    response = requests.patch(GIST_URL, headers=headers, data=json.dumps(payload))
+    if response.status_code != 200:
+        print(f"Gistへのデータ保存エラー: {response.status_code}")
+    return response.status_code == 200
+
 def init_db(keep_existing=True):
-    """データベースを初期化する。既存データを維持するか選択可能。"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
+    """データベースの初期化（Gistを使用）"""
+    data = load_data()
+    if "reports" not in data:
+        data["reports"] = []
+    if "notices" not in data:
+        data["notices"] = []
+    save_data(data)
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            投稿者 TEXT NOT NULL,
-            実行日 TEXT NOT NULL,
-            投稿日時 TEXT NOT NULL,
-            カテゴリ TEXT,
-            場所 TEXT,
-            実施内容 TEXT,
-            所感 TEXT,
-            いいね INTEGER DEFAULT 0,
-            ナイスファイト INTEGER DEFAULT 0,
-            コメント TEXT DEFAULT '[]'
-        )
-    """)
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS notices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            内容 TEXT NOT NULL,
-            タイトル TEXT,
-            日付 TEXT,
-            既読 INTEGER DEFAULT 0
-        )
-    """)
-
-    conn.commit()
-    conn.close()
-
-# ✅ ユーザー認証
 def authenticate_user(employee_code, password):
-    """社員コードとパスワードを照合し、認証されたユーザー情報を返す。"""
+    """ユーザー認証（users_data.jsonを使用）"""
     try:
         with open("users_data.json", "r", encoding="utf-8-sig") as file:
             users = json.load(file)
-
         for user in users:
             if user["code"] == employee_code and user["password"] == password:
-                return user  # ログイン成功
-        return None  # ログイン失敗
+                return user
+        return None
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"❌ ユーザー認証エラー: {e}")
+        print(f"ユーザー認証エラー: {e}")
         return None
 
-# ✅ 日報を保存
 def save_report(report):
-    """新しい日報をデータベースに保存する。"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            INSERT INTO reports (投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            report["投稿者"],
-            report["実行日"],
-            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時（UTC）
-            report["カテゴリ"],
-            report["場所"],
-            report["実施内容"],
-            report["所感"],
-            json.dumps(report.get("コメント", []))
-        ))
-        conn.commit()
-    except sqlite3.Error as e:
-        print(f"❌ 日報保存エラー: {e}")
-    finally:
-        conn.close()
+    """日報を保存（Gistを使用）"""
+    data = load_data()
+    report["id"] = len(data["reports"]) + 1  # IDを割り当て
+    report["投稿日時"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    report["いいね"] = 0
+    report["ナイスファイト"] = 0
+    report["コメント"] = []
+    data["reports"].append(report)
+    save_data(data)
 
-# ✅ 日報を取得
 def load_reports():
-    """全日報を取得し、投稿日時順（降順）で返す。"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
-            FROM reports
-            ORDER BY 投稿日時 DESC
-        """)
-        rows = cursor.fetchall()
-        return [
-            {
-                "id": row[0],
-                "投稿者": row[1],
-                "実行日": row[2],
-                "投稿日時": row[3],
-                "カテゴリ": row[4],
-                "場所": row[5],
-                "実施内容": row[6],
-                "所感": row[7],
-                "いいね": row[8],
-                "ナイスファイト": row[9],
-                "コメント": json.loads(row[10]) if row[10] else []
-            }
-            for row in rows
-        ]
-    except sqlite3.Error as e:
-        print(f"❌ 日報取得エラー: {e}")
-        return []
-    finally:
-        conn.close()
+    """日報を取得（Gistを使用）"""
+    data = load_data()
+    return data.get("reports", [])
 
-# ✅ 日報を編集（新規追加）
 def edit_report(report_id, updated_report):
-    """指定された日報を更新する。"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            UPDATE reports
-            SET カテゴリ = ?, 場所 = ?, 実施内容 = ?, 所感 = ?
-            WHERE id = ?
-        """, (
-            updated_report["カテゴリ"],
-            updated_report["場所"],
-            updated_report["実施内容"],
-            updated_report["所感"],
-            report_id
-        ))
-        conn.commit()
-    except sqlite3.Error as e:
-        print(f"❌ 日報編集エラー: {e}")
-    finally:
-        conn.close()
-# ✅ リアクション（いいね！ or ナイスファイト！）を更新
-def update_reaction(report_id, reaction_type):
-    """指定した投稿の「いいね！」または「ナイスファイト！」を1増やす"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        if reaction_type == "いいね":
-            cursor.execute("UPDATE reports SET いいね = いいね + 1 WHERE id = ?", (report_id,))
-        elif reaction_type == "ナイスファイト":
-            cursor.execute("UPDATE reports SET ナイスファイト = ナイスファイト + 1 WHERE id = ?", (report_id,))
-        conn.commit()
-    except sqlite3.Error as e:
-        print(f"❌ リアクション更新エラー: {e}")
-    finally:
-        conn.close()
-
-# ✅ コメントを保存（通知機能強化）
-def save_comment(report_id, commenter, comment):
-    """指定した投稿にコメントを追加し、投稿者に通知を送る"""
-    if not report_id or not commenter or not comment.strip():
-        print(f"⚠️ コメント保存スキップ: report_id={report_id}, commenter={commenter}, comment={comment}")
-        return  # 空コメントは無視
-
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        # ✅ 投稿の情報を取得
-        cursor.execute("SELECT 投稿者, コメント FROM reports WHERE id = ?", (report_id,))
-        row = cursor.fetchone()
-
-        if not row:
-            print(f"❌ エラー: report_id={report_id} の投稿が見つかりません")
+    """日報を編集（Gistを使用）"""
+    data = load_data()
+    for report in data["reports"]:
+        if report["id"] == report_id:
+            report.update(updated_report)
+            save_data(data)
             return
 
-        post_author = row[0]  # 投稿者
-        comments = json.loads(row[1]) if row[1] else []
-
-        # ✅ 新しいコメントを追加
-        new_comment = {
-            "投稿者": commenter,
-            "コメント": comment.strip(),
-            "日時": get_current_time().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        comments.append(new_comment)
-
-        cursor.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
-
-        # ✅ 投稿者に通知を送る（自分のコメントは通知しない）
-        if commenter != post_author:
-            cursor.execute("""
-                INSERT INTO notices (タイトル, 内容, 日付, 既読)
-                VALUES (?, ?, ?, ?)
-            """, (
-                "あなたの投稿にコメントがつきました！",
-                f"📢 {commenter} さんがコメントしました:\n\n『{comment.strip()}』",
-                get_current_time().strftime("%Y-%m-%d %H:%M:%S"),
-                0  # 🔥 未読状態で保存
-            ))
-
-            print(f"✅ 通知が追加されました: 投稿者={post_author}, コメント={commenter}, 内容={comment.strip()}")  # デバッグログ
-
-        conn.commit()
-    except sqlite3.Error as e:
-        print(f"❌ コメント保存エラー: {e}")
-    finally:
-        conn.close()
-
-# ✅ お知らせを取得（未読・既読を分ける）
-def load_notices():
-    """お知らせを取得し、新しい順に返す。"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT id, 内容, タイトル, 日付, 既読 FROM notices ORDER BY 日付 DESC")
-        rows = cursor.fetchall()
-
-        if not rows:
-            print("🛠️ デバッグ: データベースにお知らせが1件もありません")
-            return []
-
-        notices = [
-            {"id": row[0], "内容": row[1], "タイトル": row[2], "日付": row[3], "既読": row[4]}
-            for row in rows
-        ]
-
-        print(f"🛠️ 読み込んだお知らせ {len(notices)} 件")
-        return notices
-    except sqlite3.Error as e:
-        print(f"❌ お知らせ取得エラー: {e}")
-        return []
-    finally:
-        conn.close()
-
-
-# ✅ お知らせを既読にする
-def mark_notice_as_read(notice_id):
-    """指定されたお知らせを既読にする。"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("UPDATE notices SET 既読 = 1 WHERE id = ?", (notice_id,))
-        conn.commit()
-    except sqlite3.Error as e:
-        print(f"❌ お知らせ既読処理エラー: {e}")
-    finally:
-        conn.close()
-
-# ✅ 日報を削除
 def delete_report(report_id):
-    """指定された日報を削除する。"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("DELETE FROM reports WHERE id = ?", (report_id,))
-        conn.commit()
-    except sqlite3.Error as e:
-        print(f"❌ 日報削除エラー: {e}")
-    finally:
-        conn.close()
+    """日報を削除（Gistを使用）"""
+    data = load_data()
+    data["reports"] = [r for r in data["reports"] if r["id"] != report_id]
+    save_data(data)
+
+def update_reaction(report_id, reaction_type):
+    """リアクションを更新（Gistを使用）"""
+    data = load_data()
+    for report in data["reports"]:
+        if report["id"] == report_id:
+            if reaction_type == "いいね":
+                report["いいね"] += 1
+            elif reaction_type == "ナイスファイト":
+                report["ナイスファイト"] += 1
+            save_data(data)
+            return
+
+def save_comment(report_id, commenter, comment):
+    """コメントを保存（Gistを使用）"""
+    data = load_data()
+    for report in data["reports"]:
+        if report["id"] == report_id:
+            new_comment = {
+                "投稿者": commenter,
+                "コメント": comment.strip(),
+                "日時": get_current_time().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            report["コメント"].append(new_comment)
+            # 通知機能は省略
+            save_data(data)
+            return
+
+def load_notices():
+    """お知らせを取得（Gistを使用）"""
+    data = load_data()
+    return data.get("notices", [])
+
+def mark_notice_as_read(notice_id):
+    """お知らせを既読にする（Gistを使用）"""
+    data = load_data()
+    for notice in data["notices"]:
+        if notice["id"] == notice_id:
+            notice["既読"] = 1
+            save_data(data)
+            return
