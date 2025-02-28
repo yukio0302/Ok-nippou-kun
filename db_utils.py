@@ -19,7 +19,6 @@ def init_db(keep_existing=True):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             投稿者 TEXT NOT NULL,
             実行日 TEXT NOT NULL,
-            実施日 TEXT NOT NULL,  -- 📅 実施日を追加
             投稿日時 TEXT NOT NULL,
             カテゴリ TEXT,
             場所 TEXT,
@@ -61,20 +60,17 @@ def authenticate_user(employee_code, password):
 
 # ✅ 日報を保存
 def save_report(report):
-    """新しい日報をデータベースに保存する（確実に保存されるように修正）"""
+    """新しい日報をデータベースに保存する。"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-        print(f"🛠️ デバッグ: 保存するデータ = {report}")  # 🔥 何がDBに保存されるか確認
-
         cursor.execute("""
-            INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO reports (投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
-            report["実行日"],  
-            report["実施日"],  # 📅 ここで "未設定" を使わない！
-            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            report["実行日"],
+            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時（UTC）
             report["カテゴリ"],
             report["場所"],
             report["実施内容"],
@@ -82,13 +78,10 @@ def save_report(report):
             json.dumps(report.get("コメント", []))
         ))
         conn.commit()
-        print("✅ データが正常に保存されました！")  # 🔥 成功ログ
-
     except sqlite3.Error as e:
-        print(f"❌ 日報保存エラー: {e}")  # 🔥 エラー発生時にログを出す
+        print(f"❌ 日報保存エラー: {e}")
     finally:
         conn.close()
-
 
 # ✅ 日報を取得
 def load_reports():
@@ -97,33 +90,29 @@ def load_reports():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT id, 投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+            SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
             ORDER BY 投稿日時 DESC
         """)
         rows = cursor.fetchall()
-        
-        print(f"🛠️ デバッグ: 取得したデータ = {rows}")  # 🔥 ちゃんとデータが取れてるかチェック
-
         return [
             {
                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
-                "実施日": row[3] if row[3] else "未設定",  
-                "投稿日時": row[4],
-                "カテゴリ": row[5],
-                "場所": row[6],
-                "実施内容": row[7],
-                "所感": row[8],
-                "いいね": row[9],
-                "ナイスファイト": row[10],
-                "コメント": json.loads(row[11]) if row[11] else []
+                "投稿日時": row[3],
+                "カテゴリ": row[4],
+                "場所": row[5],
+                "実施内容": row[6],
+                "所感": row[7],
+                "いいね": row[8],
+                "ナイスファイト": row[9],
+                "コメント": json.loads(row[10]) if row[10] else []
             }
             for row in rows
         ]
     except sqlite3.Error as e:
-        print(f"❌ 日報取得エラー: {e}")  
+        print(f"❌ 日報取得エラー: {e}")
         return []
     finally:
         conn.close()
