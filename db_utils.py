@@ -18,7 +18,6 @@ def init_db(keep_existing=True):
         CREATE TABLE IF NOT EXISTS reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             投稿者 TEXT NOT NULL,
-            実施日 TEXT,  -- ✅ 実施日をNULL許可（古いデータ対応）
             実行日 TEXT NOT NULL,
             投稿日時 TEXT NOT NULL,
             カテゴリ TEXT,
@@ -90,30 +89,25 @@ def load_reports():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
-       cursor.execute("""
-            SELECT id, 投稿者, 実施日, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+        cursor.execute("""
+            SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
             ORDER BY 投稿日時 DESC
         """)
         rows = cursor.fetchall()
-
-        # ✅ デバッグ用にデータを表示（エラーが出るデータを確認する）
-        print("📌 データ取得結果:", rows)
-
         return [
             {
                 "id": row[0],
                 "投稿者": row[1],
-                "実施日": row[2] if row[2] else "未設定",  # ✅ 実施日がNULLなら「未設定」
-                "実行日": row[3],
-                "投稿日時": row[4],
-                "カテゴリ": row[5],
-                "場所": row[6],
-                "実施内容": row[7],
-                "所感": row[8],
-                "いいね": row[9],
-                "ナイスファイト": row[10],
-                "コメント": json.loads(row[11]) if row[11] and isinstance(row[11], str) else []  # ✅ ここを修正！
+                "実行日": row[2],
+                "投稿日時": row[3],
+                "カテゴリ": row[4],
+                "場所": row[5],
+                "実施内容": row[6],
+                "所感": row[7],
+                "いいね": row[8],
+                "ナイスファイト": row[9],
+                "コメント": json.loads(row[10]) if row[10] else []
             }
             for row in rows
         ]
