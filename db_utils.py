@@ -71,8 +71,6 @@ def save_report(report):
         """, (
             report["投稿者"],
             report["実行日"],
-            execution_date,  # ✅ NULLも許容
-            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  
             report["実施日"],
             report["カテゴリ"],
             report["場所"],
