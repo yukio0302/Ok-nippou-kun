@@ -66,12 +66,12 @@ def save_report(report):
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO reports (投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
             report["実行日"],  
-            report["実施日"],  # 📅 実施日を追加
+            report["実施日"],  # 📅 実施日を追加！（修正）
             datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
             report["カテゴリ"],
             report["場所"],
@@ -92,11 +92,14 @@ def load_reports():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT id, 投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+            SELECT id, 投稿者, 実行日, IFNULL(実施日, '9999-12-31'), 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
-            ORDER BY 実施日 DESC, 投稿日時 DESC  -- 🏆 実施日順→投稿日順に並び替え
+            ORDER BY IFNULL(実施日, '9999-12-31') DESC, 投稿日時 DESC
         """)
         rows = cursor.fetchall()
+        
+        print(f"🛠️ デバッグ: {rows}")  # 🔥 デバッグ用にデータを確認
+
         return [
             {
                 "id": row[0],
@@ -119,7 +122,6 @@ def load_reports():
         return []
     finally:
         conn.close()
-
 
 # ✅ 日報を編集（新規追加）
 def edit_report(report_id, updated_report):
