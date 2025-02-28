@@ -57,23 +57,6 @@ def save_report(report):
     report["いいね"] = 0
     report["ナイスファイト"] = 0
     report["コメント"] = []
-
-    # 写真データを追加
-    new_report = {
-        "id": report["id"],
-        "投稿者": report["投稿者"],
-        "実行日": report["実行日"],
-        "投稿日時": report["投稿日時"],
-        "カテゴリ": report["カテゴリ"],
-        "場所": report["場所"],
-        "実施内容": report["実施内容"],
-        "所感": report["所感"],
-        "いいね": report["いいね"],
-        "ナイスファイト": report["ナイスファイト"],
-        "コメント": report["コメント"],
-        "image": report.get("image")  # 写真データを追加
-    }
-    
     data["reports"].append(report)
     save_data(data)
 
