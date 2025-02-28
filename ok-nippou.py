@@ -270,31 +270,29 @@ def show_notices():
         st.info("📭 お知らせはありません。")
         return
 
-    # ✅ 未読のお知らせを上部に表示（強調）
+    # ✅ 未読のお知らせを上部に表示
     new_notices = [n for n in notices if n["既読"] == 0]
     old_notices = [n for n in notices if n["既読"] == 1]
 
     if new_notices:
         st.subheader("🆕 新着お知らせ")
         for notice in new_notices:
-            with st.container():
-                st.markdown(f"### {notice['タイトル']} ✅")
-                st.write(f"📅 {notice['日付']}")
-                st.write(notice["内容"])
-                if st.button("✔️ 既読にする", key=f"read_{notice['id']}"):
-                    mark_notice_as_read(notice["id"])
-                    st.rerun()
+            st.markdown(f"### {notice['タイトル']} ✅")
+            st.write(f"📅 {notice['日付']}")
+            st.write(notice["内容"])
+            if st.button("✔️ 既読にする", key=f"read_{notice['id']}"):
+                mark_notice_as_read(notice["id"])
+                st.rerun()
         st.write("---")
 
-    # ✅ 既読のお知らせは折りたたみ表示
+    # ✅ 既読のお知らせを折りたたみ表示
     if old_notices:
         with st.expander("📂 過去のお知らせを見る"):
             for notice in old_notices:
                 st.markdown(f"**{notice['タイトル']}**")
                 st.write(f"📅 {notice['日付']}")
                 st.write(notice["内容"])
-
-
+                
 # ✅ マイページ
 def my_page():
     if "user" not in st.session_state or st.session_state["user"] is None:
