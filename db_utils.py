@@ -92,25 +92,25 @@ def save_report(report):
 
 # ✅ 日報を取得
 def load_reports():
-    """全日報を取得し、実施日順（降順）で返す。"""
+    """全日報を取得し、投稿日時順（降順）で返す。"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT id, 投稿者, 実行日, COALESCE(実施日, '9999-12-31'), 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+            SELECT id, 投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
-            ORDER BY COALESCE(実施日, '9999-12-31') DESC, 投稿日時 DESC
+            ORDER BY 投稿日時 DESC
         """)
         rows = cursor.fetchall()
         
-        print(f"🛠️ デバッグ: 取得したデータ = {rows}")  # 🔥 データをターミナルに出力
+        print(f"🛠️ デバッグ: 取得したデータ = {rows}")  # 🔥 ちゃんとデータが取れてるかチェック
 
         return [
             {
                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
-                "実施日": row[3] if row[3] != "9999-12-31" else "未設定",  # 📅 `9999-12-31` の場合は "未設定"
+                "実施日": row[3] if row[3] else "未設定",  
                 "投稿日時": row[4],
                 "カテゴリ": row[5],
                 "場所": row[6],
@@ -123,11 +123,10 @@ def load_reports():
             for row in rows
         ]
     except sqlite3.Error as e:
-        print(f"❌ 日報取得エラー: {e}")  # 🔥 取得エラーが発生したらログを出す
+        print(f"❌ 日報取得エラー: {e}")  
         return []
     finally:
         conn.close()
-
 
 # ✅ 日報を編集（新規追加）
 def edit_report(report_id, updated_report):
