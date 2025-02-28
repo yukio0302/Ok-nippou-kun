@@ -110,7 +110,6 @@ def post_report():
     st.title("📝 日報投稿")
     top_navigation()
 
-    execution_date = st.date_input("📅 実施日", value=datetime.today())
     category = st.text_input("📋 カテゴリ")
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
@@ -120,8 +119,7 @@ def post_report():
     if submit_button:
         save_report({
             "投稿者": st.session_state["user"]["name"],
-            "実行日": datetime.utcnow().strftime("%Y-%m-%d"),  # 投稿日
-            "実施日": execution_date.strftime("%Y-%m-%d"),  # 📅 実施日を追加
+            "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
             "カテゴリ": category,
             "場所": location,
             "実施内容": content,
@@ -143,23 +141,83 @@ def timeline():
 
     reports = load_reports()
     
-    print(f"🛠️ タイムラインデバッグ: 取得したレポート = {reports}")  # 🔥 デバッグ用に取得データを表示
+ # ✅ 検索ボックス
+    search_query = st.text_input("🔍 投稿を検索", "")
 
+    # ✅ 全部署リスト（固定）
+    all_departments = ["業務部", "営業部", "企画部", "国際流通", "総務部", "情報統括", "マーケティング室"]
+
+  # ✅ ユーザーの所属部署を取得（エラー防止）
+    user_departments = st.session_state["user"].get("depart", [])  # `depart` がなければ空リスト
+
+    # ✅ `depart` が `str` の場合はリスト化
+    if isinstance(user_departments, str):
+        user_departments = [user_departments]
+
+    print(f"🛠️ デバッグ: user_departments = {user_departments}")  # ← 確認用（デプロイ後は削除）
+
+    # ✅ フィルタ状態をセッションで管理（デフォルトは「全体表示」）
+    if "filter_mode" not in st.session_state:
+        st.session_state["filter_mode"] = "全体表示"
+        st.session_state["selected_department"] = None
+
+    # ✅ フィルタ切り替えボタン
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("🌎 全体表示"):
+            st.session_state["filter_mode"] = "全体表示"
+            st.session_state["selected_department"] = None
+            st.rerun()
+    with col2:
+        if st.button("🏢 所属部署の投稿を見る"):
+            st.session_state["filter_mode"] = "所属部署"
+            st.session_state["selected_department"] = None
+            st.rerun()
+    with col3:
+        if st.button("🔍 他の部署の投稿を見る"):
+            st.session_state["filter_mode"] = "他の部署"
+
+    # ✅ 他の部署を選ぶセレクトボックス（選択時のみ表示）
+    if st.session_state["filter_mode"] == "他の部署":
+        selected_department = st.selectbox("📌 表示する部署を選択", all_departments, index=0)
+        st.session_state["selected_department"] = selected_department
+
+  # ✅ 投稿の「部署」をリスト化（万が一 `str` や `None` だった場合に対応）
+    for report in reports:
+        report["部署"] = report.get("部署", [])  # 🔥 `部署` がない場合は空リストをセット
+        if not isinstance(report["部署"], list):  # 🔥 `str` だった場合はリスト化
+            report["部署"] = [report["部署"]]
+
+  # ✅ フィルタ処理
+    if st.session_state["filter_mode"] == "全体表示":
+        reports = load_reports()  # 🔥 修正: フィルターなしで全投稿を取得
+    elif st.session_state["filter_mode"] == "所属部署":
+        reports = [report for report in reports if set(report["部署"]) & set(user_departments)]
+    elif st.session_state["filter_mode"] == "他の部署" and st.session_state["selected_department"]:
+        reports = [report for report in reports if st.session_state["selected_department"] in report["部署"]]
+
+    # ✅ 検索フィルタ（フィルタ後のデータに適用）
+    if search_query:
+        reports = [
+            report for report in reports
+            if search_query.lower() in report["実施内容"].lower()
+            or search_query.lower() in report["所感"].lower()
+            or search_query.lower() in report["カテゴリ"].lower()
+        ]
+
+    # ✅ 🔥 ここでインデントを修正して return が関数の中にあることを確認
     if not reports:
-        st.warning("🔎 投稿がまだありません。最初の投稿をしてみましょう！")
-        return
+        st.warning("🔎 該当する投稿が見つかりませんでした。")
+        return  # ✅ 関数の中に properly インデントされていればOK
 
-    # ✅ **フィルタをすべて解除！**
-    filtered_reports = reports  # 🔥 フィルタ適用せず、そのまま全投稿を表示！
 
-    # ✅ 投稿を表示
-    for report in filtered_reports:
+        
+    for report in reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
-        st.markdown(f"📅 **実施日:** {report.get('実施日', '未設定')}")  
-        st.markdown(f"🏷 **カテゴリ:** {report['カテゴリ']}")
-        st.markdown(f"📍 **場所:** {report['場所']}")
-        st.markdown(f"📝 **実施内容:** {report['実施内容']}")
-        st.markdown(f"💬 **所感:** {report['所感']}")
+        st.write(f"🏷 **カテゴリ:** {report['カテゴリ']}")
+        st.write(f"📍 **場所:** {report['場所']}")
+        st.write(f"📝 **実施内容:** {report['実施内容']}")
+        st.write(f"💬 **所感:** {report['所感']}")
 
         # ✅ いいね！＆ナイスファイト！ボタン
         col1, col2 = st.columns(2)
@@ -172,25 +230,30 @@ def timeline():
                 update_reaction(report["id"], "ナイスファイト")
                 st.rerun()
 
-        # ✅ コメント欄
-        comment_count = len(report["コメント"]) if report["コメント"] else 0  
-        with st.expander(f"💬 ({comment_count}件)のコメントを見る・追加する "):  
+                  # コメント欄
+        comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
+        with st.expander(f"💬 ({comment_count}件)のコメントを見る・追加する "):  # 件数を表示
             if report["コメント"]:
                 for c in report["コメント"]:
                     st.write(f"👤 {c['投稿者']} ({c['日時']}): {c['コメント']}")
+
+            if report.get("id") is None:
+                st.error("⚠️ 投稿の ID が見つかりません。")
+                continue
 
             commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
             new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
 
             if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
                 if new_comment and new_comment.strip():
+                    print(f"🛠️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
                     save_comment(report["id"], commenter_name, new_comment)
                     st.success("✅ コメントを投稿しました！")
                     st.rerun()
                 else:
                     st.warning("⚠️ 空白のコメントは投稿できません！")
 
-
+st.write("----")
 
 # ✅ お知らせ
 def show_notices():
