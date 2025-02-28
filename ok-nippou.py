@@ -143,24 +143,16 @@ def timeline():
 
     reports = load_reports()
     
-    print(f"🛠️ タイムラインデバッグ: 取得したレポート = {reports}")  # 🔥 ここでデータを確認
-
     if not reports:
-        st.warning("🔎 該当する投稿が見つかりませんでした。")
+        st.warning("🔎 投稿がまだありません。最初の投稿をしてみましょう！")
         return
 
     # ✅ 検索ボックス
-    search_query = st.text_input("🔍 投稿を検索", "")
+    search_query = st.text_input("🔍 投稿を検索", "").strip()
 
-    # ✅ フィルタ処理（ここでは `reports` を上書きしない！）
-    filtered_reports = reports  # 🔥 `reports` を上書きせず、新しいリストで処理！
+    # ✅ フィルタ処理（デフォルトでは全投稿を表示）
+    filtered_reports = reports  
 
-    if st.session_state["filter_mode"] == "所属部署":
-        filtered_reports = [report for report in reports if set(report.get("部署", [])) & set(st.session_state["user"].get("depart", []))]
-    elif st.session_state["filter_mode"] == "他の部署" and st.session_state["selected_department"]:
-        filtered_reports = [report for report in reports if st.session_state["selected_department"] in report.get("部署", [])]
-
-    # ✅ 検索フィルタ適用
     if search_query:
         filtered_reports = [
             report for report in filtered_reports
@@ -169,24 +161,20 @@ def timeline():
             or search_query.lower() in report["カテゴリ"].lower()
         ]
 
-    # ✅ フィルタ適用後にデータがない場合
     if not filtered_reports:
         st.warning("🔎 該当する投稿が見つかりませんでした。")
         return
 
     # ✅ 投稿を表示
     for report in filtered_reports:
-        if "id" not in report or report["id"] is None:
-            continue  # 🔥 `id` が `None` の投稿はスキップ（ボタンのエラーを防ぐ）
-
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
-        st.write(f"📅 **実施日:** {report.get('実施日', '未設定')}")  # 📅 実施日がない場合は "未設定"
-        st.write(f"🏷 **カテゴリ:** {report['カテゴリ']}")
-        st.write(f"📍 **場所:** {report['場所']}")
-        st.write(f"📝 **実施内容:** {report['実施内容']}")
-        st.write(f"💬 **所感:** {report['所感']}")
+        st.markdown(f"📅 **実施日:** {report.get('実施日', '未設定')}")  
+        st.markdown(f"🏷 **カテゴリ:** {report['カテゴリ']}")
+        st.markdown(f"📍 **場所:** {report['場所']}")
+        st.markdown(f"📝 **実施内容:** {report['実施内容']}")
+        st.markdown(f"💬 **所感:** {report['所感']}")
 
-        # ✅ いいね！＆ナイスファイト！ボタン（IDが None じゃないときだけ）
+        # ✅ いいね！＆ナイスファイト！ボタン
         col1, col2 = st.columns(2)
         with col1:
             if st.button(f"❤️ {report['いいね']} いいね！", key=f"like_{report['id']}"):
@@ -198,8 +186,8 @@ def timeline():
                 st.rerun()
 
         # ✅ コメント欄
-        comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
-        with st.expander(f"💬 ({comment_count}件)のコメントを見る・追加する "):  # 件数を表示
+        comment_count = len(report["コメント"]) if report["コメント"] else 0  
+        with st.expander(f"💬 ({comment_count}件)のコメントを見る・追加する "):  
             if report["コメント"]:
                 for c in report["コメント"]:
                     st.write(f"👤 {c['投稿者']} ({c['日時']}): {c['コメント']}")
@@ -209,14 +197,11 @@ def timeline():
 
             if st.button("📤 コメントを投稿", key=f"submit_comment_{report['id']}"):
                 if new_comment and new_comment.strip():
-                    print(f"🛠️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
                     save_comment(report["id"], commenter_name, new_comment)
                     st.success("✅ コメントを投稿しました！")
                     st.rerun()
                 else:
                     st.warning("⚠️ 空白のコメントは投稿できません！")
-
-st.write("----")
 
 
 # ✅ お知らせ
