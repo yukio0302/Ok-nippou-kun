@@ -110,8 +110,7 @@ def post_report():
     st.title("📝 日報投稿")
     top_navigation()
 
-    execution_date = st.text_input("📅 実施日")  # ✅ 実施日を追加
-    category = st.text_input("📋 カテゴリ")
+    category = st.text_input("📋 "実施日")
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
     remarks = st.text_area("💬 所感")
@@ -121,8 +120,7 @@ def post_report():
         save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": datetime.utcnow().strftime("%Y-%m-%d"),  # 投稿日
-            "実施日": execution_date,  # ✅ 実施日を追加
-            "カテゴリ": category,
+            "実施日": category,
             "場所": location,
             "実施内容": content,
             "所感": remarks,
@@ -215,8 +213,7 @@ def timeline():
          # ✅ 投稿を表示（「実施日」を追加）
     for report in reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
-        st.write(f"📅 **実施日:** {report.get('実施日', '未設定')}")
-        st.write(f"🏷 **カテゴリ:** {report['カテゴリ']}")
+        st.write(f"🏷 **実施日:** {report['実施日']}")
         st.write(f"📍 **場所:** {report['場所']}")
         st.write(f"📝 **実施内容:** {report['実施内容']}")
         st.write(f"💬 **所感:** {report['所感']}")
