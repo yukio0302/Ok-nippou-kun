@@ -155,13 +155,12 @@ def update_reaction(report_id, reaction_type):
     finally:
         conn.close()
 
-# ✅ コメントを保存（日本時間に修正）
-# ✅ コメントを保存（通知処理を改善）
+# ✅ コメントを保存（通知機能強化）
 def save_comment(report_id, commenter, comment):
     """指定した投稿にコメントを追加し、投稿者に通知を送る"""
     if not report_id or not commenter or not comment.strip():
         print(f"⚠️ コメント保存スキップ: report_id={report_id}, commenter={commenter}, comment={comment}")
-        return  # 不正なデータなら保存しない
+        return  # 空コメントは無視
 
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -181,7 +180,7 @@ def save_comment(report_id, commenter, comment):
         new_comment = {
             "投稿者": commenter,
             "コメント": comment.strip(),
-            "日時": (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+            "日時": get_current_time().strftime("%Y-%m-%d %H:%M:%S")
         }
         comments.append(new_comment)
 
@@ -195,7 +194,7 @@ def save_comment(report_id, commenter, comment):
             """, (
                 "あなたの投稿にコメントがつきました！",
                 f"📢 {commenter} さんがコメントしました:\n\n『{comment.strip()}』",
-                (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
+                get_current_time().strftime("%Y-%m-%d %H:%M:%S"),
                 0  # 🔥 未読状態で保存
             ))
 
@@ -207,7 +206,7 @@ def save_comment(report_id, commenter, comment):
     finally:
         conn.close()
 
-# ✅ お知らせを取得
+# ✅ お知らせを取得（未読・既読を分ける）
 def load_notices():
     """お知らせを取得し、新しい順に返す。"""
     conn = sqlite3.connect(DB_FILE)
@@ -216,19 +215,23 @@ def load_notices():
         cursor.execute("SELECT id, 内容, タイトル, 日付, 既読 FROM notices ORDER BY 日付 DESC")
         rows = cursor.fetchall()
 
+        if not rows:
+            print("🛠️ デバッグ: データベースにお知らせが1件もありません")
+            return []
+
         notices = [
             {"id": row[0], "内容": row[1], "タイトル": row[2], "日付": row[3], "既読": row[4]}
             for row in rows
         ]
 
-        print(f"🛠️ デバッグ: 読み込んだお知らせ = {notices}")  # ✅ 追加
-
+        print(f"🛠️ 読み込んだお知らせ {len(notices)} 件")
         return notices
     except sqlite3.Error as e:
         print(f"❌ お知らせ取得エラー: {e}")
         return []
     finally:
         conn.close()
+
 
 # ✅ お知らせを既読にする
 def mark_notice_as_read(notice_id):
