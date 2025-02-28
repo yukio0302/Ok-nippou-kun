@@ -101,7 +101,7 @@ def load_reports():
                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
-                "実施日": row[3] if row[3] else "未設定", 
+                "実施日": row[3],
                 "投稿日時": row[3],
                 "カテゴリ": row[4],
                 "場所": row[5],
