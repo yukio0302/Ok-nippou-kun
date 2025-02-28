@@ -19,6 +19,7 @@ def init_db(keep_existing=True):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             投稿者 TEXT NOT NULL,
             実行日 TEXT NOT NULL,
+            実施日 TEXT NOT NULL,
             投稿日時 TEXT NOT NULL,
             カテゴリ TEXT,
             場所 TEXT,
@@ -64,6 +65,7 @@ def save_report(report):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
+        print(f"🛠️ デバッグ: 保存する実施日 = {report['実施日']}")  # 🔥 実施日が正しく渡ってるか確認
         cursor.execute("""
             INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
