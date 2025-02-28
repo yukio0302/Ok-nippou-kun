@@ -65,12 +65,11 @@ def save_report(report):
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO reports (投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
             report["実行日"],
-            report["実施日"],  # ✅ 実施日を追加
             datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時（UTC）
             report["カテゴリ"],
             report["場所"],
@@ -84,14 +83,14 @@ def save_report(report):
     finally:
         conn.close()
 
-# ✅ 日報を取得（「実施日」を追加）
+# ✅ 日報を取得
 def load_reports():
     """全日報を取得し、投稿日時順（降順）で返す。"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT id, 投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+            SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
             ORDER BY 投稿日時 DESC
         """)
@@ -101,15 +100,14 @@ def load_reports():
                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
-                "実施日": row[3] if row[3] else "未設定",  # ✅ 実施日を追加（なければ「未設定」）
-                "投稿日時": row[4],
-                "カテゴリ": row[5],
-                "場所": row[6],
-                "実施内容": row[7],
-                "所感": row[8],
-                "いいね": row[9],
-                "ナイスファイト": row[10],
-                "コメント": json.loads(row[11]) if row[11] else []
+                "投稿日時": row[3],
+                "カテゴリ": row[4],
+                "場所": row[5],
+                "実施内容": row[6],
+                "所感": row[7],
+                "いいね": row[8],
+                "ナイスファイト": row[9],
+                "コメント": json.loads(row[10]) if row[10] else []
             }
             for row in rows
         ]
