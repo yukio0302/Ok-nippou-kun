@@ -326,7 +326,11 @@ def my_page():
     weekly_reports = [r for r in my_reports if start_of_week.date() <= datetime.strptime(r["実行日"], "%Y-%m-%d").date() <= end_of_week.date()]
 
     for report in weekly_reports:
-        st.write(f"- {report['実行日']}: {report['カテゴリ']} / {report['場所']}")
+        with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
+            st.write(f"**実施日:** {report['カテゴリ']}")
+            st.write(f"**場所:** {report['場所']}")
+            st.write(f"**実施内容:** {report['実施内容']}")
+            st.write(f"**所感:** {report['所感']}")
 
 # ✅ メニュー管理
 if st.session_state["user"] is None:
