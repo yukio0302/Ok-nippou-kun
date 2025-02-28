@@ -65,7 +65,7 @@ def save_report(report):
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, 場所, 実施内容, 所感, コメント)
+            INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
@@ -90,7 +90,7 @@ def load_reports():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT id, 投稿者, 実行日, 投稿日時, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+            SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
             ORDER BY 投稿日時 DESC
         """)
@@ -101,12 +101,13 @@ def load_reports():
                 "投稿者": row[1],
                 "実行日": row[2],
                 "投稿日時": row[3],
-                "場所": row[4],
-                "実施内容": row[5],
-                "所感": row[6],
-                "いいね": row[7],
-                "ナイスファイト": row[8],
-                "コメント": json.loads(row[9]) if row[9] else []
+                "実施日": row[4],
+                "場所": row[5],
+                "実施内容": row[6],
+                "所感": row[7],
+                "いいね": row[8],
+                "ナイスファイト": row[9],
+                "コメント": json.loads(row[10]) if row[10] else []
             }
             for row in rows
         ]
