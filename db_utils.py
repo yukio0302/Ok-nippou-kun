@@ -91,7 +91,7 @@ def load_reports():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+            SELECT id, 投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
             ORDER BY 投稿日時 DESC
         """)
@@ -101,6 +101,7 @@ def load_reports():
                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
+                "実施日": row[3] if row[3] else "未設定", 
                 "投稿日時": row[3],
                 "カテゴリ": row[4],
                 "場所": row[5],
