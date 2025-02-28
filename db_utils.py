@@ -65,7 +65,7 @@ def save_report(report):
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
+            INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, 場所, 実施内容, 所感, コメント)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
@@ -90,7 +90,7 @@ def load_reports():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+            SELECT id, 投稿者, 実行日, 実施日, 投稿日時, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
             ORDER BY 投稿日時 DESC
         """)
