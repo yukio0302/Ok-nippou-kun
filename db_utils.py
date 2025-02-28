@@ -70,8 +70,8 @@ def save_report(report):
         """, (
             report["投稿者"],
             report["実行日"],
-            report["実施日"],  # ✅ 実施日を追加
             datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時（UTC）
+            report["実施日"],  # ✅ 実施日を追加
             report["カテゴリ"],
             report["場所"],
             report["実施内容"],
