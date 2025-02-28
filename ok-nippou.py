@@ -110,7 +110,7 @@ def post_report():
     st.title("📝 日報投稿")
     top_navigation()
 
-    execution_date = st.date_input("📅 実施日", value=datetime.today())  # ✅ 実施日を追加
+    execution_date = st.text_input("📅 実施日")  # ✅ 実施日を追加
     category = st.text_input("📋 カテゴリ")
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
