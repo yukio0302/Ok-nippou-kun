@@ -61,17 +61,19 @@ def authenticate_user(employee_code, password):
 
 # ✅ 日報を保存
 def save_report(report):
-    """新しい日報をデータベースに保存する。"""
+    """新しい日報をデータベースに保存する（確実に保存されるように修正）"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
+        print(f"🛠️ デバッグ: 保存するデータ = {report}")  # 🔥 何がDBに保存されるか確認
+
         cursor.execute("""
             INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
             report["実行日"],  
-            report["実施日"],  # 📅 実施日を追加！（修正）
+            report["実施日"] if report["実施日"] else "未設定",  # 📅 実施日が `None` なら「未設定」に
             datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
             report["カテゴリ"],
             report["場所"],
@@ -80,25 +82,27 @@ def save_report(report):
             json.dumps(report.get("コメント", []))
         ))
         conn.commit()
+        print("✅ データが正常に保存されました！")  # 🔥 成功ログ
+
     except sqlite3.Error as e:
-        print(f"❌ 日報保存エラー: {e}")
+        print(f"❌ 日報保存エラー: {e}")  # 🔥 エラー発生時にログを出す
     finally:
         conn.close()
 
 # ✅ 日報を取得
 def load_reports():
-    """全日報を取得し、投稿日時順（降順）で返す。"""
+    """全日報を取得し、実施日順（降順）で返す。"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT id, 投稿者, 実行日, IFNULL(実施日, '9999-12-31'), 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+            SELECT id, 投稿者, 実行日, IFNULL(実施日, '未設定'), 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
             ORDER BY IFNULL(実施日, '9999-12-31') DESC, 投稿日時 DESC
         """)
         rows = cursor.fetchall()
         
-        print(f"🛠️ デバッグ: {rows}")  # 🔥 デバッグ用にデータを確認
+        print(f"🛠️ デバッグ: 取得したデータ = {rows}")  # 🔥 データをターミナルに出力
 
         return [
             {
@@ -118,7 +122,7 @@ def load_reports():
             for row in rows
         ]
     except sqlite3.Error as e:
-        print(f"❌ 日報取得エラー: {e}")
+        print(f"❌ 日報取得エラー: {e}")  # 🔥 取得エラーが発生したらログを出す
         return []
     finally:
         conn.close()
