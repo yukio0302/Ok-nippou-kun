@@ -19,7 +19,6 @@ def init_db(keep_existing=True):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             投稿者 TEXT NOT NULL,
             実行日 TEXT NOT NULL,
-            実施日 TEXT NOT NULL,
             投稿日時 TEXT NOT NULL,
             カテゴリ TEXT,
             場所 TEXT,
@@ -66,13 +65,12 @@ def save_report(report):
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO reports (投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
             report["実行日"],
             datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時（UTC）
-            report["実施日"],  # ✅ 実施日を追加
             report["カテゴリ"],
             report["場所"],
             report["実施内容"],
@@ -92,7 +90,7 @@ def load_reports():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT id, 投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+            SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
             ORDER BY 投稿日時 DESC
         """)
