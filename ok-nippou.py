@@ -313,25 +313,40 @@ def my_page():
         st.error("ログインしてください。")
         return
 
-    st.title("👤 マイページ")
+    st.title(" マイページ")
     top_navigation()
 
     reports = load_reports()
     my_reports = [r for r in reports if r["投稿者"] == st.session_state["user"]["name"]]
 
-    st.subheader("📅 今週の投稿")
+    st.subheader(" 今週の投稿")
     now = datetime.utcnow()
     start_of_week = now - timedelta(days=now.weekday())
     end_of_week = start_of_week + timedelta(days=4)
     weekly_reports = [r for r in my_reports if start_of_week.date() <= datetime.strptime(r["実行日"], "%Y-%m-%d").date() <= end_of_week.date()]
 
-    for report in weekly_reports:
-        with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
-            st.write(f"**実施日:** {report['カテゴリ']}")
-            st.write(f"**場所:** {report['場所']}")
-            st.write(f"**実施内容:** {report['実施内容']}")
-            st.write(f"**所感:** {report['所感']}")
+    if weekly_reports:
+        for report in weekly_reports:
+            with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
+                st.write(f"**実施日:** {report['カテゴリ']}")
+                st.write(f"**場所:** {report['場所']}")
+                st.write(f"**実施内容:** {report['実施内容']}")
+                st.write(f"**所感:** {report['所感']}")
+    else:
+        st.info("今週の投稿はありません。")
 
+    past_reports = [r for r in my_reports if r not in weekly_reports]
+
+    if past_reports:
+        with st.expander(" 過去の投稿"):
+            for report in past_reports:
+                with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
+                    st.write(f"**実施日:** {report['カテゴリ']}")
+                    st.write(f"**場所:** {report['場所']}")
+                    st.write(f"**実施内容:** {report['実施内容']}")
+                    st.write(f"**所感:** {report['所感']}")
+    else:
+        st.info("過去の投稿はありません。")
 # ✅ メニュー管理
 if st.session_state["user"] is None:
     login()
