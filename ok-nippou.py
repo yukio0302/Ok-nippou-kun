@@ -115,14 +115,6 @@ def post_report():
     content = st.text_area("📝 実施内容")
     remarks = st.text_area("💬 所感")
 
-    # 写真アップロード機能の追加
-    uploaded_file = st.file_uploader(" 写真を選択 (任意)", type=["png", "jpg", "jpeg"])
-    if uploaded_file is not None:
-        image_bytes = uploaded_file.getvalue()
-        image_base64 = base64.b64encode(image_bytes).decode("utf-8")
-    else:
-        image_base64 = None
-    
     submit_button = st.button("📤 投稿する")
     if submit_button:
         save_report({
@@ -132,8 +124,7 @@ def post_report():
             "場所": location,
             "実施内容": content,
             "所感": remarks,
-            "コメント": [],
-            "image": image_base64  # 写真データを追加
+            "コメント": []
         })
         st.success("✅ 日報を投稿しました！")
         time.sleep(1)
@@ -227,13 +218,6 @@ def timeline():
         st.write(f"📍 **場所:** {report['場所']}")
         st.write(f"📝 **実施内容:** {report['実施内容']}")
         st.write(f"💬 **所感:** {report['所感']}")
-
-        # 写真表示機能の追加
-        if report.get("image"):
-            try:
-                st.image(base64.b64decode(report["image"]), caption="投稿写真", use_column_width=True)
-            except Exception as e:
-                st.error(f"写真の表示に失敗しました: {e}")
 
         # ✅ いいね！＆ナイスファイト！ボタン
         col1, col2 = st.columns(2)
