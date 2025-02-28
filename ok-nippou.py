@@ -110,6 +110,7 @@ def post_report():
     st.title("📝 日報投稿")
     top_navigation()
 
+    execution_date = st.date_input("📅 実施日", value=datetime.today())  # ✅ 実施日を追加
     category = st.text_input("📋 カテゴリ")
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
@@ -119,7 +120,8 @@ def post_report():
     if submit_button:
         save_report({
             "投稿者": st.session_state["user"]["name"],
-            "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
+            "実行日": datetime.utcnow().strftime("%Y-%m-%d"),  # 投稿日
+            "実施日": execution_date.strftime("%Y-%m-%d"),  # ✅ 実施日を追加
             "カテゴリ": category,
             "場所": location,
             "実施内容": content,
@@ -210,10 +212,10 @@ def timeline():
         st.warning("🔎 該当する投稿が見つかりませんでした。")
         return  # ✅ 関数の中に properly インデントされていればOK
 
-
-        
+         # ✅ 投稿を表示（「実施日」を追加）
     for report in reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
+        st.write(f"📅 **実施日:** {report.get('実施日', '未設定')}")  # ✅ 実施日を表示
         st.write(f"🏷 **カテゴリ:** {report['カテゴリ']}")
         st.write(f"📍 **場所:** {report['場所']}")
         st.write(f"📝 **実施内容:** {report['実施内容']}")
