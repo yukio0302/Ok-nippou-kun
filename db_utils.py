@@ -156,6 +156,7 @@ def update_reaction(report_id, reaction_type):
         conn.close()
 
 # ✅ コメントを保存（日本時間に修正）
+# ✅ コメントを保存（通知処理を改善）
 def save_comment(report_id, commenter, comment):
     """指定した投稿にコメントを追加し、投稿者に通知を送る"""
     if not report_id or not commenter or not comment.strip():
@@ -198,8 +199,9 @@ def save_comment(report_id, commenter, comment):
                 0  # 🔥 未読状態で保存
             ))
 
+            print(f"✅ 通知が追加されました: 投稿者={post_author}, コメント={commenter}, 内容={comment.strip()}")  # デバッグログ
+
         conn.commit()
-        print(f"✅ 通知が追加されました: 投稿者={post_author}, コメント={commenter}")
     except sqlite3.Error as e:
         print(f"❌ コメント保存エラー: {e}")
     finally:
