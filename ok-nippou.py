@@ -121,7 +121,7 @@ def post_report():
         save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": datetime.utcnow().strftime("%Y-%m-%d"),  # 投稿日
-            "実施日": execution_date.strftime("%Y-%m-%d"),  # ✅ 実施日を追加
+            "実施日": yyyymmdd,  # ✅ 実施日を追加
             "カテゴリ": category,
             "場所": location,
             "実施内容": content,
