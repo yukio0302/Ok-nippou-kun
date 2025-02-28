@@ -100,14 +100,13 @@ def load_reports():
                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
-                "実施日": row[3],
-                "投稿日時": row[4],
-                "場所": row[5],
-                "実施内容": row[6],
-                "所感": row[7],
-                "いいね": row[8],
-                "ナイスファイト": row[9],
-                "コメント": json.loads(row[10]) if row[10] else []
+                "投稿日時": row[3],
+                "場所": row[4],
+                "実施内容": row[5],
+                "所感": row[6],
+                "いいね": row[7],
+                "ナイスファイト": row[8],
+                "コメント": json.loads(row[9]) if row[9] else []
             }
             for row in rows
         ]
