@@ -143,27 +143,14 @@ def timeline():
 
     reports = load_reports()
     
+    print(f"🛠️ タイムラインデバッグ: 取得したレポート = {reports}")  # 🔥 デバッグ用に取得データを表示
+
     if not reports:
         st.warning("🔎 投稿がまだありません。最初の投稿をしてみましょう！")
         return
 
-    # ✅ 検索ボックス
-    search_query = st.text_input("🔍 投稿を検索", "").strip()
-
-    # ✅ フィルタ処理（デフォルトでは全投稿を表示）
-    filtered_reports = reports  
-
-    if search_query:
-        filtered_reports = [
-            report for report in filtered_reports
-            if search_query.lower() in report["実施内容"].lower()
-            or search_query.lower() in report["所感"].lower()
-            or search_query.lower() in report["カテゴリ"].lower()
-        ]
-
-    if not filtered_reports:
-        st.warning("🔎 該当する投稿が見つかりませんでした。")
-        return
+    # ✅ **フィルタをすべて解除！**
+    filtered_reports = reports  # 🔥 フィルタ適用せず、そのまま全投稿を表示！
 
     # ✅ 投稿を表示
     for report in filtered_reports:
@@ -202,6 +189,7 @@ def timeline():
                     st.rerun()
                 else:
                     st.warning("⚠️ 空白のコメントは投稿できません！")
+
 
 
 # ✅ お知らせ
