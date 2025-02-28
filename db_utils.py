@@ -19,6 +19,7 @@ def init_db(keep_existing=True):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             投稿者 TEXT NOT NULL,
             実行日 TEXT NOT NULL,
+            実施日 TEXT NOT NULL,  -- 📅 実施日を追加
             投稿日時 TEXT NOT NULL,
             カテゴリ TEXT,
             場所 TEXT,
@@ -69,8 +70,9 @@ def save_report(report):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
-            report["実行日"],
-            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時（UTC）
+            report["実行日"],  
+            report["実施日"],  # 📅 実施日を追加
+            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
             report["カテゴリ"],
             report["場所"],
             report["実施内容"],
