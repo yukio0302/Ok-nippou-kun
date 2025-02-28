@@ -92,9 +92,9 @@ def load_reports():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+            SELECT id, 投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
-            ORDER BY 投稿日時 DESC
+            ORDER BY 実施日 DESC, 投稿日時 DESC  -- 🏆 実施日順→投稿日順に並び替え
         """)
         rows = cursor.fetchall()
         return [
@@ -102,14 +102,15 @@ def load_reports():
                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
-                "投稿日時": row[3],
-                "カテゴリ": row[4],
-                "場所": row[5],
-                "実施内容": row[6],
-                "所感": row[7],
-                "いいね": row[8],
-                "ナイスファイト": row[9],
-                "コメント": json.loads(row[10]) if row[10] else []
+                "実施日": row[3],  # 📅 実施日を追加
+                "投稿日時": row[4],
+                "カテゴリ": row[5],
+                "場所": row[6],
+                "実施内容": row[7],
+                "所感": row[8],
+                "いいね": row[9],
+                "ナイスファイト": row[10],
+                "コメント": json.loads(row[11]) if row[11] else []
             }
             for row in rows
         ]
@@ -118,6 +119,7 @@ def load_reports():
         return []
     finally:
         conn.close()
+
 
 # ✅ 日報を編集（新規追加）
 def edit_report(report_id, updated_report):
