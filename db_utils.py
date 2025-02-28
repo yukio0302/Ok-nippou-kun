@@ -19,6 +19,7 @@ def init_db(keep_existing=True):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             投稿者 TEXT NOT NULL,
             実行日 TEXT NOT NULL,
+            実施日 TEXT NOT NULL,
             投稿日時 TEXT NOT NULL,
             カテゴリ TEXT,
             場所 TEXT,
@@ -64,14 +65,18 @@ def save_report(report):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     try:
+        execution_date = report["実施日"] if report["実施日"] else None  # ✅ そのまま保存（NULLもOK）
+
+        print(f"🛠️ デバッグ: 保存する実施日 = {execution_date}")  # 🔥 実施日が正しく渡ってるか確認
+
         cursor.execute("""
             INSERT INTO reports (投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, コメント)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             report["投稿者"],
             report["実行日"],
-            report["実施日"],  # ✅ 実施日を追加
-            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  # 投稿日時（UTC）
+            execution_date,  # ✅ NULLも許容
+            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),  
             report["カテゴリ"],
             report["場所"],
             report["実施内容"],
@@ -84,6 +89,7 @@ def save_report(report):
     finally:
         conn.close()
 
+
 # ✅ 日報を取得
 def load_reports():
     """全日報を取得し、投稿日時順（降順）で返す。"""
@@ -91,7 +97,7 @@ def load_reports():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT id, 投稿者, 実行日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
+            SELECT id, 投稿者, 実行日, 実施日, 投稿日時, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント
             FROM reports
             ORDER BY 投稿日時 DESC
         """)
@@ -101,14 +107,15 @@ def load_reports():
                 "id": row[0],
                 "投稿者": row[1],
                 "実行日": row[2],
-                "投稿日時": row[3],
-                "カテゴリ": row[4],
-                "場所": row[5],
-                "実施内容": row[6],
-                "所感": row[7],
-                "いいね": row[8],
-                "ナイスファイト": row[9],
-                "コメント": json.loads(row[10]) if row[10] else []
+                "実施日": row[3],
+                "投稿日時": row[4],
+                "カテゴリ": row[5],
+                "場所": row[6],
+                "実施内容": row[7],
+                "所感": row[8],
+                "いいね": row[9],
+                "ナイスファイト": row[10],
+                "コメント": json.loads(row[11]) if row[11] else []
             }
             for row in rows
         ]
