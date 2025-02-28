@@ -255,7 +255,7 @@ def timeline():
 
 st.write("----")
 
-# ✅ お知らせを表示（新着を強調し、既読は折りたたみ）
+# ✅ お知らせを表示（未読を強調し、既読を折りたたむ）
 def show_notices():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -280,9 +280,9 @@ def show_notices():
             st.markdown(f"### {notice['タイトル']} ✅")
             st.write(f"📅 {notice['日付']}")
             st.write(notice["内容"])
-            if st.button("✔️ 既読にする", key=f"read_{notice['id']}"):
+            if st.button(f"✔️ 既読にする", key=f"read_{notice['id']}"):
                 mark_notice_as_read(notice["id"])
-                st.rerun()
+                st.experimental_rerun()
         st.write("---")
 
     # ✅ 既読のお知らせを折りたたみ表示
