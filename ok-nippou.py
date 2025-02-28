@@ -110,7 +110,7 @@ def post_report():
     st.title("📝 日報投稿")
     top_navigation()
 
-    execution_date = st.text_input("📅 実施日 (YYYY-MM-DD)")  # ✅ ここをテキスト入力に変更
+    execution_date = st.date_input("📅 実施日", value=datetime.today())  # ✅ 実施日を追加
     category = st.text_input("📋 カテゴリ")
     location = st.text_input("📍 場所")
     content = st.text_area("📝 実施内容")
@@ -118,12 +118,10 @@ def post_report():
 
     submit_button = st.button("📤 投稿する")
     if submit_button:
-        print(f"🛠️ デバッグ: 入力された実施日 = {execution_date}")  # 🔥 デバッグ用
-
         save_report({
             "投稿者": st.session_state["user"]["name"],
-            "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
-            "実施日": execution_date.strip(),  # ✅ 余計な空白を削除
+            "実行日": datetime.utcnow().strftime("%Y-%m-%d"),  # 投稿日
+            "実施日": execution_date.strftime("%Y-%m-%d"),  # ✅ 実施日を追加
             "カテゴリ": category,
             "場所": location,
             "実施内容": content,
