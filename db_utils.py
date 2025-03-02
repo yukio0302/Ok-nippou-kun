@@ -53,7 +53,7 @@ def save_report(report):
    """日報を保存（Gistを使用）"""
     data = load_data()
     report["id"] = len(data["reports"]) + 1  # IDを割り当て
-    report["投稿日時"] = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")  # JSTで投稿日時を保存
+    report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # JSTで投稿日時を保存
     report["いいね"] = 0
     report["ナイスファイト"] = 0
     report["コメント"] = []
@@ -110,7 +110,7 @@ def update_reaction(report_id, reaction_type):
             return
 
 def save_comment(report_id, commenter, comment):
-    """コメントを保存（Gistを使用）"""
+     """コメントを保存（Gistを使用）"""
     data = load_data()
     for report in data["reports"]:
         if report["id"] == report_id:
