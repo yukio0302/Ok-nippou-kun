@@ -128,7 +128,7 @@ def post_report():
             "image": image_base64  # 写真データを追加
         })
     st.success("✅ 日報を投稿しました！")
-        time.sleep(1)
+    time.sleep(1)
         switch_page("タイムライン")
 
 # ✅ タイムライン（コメント機能修正）
