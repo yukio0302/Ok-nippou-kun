@@ -50,10 +50,10 @@ def authenticate_user(employee_code, password):
         return None
 
 def save_report(report):
-    """日報を保存（Gistを使用）"""
+   """日報を保存（Gistを使用）"""
     data = load_data()
     report["id"] = len(data["reports"]) + 1  # IDを割り当て
-    report["投稿日時"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    report["投稿日時"] = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")  # JSTで投稿日時を保存
     report["いいね"] = 0
     report["ナイスファイト"] = 0
     report["コメント"] = []
@@ -100,7 +100,7 @@ def save_comment(report_id, commenter, comment):
             new_comment = {
                 "投稿者": commenter,
                 "コメント": comment.strip(),
-                "日時": get_current_time().strftime("%Y-%m-%d %H:%M:%S")
+                "日時": get_current_time().strftime("%Y-%m-%d %H:%M:%S")  # JSTでコメント日時を保存
             }
             report["コメント"].append(new_comment)
             # 通知機能は省略
