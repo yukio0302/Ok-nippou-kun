@@ -115,7 +115,7 @@ def post_report():
     content = st.text_area("📝 実施内容")
     remarks = st.text_area("💬 所感")
 
-            submit_button = st.button("📤 投稿する")
+        submit_button = st.button("📤 投稿する")
     if submit_button:  # インデントを修正
         save_report({
             "投稿者": st.session_state["user"]["name"],
