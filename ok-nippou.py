@@ -115,8 +115,8 @@ def post_report():
     content = st.text_area("📝 実施内容")
     remarks = st.text_area("💬 所感")
 
-    submit_button = st.button("📤 投稿する")
-   if submit_button:
+            submit_button = st.button("📤 投稿する")
+    if submit_button:  # インデントを修正
         save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d"), # JSTで実行日を保存
