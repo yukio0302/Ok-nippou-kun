@@ -3,11 +3,11 @@ import os
 import time
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
-    return datetime.now(timezone(timedelta(hours=9)))  # JSTで現在時刻を取得
+    return datetime.now() + timedelta(hours=9)  # JSTで現在時刻を取得
 
 # サブコーディングから必要な関数をインポート
 from db_utils import init_db, authenticate_user, save_report, load_reports, load_notices, mark_notice_as_read, edit_report, delete_report, update_reaction, save_comment
@@ -118,10 +118,10 @@ def post_report():
     remarks = st.text_area(" 所感")
 
     submit_button = st.button(" 投稿する")
-    if submit_button:
+   if submit_button:
         save_report({
             "投稿者": st.session_state["user"]["name"],
-            "実行日": datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d"), # JSTで実行日を保存
+            "実行日": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d"), # JSTで実行日を保存
             "カテゴリ": category,
             "場所": location,
             "実施内容": content,
