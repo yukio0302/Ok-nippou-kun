@@ -117,7 +117,7 @@ def post_report():
 
     submit_button = st.button("📤 投稿する")
     if submit_button:
-        save_report({
+         new_report = {
             "投稿者": st.session_state["user"]["name"],
             "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
             "カテゴリ": category,
@@ -125,10 +125,19 @@ def post_report():
             "実施内容": content,
             "所感": remarks,
             "コメント": []
-        })
+        }
+        
+        save_report(new_report)  # データを保存
+
+        # 🔥 デバッグ用: 最新のデータ数を確認
+        reports = load_reports()
+        print(f"🛠️ デバッグ: 現在の投稿数 = {len(reports)} 件")
+
         st.success("✅ 日報を投稿しました！")
         time.sleep(1)
-        switch_page("タイムライン")
+        switch_page("タイムライン")  # ✅ タイムラインに遷移
+        st.rerun()  # 🔥 ここで即リロード
+
 
 # ✅ タイムライン（コメント機能修正）
 def timeline():
