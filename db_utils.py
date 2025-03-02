@@ -9,14 +9,11 @@ def get_current_time():
     return datetime.now() + timedelta(hours=9)
 
 def load_data():
-    """Gistからデータを読み込む"""
-    headers = {"Authorization": f"token {API_TOKEN}"} if API_TOKEN else {}
-    response = requests.get(f"{GIST_URL}/raw", headers=headers)
-    if response.status_code == 200:
-        return json.loads(response.content)
-    else:
-        print(f"Gistからのデータ読み込みエラー: {response.status_code}")
-        return {"reports": [], "notices": []}  # エラー時は空のデータを返す
+     """日報を取得（Gistを使用）"""
+    data = load_data()
+    reports = data.get("reports", [])
+    reports.sort(key=lambda x: x["投稿日時"], reverse=True)  # 🔥 修正: 新しい投稿を上に表示
+    return reports
 
 def save_data(data):
     """Gistにデータを保存する"""
