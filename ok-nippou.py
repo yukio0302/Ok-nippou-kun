@@ -128,7 +128,6 @@ def post_report():
         }
         
         save_report(new_report)
-
         # 🔥 デバッグ用: 最新のデータ数を確認
         reports = load_reports()
         print(f"🛠️ デバッグ: 現在の投稿数 = {len(reports)} 件")
