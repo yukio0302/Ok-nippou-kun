@@ -117,7 +117,7 @@ def post_report():
 
     submit_button = st.button("📤 投稿する")
     if submit_button:  # インデントを修正
-    save_report({
+     save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d"), # JSTで実行日を保存
             "カテゴリ": category,
