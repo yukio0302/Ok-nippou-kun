@@ -127,7 +127,7 @@ def post_report():
             "コメント": []
         }
         
-        save_report(new_report)  # データを保存
+        save_report(new_report)
 
         # 🔥 デバッグ用: 最新のデータ数を確認
         reports = load_reports()
