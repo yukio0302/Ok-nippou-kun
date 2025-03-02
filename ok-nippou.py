@@ -116,7 +116,7 @@ def post_report():
     remarks = st.text_area("💬 所感")
 
     submit_button = st.button("📤 投稿する")
-    if submit_button:
+   if submit_button:
         save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d"), # JSTで実行日を保存
@@ -124,7 +124,8 @@ def post_report():
             "場所": location,
             "実施内容": content,
             "所感": remarks,
-            "コメント": []
+            "コメント": [],
+            "image": image_base64  # 写真データを追加
         })
         st.success("✅ 日報を投稿しました！")
         time.sleep(1)
