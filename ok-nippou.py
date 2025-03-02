@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
-    return datetime.now() + timedelta(hours=9)
+    return datetime.now(timezone(timedelta(hours=9)))  # JSTで現在時刻を取得
 # サブコーディングから必要な関数をインポート
 from db_utils import init_db, authenticate_user, save_report, load_reports, load_notices, mark_notice_as_read, edit_report, delete_report, update_reaction, save_comment
 
@@ -119,7 +119,7 @@ def post_report():
     if submit_button:
         save_report({
             "投稿者": st.session_state["user"]["name"],
-            "実行日": datetime.utcnow().strftime("%Y-%m-%d"),
+            "実行日": datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d"), # JSTで実行日を保存
             "カテゴリ": category,
             "場所": location,
             "実施内容": content,
@@ -212,7 +212,7 @@ def timeline():
 
 
         
-    for report in reports:
+   for report in reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
         st.write(f"🏷 **実施日:** {report['カテゴリ']}")
         st.write(f"📍 **場所:** {report['場所']}")
@@ -324,7 +324,6 @@ def my_page():
     start_of_week = now - timedelta(days=now.weekday())
     end_of_week = start_of_week + timedelta(days=4)
     weekly_reports = [r for r in my_reports if start_of_week.date() <= datetime.strptime(r["実行日"], "%Y-%m-%d").date() <= end_of_week.date()]
-
     if weekly_reports:
         for report in weekly_reports:
             with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
