@@ -5,27 +5,31 @@ from datetime import datetime, timedelta
 GIST_URL = "https://gist.github.com/yukio0302/5ecd23170f905e0d789f2986f9c17bff"  # GistのURLをここに設定
 API_TOKEN = None  # APIトークンが必要な場合はここに設定
 
-def get_current_time():
-    return datetime.now() + timedelta(hours=9)
-
 def load_data():
     """Gistからデータを読み込む"""
     headers = {"Authorization": f"token {API_TOKEN}"} if API_TOKEN else {}
-    response = requests.get(f"{GIST_URL}/raw", headers=headers)
-    if response.status_code == 200:
+    try:
+        response = requests.get(f"{GIST_URL}/raw", headers=headers)
+        response.raise_for_status()  # エラーレスポンスを例外として処理
         return json.loads(response.content)
-    else:
-        print(f"Gistからのデータ読み込みエラー: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"Gistからのデータ読み込みエラー: {e}")
         return {"reports": [], "notices": []}  # エラー時は空のデータを返す
+    except json.JSONDecodeError as e:
+        print(f"GistからのJSONデコードエラー: {e}")
+        return {"reports": [], "notices": []}
 
 def save_data(data):
     """Gistにデータを保存する"""
     headers = {"Authorization": f"token {API_TOKEN}"} if API_TOKEN else {}
     payload = {"files": {"data.json": {"content": json.dumps(data)}}}
-    response = requests.patch(GIST_URL, headers=headers, data=json.dumps(payload))
-    if response.status_code != 200:
-        print(f"Gistへのデータ保存エラー: {response.status_code}")
-    return response.status_code == 200
+    try:
+        response = requests.patch(GIST_URL, headers=headers, data=json.dumps(payload))
+        response.raise_for_status()
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"Gistへのデータ保存エラー: {e}")
+        return False
 
 def init_db(keep_existing=True):
     """データベースの初期化（Gistを使用）"""
@@ -50,14 +54,14 @@ def authenticate_user(employee_code, password):
         return None
 
 def save_report(report):
-   """日報を保存（Gistを使用）"""
+    """日報を保存（Gistを使用）"""
     data = load_data()
     report["id"] = len(data["reports"]) + 1  # IDを割り当て
     report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # JSTで投稿日時を保存
     report["いいね"] = 0
     report["ナイスファイト"] = 0
     report["コメント"] = []
-    
+
     # 写真データを追加
     new_report = {
         "id": report["id"],
@@ -73,7 +77,7 @@ def save_report(report):
         "コメント": report["コメント"],
         "image": report.get("image")  # 写真データを追加
     }
-    
+
     data["reports"].append(new_report)
     save_data(data)
 
@@ -110,14 +114,14 @@ def update_reaction(report_id, reaction_type):
             return
 
 def save_comment(report_id, commenter, comment):
-     """コメントを保存（Gistを使用）"""
+    """コメントを保存（Gistを使用）"""
     data = load_data()
     for report in data["reports"]:
         if report["id"] == report_id:
             new_comment = {
                 "投稿者": commenter,
                 "コメント": comment.strip(),
-                "日時": get_current_time().strftime("%Y-%m-%d %H:%M:%S")  # JSTでコメント日時を保存
+                "日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # JSTでコメント日時を保存
             }
             report["コメント"].append(new_comment)
             # 通知機能は省略
