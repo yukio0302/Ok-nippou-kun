@@ -4,7 +4,6 @@ import time
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-import base64  # base64エンコード用ライブラリ
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
@@ -104,36 +103,31 @@ def login():
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
+# ✅ 日報投稿
 def post_report():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
 
-    st.title("日報投稿")
+    st.title(" 日報投稿")
     top_navigation()
 
-    category = st.text_input("実施日")
-    location = st.text_input("場所")
-    content = st.text_area("実施内容")
-    remarks = st.text_area("所感")
-
-    uploaded_file = st.file_uploader("写真を選択", type=["png", "jpg", "jpeg"])
-    image_base64 = None
-    if uploaded_file is not None:
-        image_bytes = uploaded_file.getvalue()
-        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+    category = st.text_input(" 実施日")
+    location = st.text_input(" 場所")
+    content = st.text_area(" 実施内容")
+    remarks = st.text_area(" 所感")
 
     submit_button = st.button("投稿する")
-    if submit_button:
+    if submit_button:  # インデントを修正
         save_report({
             "投稿者": st.session_state["user"]["name"],
-            "実行日": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d"),
+            "実行日": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d"), # JSTで実行日を保存
             "カテゴリ": category,
             "場所": location,
             "実施内容": content,
             "所感": remarks,
             "コメント": [],
-            "image": image_base64
+            "image": image_base64  # 写真データを追加
         })
         st.success("✅ 日報を投稿しました！")
         time.sleep(1)
