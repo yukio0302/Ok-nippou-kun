@@ -1,162 +1,143 @@
-import sqlite3
-import os
-import shutil
-from datetime import datetime
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.oauth2.service_account import Credentials
-import gdown
+import requests
+import json
+from datetime import datetime, timedelta
 
-# Google Drive から service_account.json を取得
-json_path = "service_account.json"
-if not os.path.exists(json_path):
-    gdown.download(id="1q8D2EeXp6gJXeDVKY9BcrYsnkcENR6Rz", output=json_path, quiet=False)
+GIST_URL = "https://gist.github.com/yukio0302/5ecd23170f905e0d789f2986f9c17bff"  # GistのURLをここに設定
+API_TOKEN = None  # APIトークンが必要な場合はここに設定
 
-# 認証情報を使ってGoogle APIに接続
-from google.oauth2.service_account import Credentials
+def load_data():
+    """Gistからデータを読み込む"""
+    headers = {"Authorization": f"token {API_TOKEN}"} if API_TOKEN else {}
+    try:
+        response = requests.get(f"{GIST_URL}/raw", headers=headers)
+        response.raise_for_status()  # エラーレスポンスを例外として処理
+        return json.loads(response.content)
+    except requests.exceptions.RequestException as e:
+        print(f"Gistからのデータ読み込みエラー: {e}")
+        return {"reports": [], "notices": []}  # エラー時は空のデータを返す
+    except json.JSONDecodeError as e:
+        print(f"GistからのJSONデコードエラー: {e}")
+        return {"reports": [], "notices": []}
 
-SCOPES = ["https://www.googleapis.com/auth/drive"]
-creds = Credentials.from_service_account_file(json_path, scopes=SCOPES)
+def save_data(data):
+    """Gistにデータを保存する"""
+    headers = {"Authorization": f"token {API_TOKEN}"} if API_TOKEN else {}
+    payload = {"files": {"data.json": {"content": json.dumps(data)}}}
+    try:
+        response = requests.patch(GIST_URL, headers=headers, data=json.dumps(payload))
+        response.raise_for_status()
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"Gistへのデータ保存エラー: {e}")
+        return False
 
-print("✅ Google 認証成功！")
-# Google Drive 連携設定
-DRIVE_FOLDER_ID = "1q8D2EeXp6gJXeDVKY9BcrYsnkcENR6Rz"  # Google DriveのフォルダID
-SERVICE_ACCOUNT_FILE = "G:/マイドライブ/concrete-sol-452704-u1-e369f1b188a3.json"
-DB_FILE = "database.db"
-BACKUP_FILE = "backup_database.db"
+def init_db(keep_existing=True):
+    """データベースの初期化（Gistを使用）"""
+    data = load_data()
+    if "reports" not in data:
+        data["reports"] = []
+    if "notices" not in data:
+        data["notices"] = []
+    save_data(data)
 
-# Google Drive APIの認証設定
-def get_drive_service():
-    creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=["https://www.googleapis.com/auth/drive"])
-    return build("drive", "v3", credentials=creds)
+def authenticate_user(employee_code, password):
+    """ユーザー認証（users_data.jsonを使用）"""
+    try:
+        with open("users_data.json", "r", encoding="utf-8-sig") as file:
+            users = json.load(file)
+        for user in users:
+            if user["code"] == employee_code and user["password"] == password:
+                return user
+        return None
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"ユーザー認証エラー: {e}")
+        return None
 
-# SQLiteデータベース接続
-def get_db_connection():
-    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+def save_report(report):
+    """日報を保存（Gistを使用）"""
+    data = load_data()
+    report["id"] = len(data["reports"]) + 1  # IDを割り当て
+    report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # JSTで投稿日時を保存
+    report["いいね"] = 0
+    report["ナイスファイト"] = 0
+    report["コメント"] = []
 
-# データベース初期化
-def initialize_db():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL
-        );
-        
-        CREATE TABLE IF NOT EXISTS posts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            content TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS reactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            post_id INTEGER NOT NULL,
-            type TEXT CHECK(type IN ('like', 'nice_fight')) NOT NULL,
-            FOREIGN KEY(user_id) REFERENCES users(id),
-            FOREIGN KEY(post_id) REFERENCES posts(id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS comments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            post_id INTEGER NOT NULL,
-            content TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id),
-            FOREIGN KEY(post_id) REFERENCES posts(id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS notifications (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            message TEXT NOT NULL,
-            is_read INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        );
-        """
-    )
-    conn.commit()
-    conn.close()
-
-# 投稿追加
-def add_post(user_id, content):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO posts (user_id, content) VALUES (?, ?)", (user_id, content))
-    conn.commit()
-    conn.close()
-
-# コメント追加
-def add_comment(user_id, post_id, content):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO comments (user_id, post_id, content) VALUES (?, ?, ?)", (user_id, post_id, content))
-    
-    # 投稿者に通知を追加
-    cursor.execute("""
-        INSERT INTO notifications (user_id, message)
-        VALUES ((SELECT user_id FROM posts WHERE id = ?), 'あなたの投稿にコメントがつきました！')
-    """, (post_id,))
-    
-    conn.commit()
-    conn.close()
-
-# リアクション追加（いいね！・ナイスファイト）
-def add_reaction(user_id, post_id, reaction_type):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO reactions (user_id, post_id, type)
-        VALUES (?, ?, ?)
-    """, (user_id, post_id, reaction_type))
-    conn.commit()
-    conn.close()
-
-# データをGoogle Driveにバックアップ
-def backup_database():
-    shutil.copy(DB_FILE, BACKUP_FILE)
-    service = get_drive_service()
-    file_metadata = {
-        "name": BACKUP_FILE,
-        "parents": [DRIVE_FOLDER_ID]
+    # 写真データを追加
+    new_report = {
+        "id": report["id"],
+        "投稿者": report["投稿者"],
+        "実行日": report["実行日"],
+        "投稿日時": report["投稿日時"],
+        "カテゴリ": report["カテゴリ"],
+        "場所": report["場所"],
+        "実施内容": report["実施内容"],
+        "所感": report["所感"],
+        "いいね": report["いいね"],
+        "ナイスファイト": report["ナイスファイト"],
+        "コメント": report["コメント"],
+        "image": report.get("image")  # 写真データを追加
     }
-    media = MediaFileUpload(BACKUP_FILE, mimetype="application/x-sqlite3", resumable=True)
-    
-    # 既存のバックアップがあれば削除
-    query = f"name='{BACKUP_FILE}' and '{DRIVE_FOLDER_ID}' in parents"
-    existing_files = service.files().list(q=query).execute().get("files", [])
-    for file in existing_files:
-        service.files().delete(fileId=file["id"]).execute()
-    
-    # 新しいファイルをアップロード
-    service.files().create(body=file_metadata, media_body=media, fields="id").execute()
-    print("バックアップ完了！")
 
-# 通知の取得
-def get_notifications(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, message, is_read, created_at FROM notifications WHERE user_id = ?", (user_id,))
-    notifications = cursor.fetchall()
-    conn.close()
-    return notifications
+    data["reports"].append(new_report)
+    save_data(data)
 
-# 通知を既読にする
-def mark_notifications_as_read(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE notifications SET is_read = 1 WHERE user_id = ?", (user_id,))
-    conn.commit()
-    conn.close()
+def load_reports():
+    """日報を取得（Gistを使用）"""
+    data = load_data()
+    return data.get("reports", [])
 
-# 初回起動時にDBを初期化
-initialize_db()
+def edit_report(report_id, updated_report):
+    """日報を編集（Gistを使用）"""
+    data = load_data()
+    for report in data["reports"]:
+        if report["id"] == report_id:
+            report.update(updated_report)
+            save_data(data)
+            return
+
+def delete_report(report_id):
+    """日報を削除（Gistを使用）"""
+    data = load_data()
+    data["reports"] = [r for r in data["reports"] if r["id"] != report_id]
+    save_data(data)
+
+def update_reaction(report_id, reaction_type):
+    """リアクションを更新（Gistを使用）"""
+    data = load_data()
+    for report in data["reports"]:
+        if report["id"] == report_id:
+            if reaction_type == "いいね":
+                report["いいね"] += 1
+            elif reaction_type == "ナイスファイト":
+                report["ナイスファイト"] += 1
+            save_data(data)
+            return
+
+def save_comment(report_id, commenter, comment):
+    """コメントを保存（Gistを使用）"""
+    data = load_data()
+    for report in data["reports"]:
+        if report["id"] == report_id:
+            new_comment = {
+                "投稿者": commenter,
+                "コメント": comment.strip(),
+                "日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # JSTでコメント日時を保存
+            }
+            report["コメント"].append(new_comment)
+            # 通知機能は省略
+            save_data(data)
+            return
+
+def load_notices():
+    """お知らせを取得（Gistを使用）"""
+    data = load_data()
+    return data.get("notices", [])
+
+def mark_notice_as_read(notice_id):
+    """お知らせを既読にする（Gistを使用）"""
+    data = load_data()
+    for notice in data["notices"]:
+        if notice["id"] == notice_id:
+            notice["既読"] = 1
+            save_data(data)
+            return
