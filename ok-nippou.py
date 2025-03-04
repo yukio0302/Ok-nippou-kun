@@ -127,12 +127,11 @@ def post_report():
     if submit_button:
         save_report({
             "投稿者": st.session_state["user"]["name"],
-            "実行日": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d"),
+            "実行日": datetime.now().strftime("%Y-%m-%d"),
             "カテゴリ": category,
             "場所": location,
             "実施内容": content,
             "所感": remarks,
-            "コメント": [],
             "image": image_base64
         })
         st.success("✅ 日報を投稿しました！")
@@ -236,6 +235,8 @@ def timeline():
             if st.button(f" {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
                 update_reaction(report["id"], "ナイスファイト")
                 st.rerun()
+
+        st.write("----")
 
         # コメント欄
         comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
