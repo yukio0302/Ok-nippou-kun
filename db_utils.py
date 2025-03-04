@@ -1,143 +1,172 @@
-import requests
+import sqlite3
 import json
+import os
 from datetime import datetime, timedelta
 
-GIST_URL = "https://gist.github.com/yukio0302/5ecd23170f905e0d789f2986f9c17bff"  # GistのURLをここに設定
-API_TOKEN = None  # APIトークンが必要な場合はここに設定
-
-def load_data():
-    """Gistからデータを読み込む"""
-    headers = {"Authorization": f"token {API_TOKEN}"} if API_TOKEN else {}
-    try:
-        response = requests.get(f"{GIST_URL}/raw", headers=headers)
-        response.raise_for_status()  # エラーレスポンスを例外として処理
-        return json.loads(response.content)
-    except requests.exceptions.RequestException as e:
-        print(f"Gistからのデータ読み込みエラー: {e}")
-        return {"reports": [], "notices": []}  # エラー時は空のデータを返す
-    except json.JSONDecodeError as e:
-        print(f"GistからのJSONデコードエラー: {e}")
-        return {"reports": [], "notices": []}
-
-def save_data(data):
-    """Gistにデータを保存する"""
-    headers = {"Authorization": f"token {API_TOKEN}"} if API_TOKEN else {}
-    payload = {"files": {"data.json": {"content": json.dumps(data)}}}
-    try:
-        response = requests.patch(GIST_URL, headers=headers, data=json.dumps(payload))
-        response.raise_for_status()
-        return True
-    except requests.exceptions.RequestException as e:
-        print(f"Gistへのデータ保存エラー: {e}")
-        return False
+# ✅ データベースのパス
+DB_PATH = "data/reports.db"
 
 def init_db(keep_existing=True):
-    """データベースの初期化（Gistを使用）"""
-    data = load_data()
-    if "reports" not in data:
-        data["reports"] = []
-    if "notices" not in data:
-        data["notices"] = []
-    save_data(data)
+    """データベースの初期化（テーブル作成）"""
+    os.makedirs("data", exist_ok=True)  # dataフォルダがなければ作成
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
 
-def authenticate_user(employee_code, password):
-    """ユーザー認証（users_data.jsonを使用）"""
-    try:
-        with open("users_data.json", "r", encoding="utf-8-sig") as file:
-            users = json.load(file)
-        for user in users:
-            if user["code"] == employee_code and user["password"] == password:
-                return user
-        return None
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"ユーザー認証エラー: {e}")
-        return None
+    if not keep_existing:
+        cur.execute("DROP TABLE IF EXISTS reports")
+        cur.execute("DROP TABLE IF EXISTS notices")
+
+    # ✅ 日報データのテーブル作成
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        投稿者 TEXT,
+        実行日 TEXT,
+        カテゴリ TEXT,
+        場所 TEXT,
+        実施内容 TEXT,
+        所感 TEXT,
+        いいね INTEGER DEFAULT 0,
+        ナイスファイト INTEGER DEFAULT 0,
+        コメント TEXT DEFAULT '[]',
+        画像 TEXT,
+        投稿日時 TEXT
+    )""")
+
+    # ✅ お知らせデータのテーブル作成
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS notices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        タイトル TEXT,
+        内容 TEXT,
+        日付 TEXT,
+        既読 INTEGER DEFAULT 0
+    )""")
+
+    conn.commit()
+    conn.close()
 
 def save_report(report):
-    """日報を保存（Gistを使用）"""
-    data = load_data()
-    report["id"] = len(data["reports"]) + 1  # IDを割り当て
-    report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # JSTで投稿日時を保存
-    report["いいね"] = 0
-    report["ナイスファイト"] = 0
-    report["コメント"] = []
+    """日報をデータベースに保存"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
 
-    # 写真データを追加
-    new_report = {
-        "id": report["id"],
-        "投稿者": report["投稿者"],
-        "実行日": report["実行日"],
-        "投稿日時": report["投稿日時"],
-        "カテゴリ": report["カテゴリ"],
-        "場所": report["場所"],
-        "実施内容": report["実施内容"],
-        "所感": report["所感"],
-        "いいね": report["いいね"],
-        "ナイスファイト": report["ナイスファイト"],
-        "コメント": report["コメント"],
-        "image": report.get("image")  # 写真データを追加
-    }
+    # ✅ 投稿日時を JST で保存
+    report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
 
-    data["reports"].append(new_report)
-    save_data(data)
+    cur.execute("""
+    INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント, 画像, 投稿日時)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        report["投稿者"], report["実行日"], report["カテゴリ"], report["場所"], 
+        report["実施内容"], report["所感"], 0, 0, json.dumps([]), 
+        report.get("image", None), report["投稿日時"]
+    ))
+
+    conn.commit()
+    conn.close()
 
 def load_reports():
-    """日報を取得（Gistを使用）"""
-    data = load_data()
-    return data.get("reports", [])
+    """日報データを取得（最新の投稿順にソート）"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
 
-def edit_report(report_id, updated_report):
-    """日報を編集（Gistを使用）"""
-    data = load_data()
-    for report in data["reports"]:
-        if report["id"] == report_id:
-            report.update(updated_report)
-            save_data(data)
-            return
+    cur.execute("SELECT * FROM reports ORDER BY 投稿日時 DESC")
+    rows = cur.fetchall()
+    conn.close()
 
-def delete_report(report_id):
-    """日報を削除（Gistを使用）"""
-    data = load_data()
-    data["reports"] = [r for r in data["reports"] if r["id"] != report_id]
-    save_data(data)
+    # ✅ データを辞書リストに変換
+    reports = []
+    for row in rows:
+        reports.append({
+            "id": row[0], "投稿者": row[1], "実行日": row[2], "カテゴリ": row[3], 
+            "場所": row[4], "実施内容": row[5], "所感": row[6], "いいね": row[7], 
+            "ナイスファイト": row[8], "コメント": json.loads(row[9]), "image": row[10], 
+            "投稿日時": row[11]
+        })
+    return reports
 
 def update_reaction(report_id, reaction_type):
-    """リアクションを更新（Gistを使用）"""
-    data = load_data()
-    for report in data["reports"]:
-        if report["id"] == report_id:
-            if reaction_type == "いいね":
-                report["いいね"] += 1
-            elif reaction_type == "ナイスファイト":
-                report["ナイスファイト"] += 1
-            save_data(data)
-            return
+    """リアクション（いいね・ナイスファイト）を更新"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    if reaction_type == "いいね":
+        cur.execute("UPDATE reports SET いいね = いいね + 1 WHERE id = ?", (report_id,))
+    elif reaction_type == "ナイスファイト":
+        cur.execute("UPDATE reports SET ナイスファイト = ナイスファイト + 1 WHERE id = ?", (report_id,))
+
+    conn.commit()
+    conn.close()
 
 def save_comment(report_id, commenter, comment):
-    """コメントを保存（Gistを使用）"""
-    data = load_data()
-    for report in data["reports"]:
-        if report["id"] == report_id:
-            new_comment = {
-                "投稿者": commenter,
-                "コメント": comment.strip(),
-                "日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")  # JSTでコメント日時を保存
-            }
-            report["コメント"].append(new_comment)
-            # 通知機能は省略
-            save_data(data)
-            return
+    """コメントを保存"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("SELECT コメント FROM reports WHERE id = ?", (report_id,))
+    row = cur.fetchone()
+    if row:
+        comments = json.loads(row[0]) if row[0] else []
+        comments.append({
+            "投稿者": commenter, 
+            "日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"), 
+            "コメント": comment
+        })
+
+        cur.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
+        conn.commit()
+
+    conn.close()
 
 def load_notices():
-    """お知らせを取得（Gistを使用）"""
-    data = load_data()
-    return data.get("notices", [])
+    """お知らせデータを取得"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM notices ORDER BY 日付 DESC")
+    rows = cur.fetchall()
+    conn.close()
+
+    # ✅ データを辞書リストに変換
+    notices = []
+    for row in rows:
+        notices.append({
+            "id": row[0], "タイトル": row[1], "内容": row[2], "日付": row[3], "既読": row[4]
+        })
+    return notices
 
 def mark_notice_as_read(notice_id):
-    """お知らせを既読にする（Gistを使用）"""
-    data = load_data()
-    for notice in data["notices"]:
-        if notice["id"] == notice_id:
-            notice["既読"] = 1
-            save_data(data)
-            return
+    """お知らせを既読にする"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("UPDATE notices SET 既読 = 1 WHERE id = ?", (notice_id,))
+    conn.commit()
+    conn.close()
+
+def edit_report(report_id, updated_report):
+    """日報を編集"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("""
+    UPDATE reports SET 実行日 = ?, カテゴリ = ?, 場所 = ?, 実施内容 = ?, 所感 = ?, 画像 = ?
+    WHERE id = ?
+    """, (
+        updated_report["実行日"], updated_report["カテゴリ"], updated_report["場所"], 
+        updated_report["実施内容"], updated_report["所感"], updated_report.get("image"), 
+        report_id
+    ))
+
+    conn.commit()
+    conn.close()
+
+def delete_report(report_id):
+    """日報を削除"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM reports WHERE id = ?", (report_id,))
+    conn.commit()
+    conn.close()
