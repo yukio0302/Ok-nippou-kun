@@ -5,7 +5,20 @@ from datetime import datetime
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.service_account import Credentials
+import gdown
 
+# Google Drive から service_account.json を取得
+json_path = "service_account.json"
+if not os.path.exists(json_path):
+    gdown.download(id="1q8D2EeXp6gJXeDVKY9BcrYsnkcENR6Rz", output=json_path, quiet=False)
+
+# 認証情報を使ってGoogle APIに接続
+from google.oauth2.service_account import Credentials
+
+SCOPES = ["https://www.googleapis.com/auth/drive"]
+creds = Credentials.from_service_account_file(json_path, scopes=SCOPES)
+
+print("✅ Google 認証成功！")
 # Google Drive 連携設定
 DRIVE_FOLDER_ID = "1q8D2EeXp6gJXeDVKY9BcrYsnkcENR6Rz"  # Google DriveのフォルダID
 SERVICE_ACCOUNT_FILE = "G:/マイドライブ/concrete-sol-452704-u1-e369f1b188a3.json"
