@@ -7,8 +7,8 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2.service_account import Credentials
 
 # Google Drive 連携設定
-DRIVE_FOLDER_ID = "your_google_drive_folder_id"  # Google DriveのフォルダID
-SERVICE_ACCOUNT_FILE = "path/to/your/service_account.json"
+DRIVE_FOLDER_ID = "1q8D2EeXp6gJXeDVKY9BcrYsnkcENR6Rz"  # Google DriveのフォルダID
+SERVICE_ACCOUNT_FILE = "G:/マイドライブ/concrete-sol-452704-u1-e369f1b188a3.json"
 DB_FILE = "database.db"
 BACKUP_FILE = "backup_database.db"
 
