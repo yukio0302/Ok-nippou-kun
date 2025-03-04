@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "concrete-sol-452704-u1",
+  "private_key_id": "e369f1b188a36661e0183ec674633a1e255b25bd",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCzkybRdfCHQVYh\nzeXNl7H1xLVJU8JYAvaUgR6jr/4P3wWfhgNrE4KWxTlNVjEkNf7VZTGEl8CmEFgP\nGtjOT8NHZ1Ath1VPOwovwnuR9QI1fwfxKpORaT/2ViRZr5Z7Zc/lktItWywX9hWG\n8UjlJYiAXW2n92n52k31s0+8UDMwc+7EJ7XP5PfR42mbxpCP4Blecwkd1txc2QeP\n0ku2aa7WZiLvydmRarN2dFQv49Vhw0gqkDjOcMF7qV4uv9kruETNzGn9Z6fy6m4A\nLcNykV/+ZQENAd+SDw+Sv3P4xOkNqen1XMo+wMeFSeLg5sOor7oR+yBj7PJjBG6E\nC06RwPBJAgMBAAECggEAN0NDUHWrsmwkfh23qWgUH67MHYdVyTEMQlJkI/quxKKd\nP+UFm0ezSgPi6Q5r7Blj1bchII10/4YLG4bnDsLUNV6xeXlrAwmHzn/a+GV+qwjv\nYEP6iubphL0ozaLwPARukNd4r/WdYbhdEpyhksdUtTBLZUQKTJZmpITstma2AiQ+\nVoDGSQjzI+YASoti5VjPn9OdqLx6dn0kYt29VFCJZD5d/oGDVhtJL5UYSiFmoGRv\np+z4wp7Mxhdq1vybGymGFW6pLsbnYsOsTTRSZp3kjtH84E1eFA+gqAl9rTSQi49i\nrDOi4CjxWRaJ0CPWJ1vRJKPt25iNIuoxDadqyAawawKBgQDz9BF4btoLXVdP+JRw\nRX9O3FcworqwDeB7L7P6x1wZ5pHgG9v60y7S9dV4fOl2YerRYwjg+Ep+l3tr1VRZ\n6fc+z8HMbqGN8Mes40GV3bTzkDntu8clTneiZKb6NZF0KIkTt7iC1KfiP6FVbtaT\n/cvrnFfgAOHOYYisTsMFOigBFwKBgQC8cT4uYNfLNSzkuDNYbdIiVGxjvqRI2wf4\n1Mqb+XgrTTcN8Z4/nxIlEm9TBhO6gzyrMnjyYtUNbFXkgjwx+mRXhttblHjPvTYx\nZBjrdTAoT3GyeM9DaDiYB51eiIy2ByPkmHTmsIbpoBxQgqAyrF51ok9c88o88rX9\nCtzPDtW1nwKBgCJ/vYi+hG9e/937VWKbMWnBl0L1gFktXTWOhXFNiCTRioea6P0L\nqG+E/G9RmuJ27nI2AydtdXt5iKazQH6Gq8RiNRHoA0jDaDl22euLsu9O0iJgj8Ui\n16BLg6GWub8njFsRfDJkSGmiffpK9mVvWsszDOpMtaIuANn9OW8fzlB5AoGAQ8CH\ndc9V5vbwdC+SLmoV0kf+TIJ/uL4fiKShUCEKxq7Va4sCtacws+mD4xrdPwLubjMQ\nbz1/knrwCt+UWvfG2f1fovan1TEXafyuRQH2VZfyrhNnmbnAF1EtkI6R4OSCUC9M\nYKD5cMgjRgMhK/bzY2H/HNF+VhmBu0ALkdqolcsCgYEAoZUeLwhxaIlKSXQVezb1\nEwawbwmbAza0CzCbja3M53QPpUvNEF2K9Xt9KgJcca1sDhr97xLCZSVAOM6AOM+v\nQR+pUZNvjiSwntue3C4kE7SYXLlCoDsAFgJJQFgldVB9tP4TpBNeUE5GIoOM0Ibi\nw8a3HQLqPQZ56AuMwethHTQ=\n-----END PRIVATE KEY-----\n",
+  "client_email": "nomusan@concrete-sol-452704-u1.iam.gserviceaccount.com",
+  "client_id": "106820512580426584281",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/nomusan%40concrete-sol-452704-u1.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
