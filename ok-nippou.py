@@ -213,50 +213,45 @@ def show_notices():
         st.error("ログインしてください。")
         return
 
-    st.title(" お知らせ")
+    st.title("📢 お知らせ")
     top_navigation()
 
     notices = load_notices()
 
     if not notices:
-        st.info(" お知らせはありません。")
+        st.info("📭 お知らせはありません。")
         return
 
-    # ✅ 未読・既読を分類
     new_notices = [n for n in notices if n["既読"] == 0]
     old_notices = [n for n in notices if n["既読"] == 1]
 
-    # ✅ 既読処理をセッションで管理
-    if "notice_to_read" not in st.session_state:
-        st.session_state["notice_to_read"] = None
-
-    # ✅ 未読のお知らせを上部に表示
     if new_notices:
-        st.subheader(" 新着お知らせ")
+        st.subheader("🆕 新着お知らせ")
         for notice in new_notices:
-            with st.container():
-                st.markdown(f"### {notice['タイトル']} ✅")
-                st.write(f" {notice['日付']}")
-                st.write(notice["内容"])
+            try:
+                notice_content = json.loads(notice["内容"])  # JSONをパース
+            except json.JSONDecodeError:
+                notice_content = {"投稿者": "", "実行日": "", "場所": "", "実施内容": "", "所感": "", "コメント者": "", "コメント": ""}
 
-                # ✅ クリックで既読処理を実行
-                if st.button(f"✔️ 既読にする", key=f"read_{notice['id']}"):
-                    st.session_state["notice_to_read"] = notice["id"]
+            with st.expander(f"📌 {notice_content['投稿者']} さんの投稿にコメントがありました！"):
+                st.write(f"**実施日:** {notice_content['実行日']}")
+                st.write(f"**場所:** {notice_content['場所']}")
+                st.write(f"**実施内容:** {notice_content['実施内容']}")
+                st.write(f"**所感:** {notice_content['所感']}")
+                st.write(f"💬 **{notice_content['コメント者']} さんのコメント:** {notice_content['コメント']}")
 
-    # ✅ 既読処理を実行
-    if st.session_state["notice_to_read"] is not None:
-        mark_notice_as_read(st.session_state["notice_to_read"])
-        st.session_state["notice_to_read"] = None  # 既読処理後にリセット
-        st.rerun()  # ✅ 即リロードして画面を更新！
+                if st.button("✔️ 既読にする", key=f"read_{notice['id']}"):
+                    mark_notice_as_read(notice["id"])
+                    st.rerun()
 
-    # ✅ 既読のお知らせを折りたたみ表示
     if old_notices:
-        with st.expander(" 過去のお知らせを見る"):
+        with st.expander("📜 過去のお知らせを見る"):
             for notice in old_notices:
                 with st.container():
                     st.markdown(f"**{notice['タイトル']}**")
-                    st.write(f" {notice['日付']}")
+                    st.write(f"📅 {notice['日付']}")
                     st.write(notice["内容"])
+
 
 # ✅ マイページ
 def my_page():
