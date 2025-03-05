@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 
 # ✅ データベースのパス
-DB_PATH = "data/reports.db"
+DB_PATH = "Ok-nippou-kun/data/reports.db"
 
 # ✅ ユーザー認証（先に定義！）
 def authenticate_user(employee_code, password):
