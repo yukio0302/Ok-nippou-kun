@@ -28,7 +28,8 @@ def authenticate_user(employee_code, password):
 
 def init_db(keep_existing=True):
     """データベースの初期化（テーブル作成）"""
-    os.makedirs("data", exist_ok=True)  # dataフォルダがなければ作成
+    db_folder = os.path.dirname(DB_PATH)  # データフォルダのパスを取得
+    os.makedirs(db_folder, exist_ok=True)  # データフォルダがなければ作成
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
@@ -36,7 +37,7 @@ def init_db(keep_existing=True):
         cur.execute("DROP TABLE IF EXISTS reports")
         cur.execute("DROP TABLE IF EXISTS notices")
 
-    # ✅ 日報データのテーブル作成
+    # ✅ 日報データのテーブル作成（存在しない場合のみ）
     cur.execute("""
     CREATE TABLE IF NOT EXISTS reports (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,9 +52,10 @@ def init_db(keep_existing=True):
         コメント TEXT DEFAULT '[]',
         画像 TEXT,
         投稿日時 TEXT
-    )""")
+    )
+    """)
 
-    # ✅ お知らせデータのテーブル作成
+    # ✅ お知らせデータのテーブル作成（存在しない場合のみ）
     cur.execute("""
     CREATE TABLE IF NOT EXISTS notices (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +63,8 @@ def init_db(keep_existing=True):
         内容 TEXT,
         日付 TEXT,
         既読 INTEGER DEFAULT 0
-    )""")
+    )
+    """)
 
     conn.commit()
     conn.close()
