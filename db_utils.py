@@ -71,23 +71,27 @@ def init_db(keep_existing=True):
 
 def save_report(report):
     """日報をデータベースに保存"""
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
 
-    # ✅ 投稿日時を JST で保存
-    report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+        # ✅ 投稿日時を JST で保存
+        report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
 
-    cur.execute("""
-    INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント, 画像, 投稿日時)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        report["投稿者"], report["実行日"], report["カテゴリ"], report["場所"], 
-        report["実施内容"], report["所感"], 0, 0, json.dumps([]), 
-        report.get("image", None), report["投稿日時"]
-    ))
+        cur.execute("""
+        INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント, 画像, 投稿日時)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            report["投稿者"], report["実行日"], report["カテゴリ"], report["場所"], 
+            report["実施内容"], report["所感"], 0, 0, json.dumps([]), 
+            report.get("image", None), report["投稿日時"]
+        ))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
+        print("✅ データベースに日報を保存しました！")  # デバッグログ
+    except Exception as e:
+        print(f"⚠️ データベース保存エラー: {e}")  # エラー内容を表示
 
 def load_reports():
     """日報データを取得（最新の投稿順にソート）"""
