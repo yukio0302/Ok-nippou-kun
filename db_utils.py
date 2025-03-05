@@ -133,13 +133,13 @@ def save_comment(report_id, commenter, comment):
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # ✅ 投稿の情報を取得（日時・場所・実施内容も含める）
-    cur.execute("SELECT 投稿者, 日時, 場所, 実施内容, コメント FROM reports WHERE id = ?", (report_id,))
+    # ✅ 投稿の情報を取得
+    cur.execute("SELECT 投稿者, コメント FROM reports WHERE id = ?", (report_id,))
     row = cur.fetchone()
 
     if row:
-        投稿者, 投稿日時, 場所, 実施内容, コメントデータ = row
-        comments = json.loads(コメントデータ) if コメントデータ else []
+        投稿者 = row[0]  # 投稿者名
+        comments = json.loads(row[1]) if row[1] else []
 
         # ✅ 新しいコメントを追加
         new_comment = {
@@ -152,7 +152,7 @@ def save_comment(report_id, commenter, comment):
         # ✅ コメントを更新
         cur.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
 
-        # ✅ 投稿者がコメント者と違う場合、お知らせを追加
+         # ✅ 投稿者がコメント者と違う場合、お知らせを追加
         if 投稿者 != commenter:
             notification_content = f"""【お知らせ】  
 {投稿日時}（{場所}）  
