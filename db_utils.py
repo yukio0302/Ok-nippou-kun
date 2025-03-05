@@ -36,8 +36,13 @@ def init_db(keep_existing=True):
     if not keep_existing:
         cur.execute("DROP TABLE IF EXISTS reports")
         cur.execute("DROP TABLE IF EXISTS notices")
-        print(f"🔍 【デバッグ】使用している DB のパス: {os.path.abspath(DB_PATH)}")
 
+    # 🔍 デバッグ情報を出す
+    db_path = os.path.abspath(DB_PATH)
+    st.write(f"🔍 【デバッグ】使用している DB のパス: {db_path}")  # ← `st.write()` に変更！
+
+    conn.commit()
+    conn.close()
 
     # ✅ 日報データのテーブル作成（存在しない場合のみ）
     cur.execute("""
