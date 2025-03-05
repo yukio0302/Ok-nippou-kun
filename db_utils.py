@@ -150,7 +150,7 @@ def save_comment(report_id, commenter, comment):
                 VALUES (?, ?, ?, ?)
             """, (
                 "新しいコメントが届きました！",
-                f" {commenter} さんがコメントしました。",
+                f"{投稿者} さんの投稿に {commenter} さんがコメントしました。",
                 (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
                 0  # 既読フラグ（未読）
             ))
