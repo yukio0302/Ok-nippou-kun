@@ -3,6 +3,7 @@ import os
 import time
 import streamlit as st
 import pandas as pd
+import base64
 from datetime import datetime, timedelta
 
 # ヘルパー関数: 現在時刻に9時間を加算する
