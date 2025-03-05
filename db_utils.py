@@ -145,39 +145,18 @@ def save_comment(report_id, commenter, comment):
 
         # ✅ 投稿者がコメント者と違う場合、お知らせを追加
         if 投稿者 != commenter:
-          cur.execute("SELECT 実行日, 場所, 実施内容, 所感 FROM reports WHERE id = ?", (report_id,))
-post_details = cur.fetchone()
+            cur.execute("""
+                INSERT INTO notices (タイトル, 内容, 日付, 既読)
+                VALUES (?, ?, ?, ?)
+            """, (
+                "新しいコメントが届きました！",
+                f"{投稿者} さんの投稿に {commenter} さんがコメントしました。",
+                (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
+                0  # 既読フラグ（未読）
+            ))
 
-if post_details:
-    実行日, 場所, 実施内容, 所感 = post_details
+        conn.commit()
 
-    cur.execute("""
-        INSERT INTO notices (タイトル, 内容, 日付, 既読)
-        VALUES (?, ?, ?, ?)
-    """, (
-        "新しいコメントが届きました！",
-        f"{投稿者} さんの投稿（{実行日} @ {場所}）に {commenter} さんがコメントしました。",
-        (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
-        0
-    ))
-
-    # ✅ お知らせの内容をJSONで保存（投稿詳細 + コメント内容）
-    cur.execute("""
-        UPDATE notices SET 内容 = ? WHERE 日付 = ?
-    """, (
-        json.dumps({
-            "投稿者": 投稿者,
-            "実行日": 実行日,
-            "場所": 場所,
-            "実施内容": 実施内容,
-            "所感": 所感,
-            "コメント者": commenter,
-            "コメント": comment
-        }),
-        (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-    ))
-
-conn.commit()
     conn.close()
 
 
