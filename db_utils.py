@@ -88,6 +88,7 @@ def save_report(report):
         ))
 
         conn.commit()
+        conn.execute("VACUUM")  # ← これで強制的にデータベースを更新
         conn.close()
         print("✅ データベースに日報を保存しました！")  # デバッグログ
     except Exception as e:
