@@ -6,6 +6,26 @@ from datetime import datetime, timedelta
 # ✅ データベースのパス
 DB_PATH = "data/reports.db"
 
+# ✅ ユーザー認証（先に定義！）
+def authenticate_user(employee_code, password):
+    """ユーザー認証（users_data.jsonを使用）"""
+    USER_FILE = "data/users_data.json"
+
+    if not os.path.exists(USER_FILE):
+        return None
+
+    try:
+        with open(USER_FILE, "r", encoding="utf-8-sig") as file:
+            users = json.load(file)
+
+        for user in users:
+            if user["code"] == employee_code and user["password"] == password:
+                return user
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+
+    return None
+
 def init_db(keep_existing=True):
     """データベースの初期化（テーブル作成）"""
     os.makedirs("data", exist_ok=True)  # dataフォルダがなければ作成
@@ -170,22 +190,3 @@ def delete_report(report_id):
     cur.execute("DELETE FROM reports WHERE id = ?", (report_id,))
     conn.commit()
     conn.close()
-
-def authenticate_user(employee_code, password):
-    """ユーザー認証（users_data.jsonを使用）"""
-    USER_FILE = "data/users_data.json"
-
-    if not os.path.exists(USER_FILE):
-        return None
-
-    try:
-        with open(USER_FILE, "r", encoding="utf-8-sig") as file:
-            users = json.load(file)
-
-        for user in users:
-            if user["code"] == employee_code and user["password"] == password:
-                return user
-    except (FileNotFoundError, json.JSONDecodeError):
-        pass
-
-    return None
