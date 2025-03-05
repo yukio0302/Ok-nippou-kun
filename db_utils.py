@@ -120,24 +120,45 @@ def update_reaction(report_id, reaction_type):
     conn.close()
 
 def save_comment(report_id, commenter, comment):
-    """コメントを保存"""
+    """コメントを保存＆通知を追加"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT コメント FROM reports WHERE id = ?", (report_id,))
+    # ✅ 投稿の情報を取得
+    cur.execute("SELECT 投稿者, コメント FROM reports WHERE id = ?", (report_id,))
     row = cur.fetchone()
+
     if row:
-        comments = json.loads(row[0]) if row[0] else []
-        comments.append({
+        投稿者 = row[0]  # 投稿者名
+        comments = json.loads(row[1]) if row[1] else []
+
+        # ✅ 新しいコメントを追加
+        new_comment = {
             "投稿者": commenter, 
             "日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"), 
             "コメント": comment
-        })
+        }
+        comments.append(new_comment)
 
+        # ✅ コメントを更新
         cur.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
+
+        # ✅ 投稿者がコメント者と違う場合、お知らせを追加
+        if 投稿者 != commenter:
+            cur.execute("""
+                INSERT INTO notices (タイトル, 内容, 日付, 既読)
+                VALUES (?, ?, ?, ?)
+            """, (
+                "新しいコメントが届きました！",
+                f"{投稿者} さんの投稿に {commenter} さんがコメントしました。",
+                (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
+                0  # 既読フラグ（未読）
+            ))
+
         conn.commit()
 
     conn.close()
+
 
 def load_notices():
     """お知らせデータを取得"""
