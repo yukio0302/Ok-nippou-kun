@@ -282,12 +282,7 @@ def my_page():
                 st.write(f"**場所:** {report['場所']}")
                 st.write(f"**実施内容:** {report['実施内容']}")
                 st.write(f"**所感:** {report['所感']}")
-               # ✅ コメントも折りたたみの中に入れる
-        if report["コメント"]:
-            st.write("### 💬 コメント一覧")
-            for c in report["コメント"]:
-                st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
-            
+               
                     
     past_reports = [r for r in my_reports if r not in weekly_reports]
 
