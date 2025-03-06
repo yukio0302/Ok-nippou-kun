@@ -320,10 +320,12 @@ def show_report_details(report):
 
     with col2:
     if st.button("🗑️ 削除する", key=f"delete_{report['id']}"):
-        if st.warning("投稿を削除しますか？", icon="⚠️"):
-            delete_report(report["id"])
-            st.success("✅ 削除しました")
-            st.rerun()
+    if delete_report(report["id"]):
+        st.success("✅ 投稿を削除しました！")
+        st.rerun()  # 画面をリロード
+    else:
+        st.error("⚠️ 削除に失敗しました。もう一度お試しください。")
+
 
     # 🔹 編集モード
     if st.session_state.get(f"edit_mode_{report['id']}", False):
