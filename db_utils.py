@@ -134,12 +134,15 @@ def save_comment(report_id, commenter, comment):
     cur = conn.cursor()
 
     # ✅ 投稿の情報を取得
-    cur.execute("SELECT 投稿者, コメント FROM reports WHERE id = ?", (report_id,))
+    cur.execute("SELECT 投稿者, 実行日, 場所, 実施内容, コメント FROM reports WHERE id = ?", (report_id,))
     row = cur.fetchone()
 
     if row:
         投稿者 = row[0]  # 投稿者名
-        comments = json.loads(row[1]) if row[1] else []
+        実行日 = row[1]  # 実施日
+        場所 = row[2]  # 場所
+        実施内容 = row[3]  # 実施内容
+        comments = json.loads(row[4]) if row[4] else []
 
         # ✅ 新しいコメントを追加
         new_comment = {
@@ -152,13 +155,18 @@ def save_comment(report_id, commenter, comment):
         # ✅ コメントを更新
         cur.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
 
-         # ✅ 投稿者がコメント者と違う場合、お知らせを追加
+        # ✅ 投稿者がコメント者と違う場合、お知らせを追加
         if 投稿者 != commenter:
             notification_content = f"""【お知らせ】  
-{投稿日時}（{場所}）  
-「{実施内容}」  
+{new_comment["日時"]}  
 
-→ {commenter}さんが「{comment}」とコメントしました！"""
+実施日: {実行日}  
+場所: {場所}  
+実施内容: {実施内容}  
+
+の投稿に {commenter} さんがコメントしました。  
+コメント内容: {comment}
+"""
 
             cur.execute("""
                 INSERT INTO notices (タイトル, 内容, 日付, 既読)
@@ -166,7 +174,7 @@ def save_comment(report_id, commenter, comment):
             """, (
                 "新しいコメントが届きました！",
                 notification_content,
-                (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
+                new_comment["日時"],
                 0  # 既読フラグ（未読）
             ))
 
