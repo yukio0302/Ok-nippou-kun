@@ -318,22 +318,12 @@ def show_report_details(report):
         if st.button("✏️ 編集する", key=f"edit_{report['id']}"):
             st.session_state[f"edit_mode_{report['id']}"] = True  # 編集モードをON
 
-   with col2:
-    if st.button("🗑️ 削除する", key=f"delete_{report['id']}"):
-        with st.expander("⚠️ 本当に削除しますか？"):
-            st.write("この操作は元に戻せません。")
-            confirm_col1, confirm_col2 = st.columns(2)
-            
-            with confirm_col1:
-                if st.button("✅ はい", key=f"confirm_delete_{report['id']}"):
-                    delete_report(report["id"])
-                    st.success("✅ 削除しました")
-                    st.rerun()
-            
-            with confirm_col2:
-                if st.button("❌ キャンセル", key=f"cancel_delete_{report['id']}"):
-                    st.info("削除をキャンセルしました。")
-
+    with col2:
+        if st.button("🗑️ 削除する", key=f"delete_{report['id']}"):
+            if st.confirm("投稿を削除しますか？"):
+                delete_report(report["id"])
+                st.success("✅ 削除しました")
+                st.rerun()
 
     # 🔹 編集モード
     if st.session_state.get(f"edit_mode_{report['id']}", False):
