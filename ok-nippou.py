@@ -320,10 +320,22 @@ def show_report_details(report):
 
     with col2:
         if st.button("🗑️ 削除する", key=f"delete_{report['id']}"):
-            if st.confirm("投稿を削除しますか？"):
+            st.session_state[f"confirm_delete_{report['id']}"] = True  # 削除確認モードをON
+
+    # 🔹 削除確認
+    if st.session_state.get(f"confirm_delete_{report['id']}", False):
+        st.warning("⚠️ 本当に削除しますか？")
+
+        col_confirm, col_cancel = st.columns(2)
+        with col_confirm:
+            if st.button("✅ はい、削除する", key=f"confirm_delete_{report['id']}"):
                 delete_report(report["id"])
                 st.success("✅ 削除しました")
-                st.rerun()
+                st.rerun()  # 画面を更新
+
+        with col_cancel:
+            if st.button("❌ キャンセル", key=f"cancel_delete_{report['id']}"):
+                st.session_state[f"confirm_delete_{report['id']}"] = False  # 削除確認モードをOFF
 
     # 🔹 編集モード
     if st.session_state.get(f"edit_mode_{report['id']}", False):
