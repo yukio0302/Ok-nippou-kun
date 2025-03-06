@@ -209,28 +209,23 @@ def mark_notice_as_read(notice_id):
     conn.commit()
     conn.close()
 
-def edit_report(report_id, updated_report):
-    """日報を編集"""
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    cur.execute("""
-    UPDATE reports SET 実行日 = ?, カテゴリ = ?, 場所 = ?, 実施内容 = ?, 所感 = ?, 画像 = ?
-    WHERE id = ?
-    """, (
-        updated_report["実行日"], updated_report["カテゴリ"], updated_report["場所"], 
-        updated_report["実施内容"], updated_report["所感"], updated_report.get("image"), 
-        report_id
-    ))
-
+def edit_report(report_id, category, location, content, remarks):
+    """投稿を編集する"""
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute("""
+        UPDATE reports
+        SET 実施日 = ?, 場所 = ?, 実施内容 = ?, 所感 = ?
+        WHERE id = ?
+    """, (category, location, content, remarks, report_id))
     conn.commit()
     conn.close()
 
 def delete_report(report_id):
-    """日報を削除"""
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    cur.execute("DELETE FROM reports WHERE id = ?", (report_id,))
+    """投稿を削除する"""
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute("DELETE FROM reports WHERE id = ?", (report_id,))
     conn.commit()
     conn.close()
+
