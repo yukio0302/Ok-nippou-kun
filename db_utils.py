@@ -222,10 +222,21 @@ def edit_report(report_id, category, location, content, remarks):
     conn.close()
 
 def delete_report(report_id):
-    """投稿を削除する"""
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-    c.execute("DELETE FROM reports WHERE id = ?", (report_id,))
-    conn.commit()
-    conn.close()
+    """投稿を削除する（エラーハンドリング付き）"""
+    try:
+        with sqlite3.connect("database.db") as conn:
+            c = conn.cursor()
+            c.execute("DELETE FROM reports WHERE id = ?", (report_id,))
+            conn.commit()
+            
+            # 削除が成功したかチェック
+            if c.rowcount == 0:
+                print(f"⚠️ 削除対象の投稿（ID: {report_id}）が見つかりませんでした。")
+                return False
+            return True
+
+    except sqlite3.Error as e:
+        print(f"❌ データベースエラー: {e}")
+        return False
+
 
