@@ -275,6 +275,7 @@ def my_page():
     start_of_week = now - timedelta(days=now.weekday())
     end_of_week = start_of_week + timedelta(days=4)
     weekly_reports = [r for r in my_reports if start_of_week.date() <= datetime.strptime(r["実行日"], "%Y-%m-%d").date() <= end_of_week.date()]
+    
     if weekly_reports:
         for report in weekly_reports:
             with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
@@ -283,11 +284,12 @@ def my_page():
                 st.write(f"**実施内容:** {report['実施内容']}")
                 st.write(f"**所感:** {report['所感']}")
                 
-                 # ✅ シンプルにコメントを表示
-        for c in report.get("コメント", []):
-            st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
-               
-                    
+                # ✅ 各投稿のコメントをその中に表示
+                if report.get("コメント"):
+                    st.subheader("🗨️ コメント一覧")
+                    for c in report["コメント"]:
+                        st.write(f"{c['投稿者']} ({c['日時']}): {c['コメント']}")
+
     past_reports = [r for r in my_reports if r not in weekly_reports]
 
     if past_reports:
@@ -298,6 +300,13 @@ def my_page():
                     st.write(f"**場所:** {report['場所']}")
                     st.write(f"**実施内容:** {report['実施内容']}")
                     st.write(f"**所感:** {report['所感']}")
+                    
+                    # ✅ 過去の投稿のコメントも折りたたみ内に表示
+                    if report.get("コメント"):
+                        st.subheader("🗨️ コメント一覧")
+                        for c in report["コメント"]:
+                            st.write(f"{c['投稿者']} ({c['日時']}): {c['コメント']}")
+
     else:
         st.info("過去の投稿はありません。")
 
