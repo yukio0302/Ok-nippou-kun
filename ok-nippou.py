@@ -276,38 +276,27 @@ def my_page():
     end_of_week = start_of_week + timedelta(days=4)
     weekly_reports = [r for r in my_reports if start_of_week.date() <= datetime.strptime(r["実行日"], "%Y-%m-%d").date() <= end_of_week.date()]
     if weekly_reports:
-    for report in weekly_reports:
-        with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
-            st.write(f"**実施日:** {report['実行日']}")
-            st.write(f"**場所:** {report['場所']}")
-            st.write(f"**実施内容:** {report['実施内容']}")
-            st.write(f"**所感:** {report['所感']}")
-
-            # ✅ コメント一覧を表示（インデント修正）
-            if report["コメント"]:
-                for c in report["コメント"]:
-                    st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
-else:
-    st.info("今週の投稿はありません。")
-
-# ✅ 過去の投稿を取得
-past_reports = [r for r in my_reports if r not in weekly_reports]
-
-if past_reports:
-    with st.expander("過去の投稿"):
-        for report in past_reports:
+        for report in weekly_reports:
             with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
-                st.write(f"**実施日:** {report['実行日']}")
+                st.write(f"**実施日:** {report['カテゴリ']}")
                 st.write(f"**場所:** {report['場所']}")
                 st.write(f"**実施内容:** {report['実施内容']}")
                 st.write(f"**所感:** {report['所感']}")
+    else:
+        st.info("今週の投稿はありません。")
 
-                # ✅ コメント一覧を表示（インデント修正）
-                if report["コメント"]:
-                    for c in report["コメント"]:
-                        st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
-else:
-    st.info("過去の投稿はありません。")
+    past_reports = [r for r in my_reports if r not in weekly_reports]
+
+    if past_reports:
+        with st.expander(" 過去の投稿"):
+            for report in past_reports:
+                with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
+                    st.write(f"**実施日:** {report['カテゴリ']}")
+                    st.write(f"**場所:** {report['場所']}")
+                    st.write(f"**実施内容:** {report['実施内容']}")
+                    st.write(f"**所感:** {report['所感']}")
+    else:
+        st.info("過去の投稿はありません。")
 
 # ✅ メニュー管理
 if st.session_state["user"] is None:
