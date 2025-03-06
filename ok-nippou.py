@@ -287,8 +287,6 @@ def my_page():
                 st.write("### 💬 コメント一覧")
                 for c in report["コメント"]:
                     st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
-else:
-    st.info("今週の投稿はありません。")
 
     past_reports = [r for r in my_reports if r not in weekly_reports]
 
