@@ -319,11 +319,12 @@ def show_report_details(report):
             st.session_state[f"edit_mode_{report['id']}"] = True  # 編集モードをON
 
     with col2:
-        if st.button("🗑️ 削除する", key=f"delete_{report['id']}"):
-            if st.confirm("投稿を削除しますか？"):
-                delete_report(report["id"])
-                st.success("✅ 削除しました")
-                st.rerun()
+    if st.button("🗑️ 削除する", key=f"delete_{report['id']}"):
+        st.warning("⚠️ 本当に削除しますか？")
+        if st.button("✅ はい", key=f"confirm_delete_{report['id']}"):
+            delete_report(report["id"])
+            st.success("✅ 削除しました")
+            st.rerun()
 
     # 🔹 編集モード
     if st.session_state.get(f"edit_mode_{report['id']}", False):
