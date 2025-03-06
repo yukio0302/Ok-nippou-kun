@@ -283,9 +283,7 @@ def my_page():
                 st.write(f"**実施内容:** {report['実施内容']}")
                 st.write(f"**所感:** {report['所感']}")
                 # ✅ コメント一覧を表示（インデント修正）
-            if report["コメント"]:
-                for c in report["コメント"]:
-                    st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
+                    st.write(f"**コメント:** {c['投稿者']} ({c['日時']}): {c['コメント']}")
     else:
         st.info("今週の投稿はありません。")
 
