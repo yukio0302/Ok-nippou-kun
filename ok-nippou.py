@@ -264,51 +264,89 @@ def my_page():
         st.error("ログインしてください。")
         return
 
-    st.title(" マイページ")
+    st.title("マイページ")
     top_navigation()
 
     reports = load_reports()
     my_reports = [r for r in reports if r["投稿者"] == st.session_state["user"]["name"]]
 
-    st.subheader(" 今週の投稿")
+    st.subheader("今週の投稿")
     now = datetime.utcnow()
     start_of_week = now - timedelta(days=now.weekday())
     end_of_week = start_of_week + timedelta(days=4)
-    weekly_reports = [r for r in my_reports if start_of_week.date() <= datetime.strptime(r["実行日"], "%Y-%m-%d").date() <= end_of_week.date()]
     
+    weekly_reports = [
+        r for r in my_reports
+        if start_of_week.date() <= datetime.strptime(r["実行日"], "%Y-%m-%d").date() <= end_of_week.date()
+    ]
+
+    # 🔹 今週の投稿を表示
     if weekly_reports:
         for report in weekly_reports:
             with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
-                st.write(f"**実施日:** {report['カテゴリ']}")
-                st.write(f"**場所:** {report['場所']}")
-                st.write(f"**実施内容:** {report['実施内容']}")
-                st.write(f"**所感:** {report['所感']}")
-                
-                # ✅ 各投稿のコメントをその中に表示
-                if report.get("コメント"):
-                    st.subheader("🗨️ コメント一覧")
-                    for c in report["コメント"]:
-                        st.write(f"{c['投稿者']} ({c['日時']}): {c['コメント']}")
+                show_report_details(report)
 
     past_reports = [r for r in my_reports if r not in weekly_reports]
 
+    # 🔹 過去の投稿を折りたたみ表示
     if past_reports:
-        with st.expander(" 過去の投稿"):
+        with st.expander("過去の投稿"):
             for report in past_reports:
                 with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
-                    st.write(f"**実施日:** {report['カテゴリ']}")
-                    st.write(f"**場所:** {report['場所']}")
-                    st.write(f"**実施内容:** {report['実施内容']}")
-                    st.write(f"**所感:** {report['所感']}")
-                    
-                    # ✅ 過去の投稿のコメントも折りたたみ内に表示
-                    if report.get("コメント"):
-                        st.subheader("🗨️ コメント一覧")
-                        for c in report["コメント"]:
-                            st.write(f"{c['投稿者']} ({c['日時']}): {c['コメント']}")
-
+                    show_report_details(report)
     else:
         st.info("過去の投稿はありません。")
+
+
+# ✅ 投稿詳細（編集・削除機能付き）
+def show_report_details(report):
+    """投稿の詳細を表示し、編集・削除機能を提供"""
+    st.write(f"**実施日:** {report['実行日']}")
+    st.write(f"**場所:** {report['場所']}")
+    st.write(f"**実施内容:** {report['実施内容']}")
+    st.write(f"**所感:** {report['所感']}")
+
+    # 🔹 コメント一覧
+    if report.get("コメント"):
+        st.subheader("🗨️ コメント一覧")
+        for c in report["コメント"]:
+            st.write(f"{c['投稿者']} ({c['日時']}): {c['コメント']}")
+
+    # 🔹 編集 & 削除ボタン
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("✏️ 編集する", key=f"edit_{report['id']}"):
+            st.session_state[f"edit_mode_{report['id']}"] = True  # 編集モードをON
+
+    with col2:
+        if st.button("🗑️ 削除する", key=f"delete_{report['id']}"):
+            if st.confirm("投稿を削除しますか？"):
+                delete_report(report["id"])
+                st.success("✅ 削除しました")
+                st.rerun()
+
+    # 🔹 編集モード
+    if st.session_state.get(f"edit_mode_{report['id']}", False):
+        edit_report_form(report)
+
+
+# ✅ 編集フォーム
+def edit_report_form(report):
+    """投稿の編集フォーム"""
+    new_date = st.text_input("実施日", report["実行日"])
+    new_location = st.text_input("場所", report["場所"])
+    new_content = st.text_area("実施内容", report["実施内容"])
+    new_remarks = st.text_area("所感", report["所感"])
+
+    if st.button("💾 保存", key=f"save_{report['id']}"):
+        edit_report(report["id"], new_date, new_location, new_content, new_remarks)
+        st.session_state[f"edit_mode_{report['id']}"] = False  # 編集モード終了
+        st.success("✅ 編集を保存しました")
+        st.rerun()
+    
+    if st.button("キャンセル", key=f"cancel_{report['id']}"):
+        st.session_state[f"edit_mode_{report['id']}"] = False  # 編集モード終了
+        st.rerun()
 
 # ✅ メニュー管理
 if st.session_state["user"] is None:
