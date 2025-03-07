@@ -319,23 +319,29 @@ def show_report_details(report):
             st.session_state[f"edit_mode_{report['id']}"] = True  # 編集モードをON
 
     with col2:
-        if st.button("🗑️ 削除する", key=f"delete_btn_{report['id']}"):
-            st.session_state[f"confirm_delete_{report['id']}"] = True  # 削除確認モードをON
+    if st.button("🗑️ 削除する", key=f"delete_btn_{report['id']}"):
+        st.session_state[f"confirm_delete_{report['id']}"] = True  # 削除確認モードをON
 
-    # 🔹 削除確認
-    if st.session_state.get(f"confirm_delete_{report['id']}", False):
-        st.warning("⚠️ 本当に削除しますか？")
+# 🔹 削除確認
+if st.session_state.get(f"confirm_delete_{report['id']}", False):
+    st.warning("⚠️ 本当に削除しますか？")
 
-        col_confirm, col_cancel = st.columns(2)
-        with col_confirm:
-            if st.button("✅ はい、削除する", key=f"confirm_delete_btn_{report['id']}"):
-                delete_report(report["id"])
+    col_confirm, col_cancel = st.columns(2)
+    with col_confirm:
+        if st.button("✅ はい、削除する", key=f"confirm_delete_btn_{report['id']}"):
+            print(f"🗑️ 削除ボタンが押されました: report_id={report['id']}")  # デバッグ
+            success = delete_report(report["id"])  # ✅ 成功したかチェック
+
+            if success:
                 st.success("✅ 削除しました")
                 st.rerun()  # 画面を更新
+            else:
+                st.error("⚠️ 削除に失敗しました。もう一度お試しください。")
 
-        with col_cancel:
-            if st.button("❌ キャンセル", key=f"cancel_delete_btn_{report['id']}"):
-                st.session_state[f"confirm_delete_{report['id']}"] = False  # 削除確認モードをOFF
+    with col_cancel:
+        if st.button("❌ キャンセル", key=f"cancel_delete_btn_{report['id']}"):
+            st.session_state[f"confirm_delete_{report['id']}"] = False  # 削除確認モードをOFF
+
 
     # 🔹 編集モード
     if st.session_state.get(f"edit_mode_{report['id']}", False):
