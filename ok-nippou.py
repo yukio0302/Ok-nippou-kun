@@ -315,11 +315,11 @@ def show_report_details(report):
     # 🔹 編集 & 削除ボタン
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("✏️ 編集する", key=f"edit_{report['id']}"):
+        if st.button("✏️ 編集する", key=f"edit_btn_{report['id']}"):
             st.session_state[f"edit_mode_{report['id']}"] = True  # 編集モードをON
 
     with col2:
-        if st.button("🗑️ 削除する", key=f"delete_{report['id']}"):
+        if st.button("🗑️ 削除する", key=f"delete_btn_{report['id']}"):
             st.session_state[f"confirm_delete_{report['id']}"] = True  # 削除確認モードをON
 
     # 🔹 削除確認
@@ -328,18 +328,19 @@ def show_report_details(report):
 
         col_confirm, col_cancel = st.columns(2)
         with col_confirm:
-            if st.button("✅ はい、削除する", key=f"confirm_delete_{report['id']}"):
+            if st.button("✅ はい、削除する", key=f"confirm_delete_btn_{report['id']}"):
                 delete_report(report["id"])
                 st.success("✅ 削除しました")
                 st.rerun()  # 画面を更新
 
         with col_cancel:
-            if st.button("❌ キャンセル", key=f"cancel_delete_{report['id']}"):
+            if st.button("❌ キャンセル", key=f"cancel_delete_btn_{report['id']}"):
                 st.session_state[f"confirm_delete_{report['id']}"] = False  # 削除確認モードをOFF
 
     # 🔹 編集モード
     if st.session_state.get(f"edit_mode_{report['id']}", False):
         edit_report_form(report)
+
 
 
 # ✅ 編集フォーム
