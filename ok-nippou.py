@@ -151,6 +151,40 @@ def timeline():
 
     reports = load_reports()
 
+    # ✅ 現在のユーザーの所属部署を取得
+    user_departments = st.session_state["user"]["depart"]  # 配列で取得
+
+    # ✅ フィルタリング用のセッション管理（デフォルトは「すべて表示」）
+    if "filter_department" not in st.session_state:
+        st.session_state["filter_department"] = "すべて"
+
+    # ✅ 部署フィルタボタン
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🌍 すべての投稿を見る"):
+            st.session_state["filter_department"] = "すべて"
+            st.rerun()
+    
+    with col2:
+        if st.button("🏢 自分の部署のメンバーの投稿を見る"):
+            st.session_state["filter_department"] = "自分の部署"
+            st.rerun()
+
+    # ✅ フィルタを適用（自分の部署のメンバーの投稿のみ表示）
+    if st.session_state["filter_department"] == "自分の部署":
+        # すべてのユーザーのデータを取得
+        USER_FILE = "data/users_data.json"
+        with open(USER_FILE, "r", encoding="utf-8-sig") as file:
+            users = json.load(file)
+
+        # ✅ 自分の部署にいるメンバーの名前を取得
+        department_members = {
+            user["name"] for user in users if any(dept in user_departments for dept in user["depart"])
+        }
+
+        # ✅ メンバーの投稿のみフィルタリング
+        reports = [report for report in reports if report["投稿者"] in department_members]
+
     search_query = st.text_input(" 投稿を検索", "")
 
     if search_query:
