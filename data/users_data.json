@@ -1,6 +1,6 @@
 [
 {"code": "901179", "password": "okanaga", "name": "野村　幸男", "depart":[ "業務部", "営業部","企画部","国際流通","総務部","情報統括"],"admin": true},
-{"code": "okanaga", "password": "okanaga", "name": "テスト会員", "depart":[ "業務部", "営業部","企画部","国際流通","総務部","情報統括"],"admin": true},
+{"code": "okanaga", "password": "okanaga", "name": "テスト会員", "depart":[ "営業部"],"admin": true},
 {"code": "900795", "password": "okanaga", "name": "石木　昭雄", "depart":[ "業務部", "営業部"],"admin": true},
 {"code": "900815", "password": "okanaga", "name": "西野　隆司", "depart":[ "営業部"],"admin": false},
 {"code": "900861", "password": "okanaga", "name": "　森　晃一郎", "depart":[ "企画部"],"admin": false},
