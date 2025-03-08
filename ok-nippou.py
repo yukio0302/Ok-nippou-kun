@@ -177,14 +177,17 @@ def timeline():
             with open(USER_FILE, "r", encoding="utf-8-sig") as file:
                 users = json.load(file)
 
-        # ✅ 自分の部署にいるメンバーの名前を取得
-        department_members = {
-            user["name"] for user in users if any(dept in user_departments for dept in user["depart"])
-        }
+            # ✅ 自分の部署にいるメンバーの名前を取得
+            department_members = {
+                user["name"] for user in users if any(dept in user_departments for dept in user["depart"])
+            }
 
-        # ✅ メンバーの投稿のみフィルタリング
-        reports = [report for report in reports if report["投稿者"] in department_members]
-
+            # ✅ メンバーの投稿のみフィルタリング
+            reports = [report for report in reports if report["投稿者"] in department_members]
+        
+        except Exception as e:
+            st.error(f"⚠️ 部署情報の読み込みエラー: {e}")
+            return
     search_query = st.text_input(" 投稿を検索", "")
 
     if search_query:
