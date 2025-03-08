@@ -173,7 +173,7 @@ def timeline():
     # ✅ フィルタを適用（自分の部署のメンバーの投稿のみ表示）
     if st.session_state["filter_department"] == "自分の部署":
         try:
-            USER_FILE = "/mount/src/ok-nippou-kun/Ok-nippou-kun/data/users_data.json"
+            USER_FILE = "users_data.json"
             with open(USER_FILE, "r", encoding="utf-8-sig") as file:
                 users = json.load(file)
 
