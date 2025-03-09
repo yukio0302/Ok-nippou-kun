@@ -184,11 +184,12 @@ def save_comment(report_id, commenter, comment):
 
 
 def load_notices():
-    """お知らせデータを取得"""
+     """指定されたユーザーの未読お知らせデータを取得"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM notices ORDER BY 日付 DESC")
+    # ✅ ログイン中のユーザーに対する通知のみ取得
+    cur.execute("SELECT * FROM notices WHERE 受信者 = ? ORDER BY 日付 DESC", (recipient,))
     rows = cur.fetchall()
     conn.close()
 
@@ -196,16 +197,19 @@ def load_notices():
     notices = []
     for row in rows:
         notices.append({
-            "id": row[0], "タイトル": row[1], "内容": row[2], "日付": row[3], "既読": row[4]
+            "id": row[0], "タイトル": row[1], "内容": row[2], "日付": row[3], 
+            "既読": row[4], "受信者": row[5]  # 受信者を追加（デバッグ・確認用）
         })
     return notices
 
-def mark_notice_as_read(notice_id):
-    """お知らせを既読にする"""
+
+def mark_notice_as_read(notice_id, recipient):
+    """お知らせを既読にする（受信者チェック付き）"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("UPDATE notices SET 既読 = 1 WHERE id = ?", (notice_id,))
+    # ✅ ログイン中のユーザーの通知のみ既読にする
+    cur.execute("UPDATE notices SET 既読 = 1 WHERE id = ? AND 受信者 = ?", (notice_id, recipient))
     conn.commit()
     conn.close()
 
