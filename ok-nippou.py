@@ -133,10 +133,12 @@ def post_report():
 
     submit_button = st.button("投稿する")
     if submit_button:
+        date_mapping = {d.strftime('%Y年%m月%d日 (%a)'): d.strftime('%Y-%m-%d') for d in date_options}
+        formatted_date = date_mapping[selected_date]
+
         save_report({
             "投稿者": st.session_state["user"]["name"],
-            "実行日": datetime.now().strftime("%Y-%m-%d"),
-            "カテゴリ": category,
+            "実行日": formatted_date,  # YYYY-MM-DD 形式で保存
             "場所": location,
             "実施内容": content,
             "所感": remarks,
