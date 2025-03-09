@@ -56,15 +56,14 @@ def init_db(keep_existing=True):
     )
     """)
 
-    # ✅ お知らせデータのテーブル作成
+    # ✅ お知らせデータのテーブル作成（存在しない場合のみ）
     cur.execute("""
     CREATE TABLE IF NOT EXISTS notices (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         タイトル TEXT,
         内容 TEXT,
         日付 TEXT,
-        既読 INTEGER DEFAULT 0,
-        受信者 TEXT  -- 修正: 受信者カラムを追加
+        既読 INTEGER DEFAULT 0
     )
     """)
 
@@ -156,7 +155,7 @@ def save_comment(report_id, commenter, comment):
         # ✅ コメントを更新
         cur.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
 
-        # ✅ **投稿者がコメント者と違う場合のみ、投稿者に通知を送る**
+        # ✅ 投稿者がコメント者と違う場合、お知らせを追加
         if 投稿者 != commenter:
             notification_content = f"""【お知らせ】  
 {new_comment["日時"]}  
@@ -170,28 +169,26 @@ def save_comment(report_id, commenter, comment):
 """
 
             cur.execute("""
-                INSERT INTO notices (タイトル, 内容, 日付, 既読, 受信者)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO notices (タイトル, 内容, 日付, 既読)
+                VALUES (?, ?, ?, ?)
             """, (
                 "新しいコメントが届きました！",
                 notification_content,
                 new_comment["日時"],
-                0,  # 既読フラグ（未読）
-                投稿者  # **通知の受信者を投稿者のみに設定**
+                0  # 既読フラグ（未読）
             ))
+
         conn.commit()
 
     conn.close()
 
 
-# ✅ お知らせを取得
-def load_notices(recipient):
-    """指定されたユーザーの未読お知らせデータを取得"""
+def load_notices():
+    """お知らせデータを取得"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # ✅ ログイン中のユーザーの通知のみ取得
-    cur.execute("SELECT * FROM notices WHERE 受信者 = ? ORDER BY 日付 DESC", (recipient,))
+    cur.execute("SELECT * FROM notices ORDER BY 日付 DESC")
     rows = cur.fetchall()
     conn.close()
 
@@ -199,18 +196,16 @@ def load_notices(recipient):
     notices = []
     for row in rows:
         notices.append({
-            "id": row[0], "タイトル": row[1], "内容": row[2], "日付": row[3], 
-            "既読": row[4], "受信者": row[5]
+            "id": row[0], "タイトル": row[1], "内容": row[2], "日付": row[3], "既読": row[4]
         })
     return notices
 
-# ✅ お知らせを既読にする
-def mark_notice_as_read(notice_id, recipient):
-    """お知らせを既読にする（受信者チェック付き）"""
+def mark_notice_as_read(notice_id):
+    """お知らせを既読にする"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("UPDATE notices SET 既読 = 1 WHERE id = ? AND 受信者 = ?", (notice_id, recipient))
+    cur.execute("UPDATE notices SET 既読 = 1 WHERE id = ?", (notice_id,))
     conn.commit()
     conn.close()
 
