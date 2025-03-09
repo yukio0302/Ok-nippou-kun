@@ -63,9 +63,7 @@ def init_db(keep_existing=True):
         タイトル TEXT,
         内容 TEXT,
         日付 TEXT,
-        既読 INTEGER DEFAULT 0,
-        report_id INTEGER,
-        target_user TEXT
+        既読 INTEGER DEFAULT 0
     )
     """)
 
@@ -157,9 +155,9 @@ def save_comment(report_id, commenter, comment):
         # ✅ コメントを更新
         cur.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
 
-        # ✅ 投稿者がコメント者と違う場合、かつ投稿者が自分自身の場合にお知らせを追加
-if 投稿者 != commenter and 投稿者 == st.session_state["user"]["name"]:
-    notification_content = f"""【お知らせ】  
+        # ✅ 投稿者がコメント者と違う場合、お知らせを追加
+        if 投稿者 != commenter:
+            notification_content = f"""【お知らせ】  
 {new_comment["日時"]}  
 
 実施日: {実行日}  
@@ -170,18 +168,17 @@ if 投稿者 != commenter and 投稿者 == st.session_state["user"]["name"]:
 コメント内容: {comment}
 """
 
-    cur.execute("""
-        INSERT INTO notices (タイトル, 内容, 日付, 既読, 投稿者)
-        VALUES (?, ?, ?, ?, ?)
-    """, (
-        "新しいコメントが届きました！",
-        notification_content,
-        new_comment["日時"],
-        0,  # 既読フラグ（未読）
-        st.session_state["user"]["name"]  # お知らせの対象者（投稿者）
-    ))
+            cur.execute("""
+                INSERT INTO notices (タイトル, 内容, 日付, 既読)
+                VALUES (?, ?, ?, ?)
+            """, (
+                "新しいコメントが届きました！",
+                notification_content,
+                new_comment["日時"],
+                0  # 既読フラグ（未読）
+            ))
 
-    conn.commit()
+        conn.commit()
 
     conn.close()
 
@@ -244,5 +241,4 @@ def delete_report(report_id):
     except sqlite3.Error as e:
         print(f"❌ データベースエラー: {e}")
         return False
-
 
