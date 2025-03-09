@@ -221,29 +221,43 @@ def timeline():
                 st.rerun()
 
         # コメント欄
-        comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
-        with st.expander(f" ({comment_count}件)のコメントを見る・追加する "):  # 件数を表示
-            if report["コメント"]:
-                for c in report["コメント"]:
-                    st.write(f" {c['投稿者']} ({c['日時']}): {c['コメント']}")
+    comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
+    with st.expander(f" ({comment_count}件)のコメントを見る・追加する "):  # 件数を表示
+        if report["コメント"]:
+            for c in report["コメント"]:
+                st.write(f" {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
-            if report.get("id") is None:
-                st.error("⚠️ 投稿の ID が見つかりません。")
-                continue
+        if report.get("id") is None:
+            st.error("⚠️ 投稿の ID が見つかりません。")
+            continue
 
-            commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
-            new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
+        commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
+        new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
 
-            if st.button(" コメントを投稿", key=f"submit_comment_{report['id']}"):
-                if new_comment and new_comment.strip():
-                    print(f"️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
-                    save_comment(report["id"], commenter_name, new_comment)
-                    st.success("✅ コメントを投稿しました！")
-                    st.rerun()
-                else:
-                    st.warning("⚠️ 空白のコメントは投稿できません！")
+        if st.button(" コメントを投稿", key=f"submit_comment_{report['id']}"):
+            if new_comment and new_comment.strip():
+                print(f"️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
+                save_comment(report["id"], commenter_name, new_comment)
 
-    st.write("----")
+                # コメントが投稿された投稿の投稿者を取得
+                commented_report = next((r for r in reports if r["id"] == report["id"]), None)
+                if commented_report and commented_report["投稿者"] != commenter_name:
+                    # 自分以外のユーザーが自分の投稿にコメントした場合のみお知らせを作成
+                    create_notice(
+                        title=f"【{commented_report['投稿者']}さんの投稿】に{commenter_name}さんからコメントが届きました。",
+                        content=f"{commenter_name}さん: {new_comment}",
+                        date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        report_id=report["id"],
+                        read=0,
+                        target_user=commented_report["投稿者"]
+                    )
+
+                st.success("✅ コメントを投稿しました！")
+                st.rerun()
+            else:
+                st.warning("⚠️ 空白のコメントは投稿できません！")
+
+st.write("----")
 
 # ✅ お知らせを表示（未読を強調し、既読を折りたたむ）
 def show_notices():
