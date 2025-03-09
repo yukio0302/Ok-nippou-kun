@@ -116,7 +116,7 @@ def post_report():
 
      # 選択可能な日付リスト（1週間前～本日）
     today = datetime.today().date()
-    date_options = [(today - timedelta(days=i)) for i in range(7)]  # ここを修正！（範囲を変更）
+    date_options = [(today + timedelta(days=1) - timedelta(days=i)) for i in range(9)]
     date_options_formatted = [f"{d.strftime('%Y年%m月%d日 (%a)')}" for d in date_options]
 
     # 実施日の選択（リストから選ぶ）
