@@ -56,14 +56,15 @@ def init_db(keep_existing=True):
     )
     """)
 
-    # ✅ お知らせデータのテーブル作成（存在しない場合のみ）
+    # ✅ お知らせデータのテーブル作成
     cur.execute("""
     CREATE TABLE IF NOT EXISTS notices (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         タイトル TEXT,
         内容 TEXT,
         日付 TEXT,
-        既読 INTEGER DEFAULT 0
+        既読 INTEGER DEFAULT 0,
+        受信者 TEXT  -- 修正: 受信者カラムを追加
     )
     """)
 
@@ -183,12 +184,13 @@ def save_comment(report_id, commenter, comment):
     conn.close()
 
 
-def load_notices():
-     """指定されたユーザーの未読お知らせデータを取得"""
+# ✅ お知らせを取得
+def load_notices(recipient):
+    """指定されたユーザーの未読お知らせデータを取得"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # ✅ ログイン中のユーザーに対する通知のみ取得
+    # ✅ ログイン中のユーザーの通知のみ取得
     cur.execute("SELECT * FROM notices WHERE 受信者 = ? ORDER BY 日付 DESC", (recipient,))
     rows = cur.fetchall()
     conn.close()
@@ -198,17 +200,16 @@ def load_notices():
     for row in rows:
         notices.append({
             "id": row[0], "タイトル": row[1], "内容": row[2], "日付": row[3], 
-            "既読": row[4], "受信者": row[5]  # 受信者を追加（デバッグ・確認用）
+            "既読": row[4], "受信者": row[5]
         })
     return notices
 
-
+# ✅ お知らせを既読にする
 def mark_notice_as_read(notice_id, recipient):
     """お知らせを既読にする（受信者チェック付き）"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # ✅ ログイン中のユーザーの通知のみ既読にする
     cur.execute("UPDATE notices SET 既読 = 1 WHERE id = ? AND 受信者 = ?", (notice_id, recipient))
     conn.commit()
     conn.close()
