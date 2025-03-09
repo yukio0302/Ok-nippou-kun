@@ -229,7 +229,7 @@ def timeline():
 
         if report.get("id") is None:
             st.error("⚠️ 投稿の ID が見つかりません。")
-            return
+            continue
 
         commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
         new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
