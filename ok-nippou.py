@@ -114,7 +114,13 @@ def post_report():
     st.title("日報投稿")
     top_navigation()
 
-    category = st.text_input("実施日")
+     # 選択可能な日付リスト（1週間前～本日）
+    today = datetime.date.today()
+    date_options = [(today - datetime.timedelta(days=i)) for i in range(7)]
+    date_options_formatted = [f"{d.strftime('%Y年%m月%d日 (%a)')}" for d in date_options]
+
+    # 実施日の選択（リストから選ぶ）
+    selected_date = st.selectbox("実施日", date_options_formatted)
     location = st.text_input("場所")
     content = st.text_area("実施内容")
     remarks = st.text_area("所感")
