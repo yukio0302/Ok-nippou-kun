@@ -254,24 +254,15 @@ def show_notices():
     st.title(" お知らせ")
     top_navigation()
 
-    # ✅ すべてのお知らせを読み込む
     notices = load_notices()
 
     if not notices:
         st.info(" お知らせはありません。")
         return
 
-    # ✅ 現在ログインしているユーザーに関連するお知らせのみをフィルタリング
-    user_name = st.session_state["user"]["name"]
-    user_notices = [n for n in notices if n.get("投稿者") == user_name]
-
-    if not user_notices:
-        st.info(" お知らせはありません。")
-        return
-
     # ✅ 未読・既読を分類
-    new_notices = [n for n in user_notices if n["既読"] == 0]
-    old_notices = [n for n in user_notices if n["既読"] == 1]
+    new_notices = [n for n in notices if n["既読"] == 0]
+    old_notices = [n for n in notices if n["既読"] == 1]
 
     # ✅ 既読処理をセッションで管理
     if "notice_to_read" not in st.session_state:
