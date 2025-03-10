@@ -139,6 +139,7 @@ def post_report():
         save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": formatted_date,  # YYYY-MM-DD 形式で保存
+            "カテゴリ": category, 
             "場所": location,
             "実施内容": content,
             "所感": remarks,
