@@ -215,7 +215,7 @@ def timeline():
 
     for report in reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
-        st.write(f" **実施日:** {report['カテゴリ']}")
+        st.write(f" **実施日:** {report['実行日']}")
         st.write(f" **場所:** {report['場所']}")
         st.write(f" **実施内容:** {report['実施内容']}")
         st.write(f" **所感:** {report['所感']}")
