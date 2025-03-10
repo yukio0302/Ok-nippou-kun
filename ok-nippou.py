@@ -122,6 +122,7 @@ def post_report():
     # 実施日の選択（リストから選ぶ）
     selected_date = st.selectbox("実施日", date_options_formatted)
     location = st.text_input("場所")
+    category = st.text_input("カテゴリ（商談やイベント提案など）")
     content = st.text_area("実施内容")
     remarks = st.text_area("所感")
 
