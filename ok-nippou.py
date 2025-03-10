@@ -331,7 +331,7 @@ def my_page():
     # 🔹 今週の投稿を表示
     if weekly_reports:
         for report in weekly_reports:
-            with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
+            with st.expander(f"{report['実行日']} / {report['場所']}"):
                 show_report_details(report)
 
     past_reports = [r for r in my_reports if r not in weekly_reports]
@@ -340,7 +340,7 @@ def my_page():
     if past_reports:
         with st.expander("過去の投稿"):
             for report in past_reports:
-                with st.expander(f"{report['実行日']}: {report['カテゴリ']} / {report['場所']}"):
+                with st.expander(f"{report['実行日']} / {report['場所']}"):
                     show_report_details(report)
     else:
         st.info("過去の投稿はありません。")
