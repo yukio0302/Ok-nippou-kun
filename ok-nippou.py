@@ -329,20 +329,21 @@ def my_page():
     ]
 
    # 🔹 今週の投稿を表示
-if weekly_reports:
-    st.subheader("📅 今週の投稿")
-    for report in weekly_reports:
-        with st.expander(f"{report['実行日']} / {report['場所']}"):  # ✅ そのままOK
-            show_report_details(report)
+    if weekly_reports:
+        for report in weekly_reports:
+            with st.expander(f"{report['実行日']} / {report['場所']}"):
+                show_report_details(report)
 
-# 🔹 過去の投稿を折りたたみ表示（ネスト解消！）
-if past_reports:
-    st.subheader("📂 過去の投稿")  # ← 🔹 ここで過去の投稿をまとめる見出しを追加
-    for report in past_reports:
-        with st.expander(f"{report['実行日']} / {report['場所']}"):  # ✅ 直接 `st.expander()` を使う
-            show_report_details(report)
-else:
-    st.info("過去の投稿はありません。")
+    past_reports = [r for r in my_reports if r not in weekly_reports]
+
+    # 🔹 過去の投稿を折りたたみ表示
+    if past_reports:
+        with st.expander("過去の投稿"):
+            for report in past_reports:
+                with st.expander(f"{report['実行日']} / {report['場所']}"):
+                    show_report_details(report)
+    else:
+        st.info("過去の投稿はありません。")
 
 
 # ✅ 投稿詳細（編集・削除機能付き）
