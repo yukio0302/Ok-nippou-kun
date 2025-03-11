@@ -160,6 +160,27 @@ def timeline():
     st.title(" タイムライン")
     top_navigation()
 
+    # ✅ 期間選択用のUIを追加
+    st.sidebar.subheader("表示期間を選択")
+    period_option = st.sidebar.radio(
+        "表示する期間を選択",
+        ["1週間以内の投稿", "過去の投稿"]
+    )
+
+    # ✅ デフォルトで1週間以内の投稿を表示
+    if period_option == "1週間以内の投稿":
+        start_date = datetime.now() - timedelta(days=8)
+        end_date = datetime.now()
+    else:
+        # ✅ 過去の投稿を選択した場合、カレンダーで期間を指定
+        st.sidebar.subheader("過去の投稿を表示")
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            start_date = st.date_input("開始日", datetime.now() - timedelta(days=365), max_value=datetime.now() - timedelta(days=9))
+        with col2:
+            end_date = st.date_input("終了日", datetime.now() - timedelta(days=9), min_value=start_date, max_value=datetime.now() - timedelta(days=9))
+
+    # ✅ 投稿をフィルタリング
     reports = load_reports()
 
     # ✅ 現在のユーザーの所属部署を取得
@@ -199,8 +220,15 @@ def timeline():
         except Exception as e:
             st.error(f"⚠️ 部署情報の読み込みエラー: {e}")
             return
-    search_query = st.text_input(" 投稿を検索", "")
 
+    # ✅ 期間でフィルタリング
+    reports = [
+        report for report in reports
+        if start_date <= datetime.strptime(report["実行日"], "%Y-%m-%d").date() <= end_date
+    ]
+
+    # ✅ 検索機能
+    search_query = st.text_input(" 投稿を検索", "")
     if search_query:
         reports = [
             report for report in reports
@@ -213,6 +241,7 @@ def timeline():
         st.warning(" 該当する投稿が見つかりませんでした。")
         return
 
+    # ✅ 投稿を表示
     for report in reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
         st.write(f" **実施日:** {report['実行日']}")
@@ -226,7 +255,7 @@ def timeline():
                 update_reaction(report["id"], "いいね")
                 st.rerun()
         with col2:
-            if st.button(f" {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
+            if st.button(f"💪 {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
                 update_reaction(report["id"], "ナイスファイト")
                 st.rerun()
 
@@ -246,7 +275,6 @@ def timeline():
 
             if st.button(" コメントを投稿", key=f"submit_comment_{report['id']}"):
                 if new_comment and new_comment.strip():
-                    print(f"️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
                     save_comment(report["id"], commenter_name, new_comment)
                     st.success("✅ コメントを投稿しました！")
                     st.rerun()
@@ -254,7 +282,6 @@ def timeline():
                     st.warning("⚠️ 空白のコメントは投稿できません！")
 
     st.write("----")
-
 # ✅ お知らせを表示（未読を強調し、既読を折りたたむ）
 def show_notices():
     if "user" not in st.session_state or st.session_state["user"] is None:
