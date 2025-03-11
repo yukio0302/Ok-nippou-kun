@@ -209,18 +209,21 @@ def mark_notice_as_read(notice_id):
     conn.commit()
     conn.close()
 
-def edit_report(report_id, category, location, content, remarks):
+def edit_report(report_id, new_date, new_location, new_content, new_remarks):
     """投稿を編集する"""
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-    c.execute("""
-        UPDATE reports
-        SET 実施日 = ?, 場所 = ?, 実施内容 = ?, 所感 = ?
-        WHERE id = ?
-    """, (category, location, content, remarks, report_id))
-    conn.commit()
-    conn.close()
-
+    try:
+        conn = sqlite3.connect(DB_PATH)  # DB_PATHを使用
+        c = conn.cursor()
+        c.execute("""
+            UPDATE reports
+            SET 実行日 = ?, 場所 = ?, 実施内容 = ?, 所感 = ?
+            WHERE id = ?
+        """, (new_date, new_location, new_content, new_remarks, report_id))
+        conn.commit()
+        conn.close()
+        print(f"✅ 投稿 (ID: {report_id}) を編集しました！")  # デバッグ用ログ
+    except sqlite3.Error as e:
+        print(f"❌ データベースエラー: {e}")  # エラーログ
 def delete_report(report_id):
     """投稿を削除する（エラーハンドリング付き）"""
     try:
