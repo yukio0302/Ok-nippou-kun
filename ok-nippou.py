@@ -242,16 +242,14 @@ def timeline():
         st.write(f" **実施内容:** {report['実施内容']}")
         st.write(f" **所感:** {report['所感']}")
 
-       # ✅ 画像が存在する場合、表示する
-if report.get("image"):
-    try:
-        # Base64データをデコードして画像を表示
-        image_data = base64.b64decode(report["image"])
-        
-        # 画像のサイズを最大600x600に制限し、縦横比を維持
-        st.image(image_data, caption="投稿画像", width=600, use_container_width=False)
-    except Exception as e:
-        st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
+        # ✅ 画像が存在する場合、表示する
+        if report.get("image"):
+            try:
+                # Base64データをデコードして画像を表示
+                st.image(base64.b64decode(report["image"]), caption="投稿画像", use_container_width=True)
+            except Exception as e:
+                st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
+
 
         col1, col2 = st.columns(2)
         with col1:
@@ -272,7 +270,7 @@ if report.get("image"):
 
             if report.get("id") is None:
                 st.error("⚠️ 投稿の ID が見つかりません。")
-                return
+                continue
 
             commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
             new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
