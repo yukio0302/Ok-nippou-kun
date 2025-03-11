@@ -242,13 +242,14 @@ def timeline():
         st.write(f" **実施内容:** {report['実施内容']}")
         st.write(f" **所感:** {report['所感']}")
 
-       # ✅ 画像が存在する場合、表示する
-if report.get("image"):
-    try:
-        # Base64データをデコードして画像を表示
-        st.image(base64.b64decode(report["image"]), caption="投稿画像", use_container_width=True)  # ここを修正
-    except Exception as e:
-        st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
+        # ✅ 画像が存在する場合、表示する
+        if report.get("image"):
+            try:
+                # Base64データをデコードして画像を表示
+                st.image(base64.b64decode(report["image"]), caption="投稿画像", use_column_width=True)
+            except Exception as e:
+                st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
+
 
         col1, col2 = st.columns(2)
         with col1:
@@ -260,16 +261,16 @@ if report.get("image"):
                 update_reaction(report["id"], "ナイスファイト")
                 st.rerun()
 
-        # ✅ コメント欄
-comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
-with st.expander(f" ({comment_count}件)のコメントを見る・追加する "):  # 件数を表示
-    if report["コメント"]:
-        for c in report["コメント"]:
-            st.write(f" {c['投稿者']} ({c['日時']}): {c['コメント']}")
+        # コメント欄
+        comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
+        with st.expander(f" ({comment_count}件)のコメントを見る・追加する "):  # 件数を表示
+            if report["コメント"]:
+                for c in report["コメント"]:
+                    st.write(f" {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
-    if report.get("id") is None:
-        st.error("⚠️ 投稿の ID が見つかりません。")
-        return  # または pass を選択
+            if report.get("id") is None:
+                st.error("⚠️ 投稿の ID が見つかりません。")
+                continue
 
             commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
             new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
