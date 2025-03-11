@@ -73,14 +73,14 @@ def top_navigation():
         if st.button("⏳ タイムライン"):
             st.session_state.page = "タイムライン"
             st.rerun()
-        if st.button(" お知らせ"):
+        if st.button("🔔 お知らせ"):
             st.session_state.page = "お知らせ"
             st.rerun()
     with col2:
         if st.button("✏️ 日報投稿"):
             st.session_state.page = "日報投稿"
             st.rerun()
-        if st.button(" マイページ"):
+        if st.button("🚹 マイページ"):
             st.session_state.page = "マイページ"
             st.rerun()
 
