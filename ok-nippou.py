@@ -234,12 +234,22 @@ def timeline():
         st.warning(" 該当する投稿が見つかりませんでした。")
         return
 
+    # ✅ 投稿を表示
     for report in reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
         st.write(f" **実施日:** {report['実行日']}")
         st.write(f" **場所:** {report['場所']}")
         st.write(f" **実施内容:** {report['実施内容']}")
         st.write(f" **所感:** {report['所感']}")
+
+        # ✅ 画像が存在する場合、表示する
+        if report.get("image"):
+            try:
+                # Base64データをデコードして画像を表示
+                st.image(base64.b64decode(report["image"]), caption="投稿画像", use_column_width=True)
+            except Exception as e:
+                st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
+
 
         col1, col2 = st.columns(2)
         with col1:
