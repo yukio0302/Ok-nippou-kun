@@ -162,6 +162,27 @@ def timeline():
 
     reports = load_reports()
 
+     # ✅ 期間選択用のUIを追加
+    st.sidebar.subheader("表示期間を選択")
+    period_option = st.sidebar.radio(
+        "表示する期間を選択",
+        ["1週間以内の投稿", "過去の投稿"]
+    )
+
+    # ✅ デフォルトで1週間以内の投稿を表示
+    if period_option == "1週間以内の投稿":
+        start_date = datetime.now() - timedelta(days=8)
+        end_date = datetime.now()
+    else:
+        # ✅ 過去の投稿を選択した場合、カレンダーで期間を指定
+        st.sidebar.subheader("過去の投稿を表示")
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            start_date = st.date_input("開始日", datetime.now() - timedelta(days=365), max_value=datetime.now() - timedelta(days=9))
+        with col2:
+            end_date = st.date_input("終了日", datetime.now() - timedelta(days=9), min_value=start_date, max_value=datetime.now() - timedelta(days=9))
+
+
     # ✅ 現在のユーザーの所属部署を取得
     user_departments = st.session_state["user"]["depart"]  # 配列で取得
 
@@ -226,7 +247,7 @@ def timeline():
                 update_reaction(report["id"], "いいね")
                 st.rerun()
         with col2:
-            if st.button(f" {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
+            if st.button(f"💪 {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
                 update_reaction(report["id"], "ナイスファイト")
                 st.rerun()
 
