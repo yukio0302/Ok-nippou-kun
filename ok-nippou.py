@@ -162,7 +162,7 @@ def timeline():
 
     reports = load_reports()
 
-     # ✅ 期間選択用のUIを追加
+    # ✅ 期間選択用のUIを追加
     st.sidebar.subheader("表示期間を選択")
     period_option = st.sidebar.radio(
         "表示する期間を選択",
@@ -171,17 +171,23 @@ def timeline():
 
     # ✅ デフォルトで1週間以内の投稿を表示
     if period_option == "1週間以内の投稿":
-        start_date = datetime.now() - timedelta(days=8)
+        start_date = datetime.now() - timedelta(days=7)
         end_date = datetime.now()
     else:
         # ✅ 過去の投稿を選択した場合、カレンダーで期間を指定
         st.sidebar.subheader("過去の投稿を表示")
         col1, col2 = st.sidebar.columns(2)
         with col1:
-            start_date = st.date_input("開始日", datetime.now() - timedelta(days=365), max_value=datetime.now() - timedelta(days=9))
+            start_date = st.date_input("開始日", datetime.now() - timedelta(days=365), max_value=datetime.now() - timedelta(days=1))
         with col2:
-            end_date = st.date_input("終了日", datetime.now() - timedelta(days=9), min_value=start_date, max_value=datetime.now() - timedelta(days=9))
+            end_date = st.date_input("終了日", datetime.now() - timedelta(days=1), min_value=start_date, max_value=datetime.now() - timedelta(days=1))
 
+    # ✅ 選択された期間に該当する投稿をフィルタリング
+    filtered_reports = []
+    for report in reports:
+        report_date = datetime.strptime(report["実行日"], "%Y-%m-%d").date()
+        if start_date <= report_date <= end_date:
+            filtered_reports.append(report)
 
     # ✅ 現在のユーザーの所属部署を取得
     user_departments = st.session_state["user"]["depart"]  # 配列で取得
@@ -215,27 +221,28 @@ def timeline():
             }
 
             # ✅ メンバーの投稿のみフィルタリング
-            reports = [report for report in reports if report["投稿者"] in department_members]
+            filtered_reports = [report for report in filtered_reports if report["投稿者"] in department_members]
         
         except Exception as e:
             st.error(f"⚠️ 部署情報の読み込みエラー: {e}")
             return
+
     search_query = st.text_input(" 投稿を検索", "")
 
     if search_query:
-        reports = [
-            report for report in reports
+        filtered_reports = [
+            report for report in filtered_reports
             if search_query.lower() in report["実施内容"].lower()
             or search_query.lower() in report["所感"].lower()
             or search_query.lower() in report["カテゴリ"].lower()
         ]
 
-    if not reports:
+    if not filtered_reports:
         st.warning(" 該当する投稿が見つかりませんでした。")
         return
 
     # ✅ 投稿を表示
-    for report in reports:
+    for report in filtered_reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
         st.write(f" **実施日:** {report['実行日']}")
         st.write(f" **場所:** {report['場所']}")
@@ -250,7 +257,6 @@ def timeline():
                 st.image(image_data, caption="投稿画像", use_container_width=True)
             except Exception as e:
                 st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
-
 
         col1, col2 = st.columns(2)
         with col1:
