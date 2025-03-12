@@ -340,7 +340,6 @@ def show_notices():
         with st.expander(" 過去のお知らせを見る"):
             for notice in old_notices:
                 with st.container():
-                    st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
                     st.markdown(f"**{notice['タイトル']}**")
                     st.write(f" {notice['日付']}")
                     st.write(notice["内容"])
