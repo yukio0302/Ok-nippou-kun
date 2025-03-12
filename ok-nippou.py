@@ -152,7 +152,6 @@ def post_report():
         time.sleep(1)
         switch_page("タイムライン")
 
-
 # ✅ タイムライン（コメント機能修正）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -164,7 +163,7 @@ def timeline():
 
     reports = load_reports()
 
-     # ✅ 期間選択用のUIを追加
+    # ✅ 期間選択用のUIを追加
     st.sidebar.subheader("表示期間を選択")
     period_option = st.sidebar.radio(
         "表示する期間を選択",
@@ -183,7 +182,6 @@ def timeline():
             start_date = st.date_input("開始日", datetime.now() - timedelta(days=365), max_value=datetime.now() - timedelta(days=9))
         with col2:
             end_date = st.date_input("終了日", datetime.now() - timedelta(days=9), min_value=start_date, max_value=datetime.now() - timedelta(days=9))
-
 
     # ✅ 現在のユーザーの所属部署を取得
     user_departments = st.session_state["user"]["depart"]  # 配列で取得
@@ -222,6 +220,7 @@ def timeline():
         except Exception as e:
             st.error(f"⚠️ 部署情報の読み込みエラー: {e}")
             return
+
     search_query = st.text_input(" 投稿を検索", "")
 
     if search_query:
@@ -236,6 +235,30 @@ def timeline():
         st.warning(" 該当する投稿が見つかりませんでした。")
         return
 
+    # ✅ 画像回転用の関数を定義
+    def rotate_image(image, degrees):
+        """画像を指定された角度で回転させる"""
+        return image.rotate(degrees, expand=True)
+
+    def show_image_with_rotation(image_data):
+        """画像を拡大表示し、回転ボタンを提供する"""
+        image = Image.open(io.BytesIO(image_data))
+
+        # モーダル内で画像を表示
+        with st.expander("🖼️ 画像を拡大表示"):
+            st.image(image, caption="投稿画像", use_container_width=True)
+
+            # 回転ボタン
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("↩️ 左に回転"):
+                    image = rotate_image(image, 90)
+                    st.image(image, caption="回転後の画像", use_container_width=True)
+            with col2:
+                if st.button("↪️ 右に回転"):
+                    image = rotate_image(image, 270)
+                    st.image(image, caption="回転後の画像", use_container_width=True)
+
     # ✅ 投稿を表示
     for report in reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
@@ -249,20 +272,9 @@ def timeline():
             try:
                 # Base64データをデコードして画像を表示
                 image_data = base64.b64decode(report["image"])
-                st.image(image_data, caption="投稿画像", use_container_width=True)
+                show_image_with_rotation(image_data)  # 拡大表示と回転機能を提供
             except Exception as e:
                 st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
-
-
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button(f"❤️ {report['いいね']} いいね！", key=f"like_{report['id']}"):
-                update_reaction(report["id"], "いいね")
-                st.rerun()
-        with col2:
-            if st.button(f"💪 {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
-                update_reaction(report["id"], "ナイスファイト")
-                st.rerun()
 
         # コメント欄
         comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
@@ -280,7 +292,6 @@ def timeline():
 
             if st.button(" コメントを投稿", key=f"submit_comment_{report['id']}"):
                 if new_comment and new_comment.strip():
-                    print(f"️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
                     save_comment(report["id"], commenter_name, new_comment)
                     st.success("✅ コメントを投稿しました！")
                     st.rerun()
