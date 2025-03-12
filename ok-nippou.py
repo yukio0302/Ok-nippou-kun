@@ -178,11 +178,19 @@ def timeline():
         st.sidebar.subheader("過去の投稿を表示")
         col1, col2 = st.sidebar.columns(2)
         with col1:
-            start_date = st.date_input("開始日", datetime.now() - timedelta(days=365), max_value=datetime.now() - timedelta(days=9))
+            start_date = st.date_input(
+                "開始日",
+                datetime.now().date() - timedelta(days=365),  # デフォルトは1年前
+                max_value=datetime.now().date()  # 未来の日付も選択可能
+            )
         with col2:
-            end_date = st.date_input("終了日", datetime.now() - timedelta(days=9), min_value=start_date, max_value=datetime.now() - timedelta(days=9))
-
-
+            end_date = st.date_input(
+                "終了日",
+                datetime.now().date() - timedelta(days=1),  # デフォルトは昨日
+                min_value=start_date,  # 開始日以降の日付を選択
+                max_value=datetime.now().date()  # 未来の日付も選択可能
+            )
+            
     # ✅ 現在のユーザーの所属部署を取得
     user_departments = st.session_state["user"]["depart"]  # 配列で取得
 
@@ -224,7 +232,7 @@ def timeline():
     # ✅ 期間に基づいてフィルタリング
     filtered_reports = []
     for report in reports:
-        report_date = datetime.strptime(report["実行日"], "%Y-%m-%d")  # 文字列をdatetimeに変換
+        report_date = datetime.strptime(report["実行日"], "%Y-%m-%d").date()  # 文字列をdatetime.dateに変換
         if start_date <= report_date <= end_date:
             filtered_reports.append(report)
 
