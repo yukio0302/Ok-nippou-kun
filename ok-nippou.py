@@ -171,16 +171,16 @@ def timeline():
 
     # ✅ デフォルトで1週間以内の投稿を表示
     if period_option == "1週間以内の投稿":
-        start_date = datetime.now() - timedelta(days=7)
-        end_date = datetime.now()
+        start_date = (datetime.now() - timedelta(days=7)).date()  # 過去7日間
+        end_date = datetime.now().date()  # 今日
     else:
         # ✅ 過去の投稿を選択した場合、カレンダーで期間を指定
         st.sidebar.subheader("過去の投稿を表示")
         col1, col2 = st.sidebar.columns(2)
         with col1:
-            start_date = st.date_input("開始日", datetime.now() - timedelta(days=365), max_value=datetime.now() - timedelta(days=1))
+            start_date = st.date_input("開始日", datetime.now().date() - timedelta(days=365), max_value=datetime.now().date() - timedelta(days=1))
         with col2:
-            end_date = st.date_input("終了日", datetime.now() - timedelta(days=1), min_value=start_date, max_value=datetime.now() - timedelta(days=1))
+            end_date = st.date_input("終了日", datetime.now().date() - timedelta(days=1), min_value=start_date, max_value=datetime.now().date() - timedelta(days=1))
 
     # ✅ 選択された期間に該当する投稿をフィルタリング
     filtered_reports = []
