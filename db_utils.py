@@ -112,20 +112,39 @@ def load_reports():
             "id": row[0], "投稿者": row[1], "実行日": row[2], "カテゴリ": row[3], 
             "場所": row[4], "実施内容": row[5], "所感": row[6], "いいね": row[7], 
             "ナイスファイト": row[8], "コメント": json.loads(row[9]), "image": row[10], 
-            "投稿日時": row[11]
+            "投稿日時": row[11],
+            "reactions": json.loads(row[12]) if row[12] else {}  # reactionsカラムを追加
         })
     return reports
 
-def update_reaction(report_id, reaction_type):
-    """リアクション（いいね・ナイスファイト）を更新"""
+def update_reaction(report_id, reaction_type, user_name):
+    """スタンプを更新し、押したユーザーを記録する"""
     conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
+    cursor = conn.cursor()
+    
     if reaction_type == "いいね":
         cur.execute("UPDATE reports SET いいね = いいね + 1 WHERE id = ?", (report_id,))
     elif reaction_type == "ナイスファイト":
         cur.execute("UPDATE reports SET ナイスファイト = ナイスファイト + 1 WHERE id = ?", (report_id,))
 
+     # 既存のスタンプ情報を取得
+    cursor.execute("SELECT reactions FROM reports WHERE id = ?", (report_id,))
+    result = cursor.fetchone()
+    reactions = json.loads(result[0]) if result and result[0] else {}
+
+    # スタンプを押したユーザーを記録
+    if reaction_type not in reactions:
+        reactions[reaction_type] = {"count": 0, "users": []}
+    
+    if user_name not in reactions[reaction_type]["users"]:
+        reactions[reaction_type]["count"] += 1
+        reactions[reaction_type]["users"].append(user_name)
+    else:
+        reactions[reaction_type]["count"] -= 1
+        reactions[reaction_type]["users"].remove(user_name)
+    
+    # データベースを更新
+    cursor.execute("UPDATE reports SET reactions = ? WHERE id = ?", (json.dumps(reactions), report_id))
     conn.commit()
     conn.close()
 
