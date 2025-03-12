@@ -6,29 +6,6 @@ import pandas as pd
 import base64
 from datetime import datetime, timedelta
 import json
-from PIL import Image, ExifTags
-import io
-
-def correct_image_orientation(image_bytes):
-    try:
-        image = Image.open(io.BytesIO(image_bytes))
-        # Exifデータを確認
-        for orientation in ExifTags.TAGS.keys():
-            if ExifTags.TAGS[orientation] == 'Orientation':
-                break
-        exif = image._getexif()
-        if exif is not None and orientation in exif:
-            # 向き情報に基づいて画像を回転
-            if exif[orientation] == 3:
-                image = image.rotate(180, expand=True)
-            elif exif[orientation] == 6:
-                image = image.rotate(270, expand=True)
-            elif exif[orientation] == 8:
-                image = image.rotate(90, expand=True)
-        return image
-    except (AttributeError, KeyError, IndexError):
-        # Exifデータがない場合やエラーが発生した場合はそのまま返す
-        return image
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
@@ -266,14 +243,15 @@ def timeline():
         st.write(f" **所感:** {report['所感']}")
 
         # ✅ 画像が存在する場合、表示する
-if report.get("image"):
-    try:
-        image_data = base64.b64decode(report["image"])
-        corrected_image = correct_image_orientation(image_data)
-        st.image(corrected_image, caption="投稿画像", use_container_width=True)
-    except Exception as e:
-        st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
-        
+        if report.get("image"):
+            try:
+                # Base64データをデコードして画像を表示
+                image_data = base64.b64decode(report["image"])
+                st.image(image_data, caption="投稿画像", use_container_width=True)
+            except Exception as e:
+                st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
+
+
         col1, col2 = st.columns(2)
         with col1:
             if st.button(f"❤️ {report['いいね']} いいね！", key=f"like_{report['id']}"):
@@ -293,6 +271,7 @@ if report.get("image"):
 
             if report.get("id") is None:
                 st.error("⚠️ 投稿の ID が見つかりません。")
+                continue
 
             commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
             new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
