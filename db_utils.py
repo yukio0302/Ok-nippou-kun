@@ -53,6 +53,7 @@ def init_db(keep_existing=True):
         コメント TEXT DEFAULT '[]',
         画像 TEXT,
         投稿日時 TEXT
+        reactions TEXT DEFAULT '{}'  # スタンプ情報を保存するカラムを追加
     )
     """)
 
