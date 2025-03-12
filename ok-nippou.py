@@ -258,15 +258,55 @@ def timeline():
             except Exception as e:
                 st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
 
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button(f"❤️ {report['いいね']} いいね！", key=f"like_{report['id']}"):
-                update_reaction(report["id"], "いいね")
+        # 自分が押した場合に赤く表示
+            button_style = """
+                <style>
+                    div[data-testid="stButton"] > button {
+                        border: 2px solid transparent !important;
+                        box-shadow: none !important;
+                    }
+                    div[data-testid="stButton"] > button.liked {
+                        border: 2px solid red !important;
+                        box-shadow: 0 0 5px red !important;
+                    }
+                </style>
+            """
+            st.markdown(button_style, unsafe_allow_html=True)
+
+            if st.button(f"❤️ {reactions.get('いいね', {}).get('count', 0)} いいね！", 
+                         key=f"like_{report['id']}", 
+                         help="いいねを押すと赤く光ります",
+                         on_click=update_reaction, 
+                         args=(report["id"], "いいね", user_name)):
                 st.rerun()
+
+            # 自分が押した場合に赤く表示
+            if user_name in like_users:
+                st.markdown("""
+                    <script>
+                        document.querySelector('button[data-testid="stButton"]').classList.add('liked');
+                    </script>
+                """, unsafe_allow_html=True)
+
         with col2:
-            if st.button(f"💪 {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
-                update_reaction(report["id"], "ナイスファイト")
+            # ナイスファイトボタン
+            nice_users = reactions.get("ナイスファイト", {}).get("users", [])
+
+            if st.button(f"💪 {reactions.get('ナイスファイト', {}).get('count', 0)} ナイスファイト！", 
+                         key=f"nice_{report['id']}", 
+                         help="ナイスファイトを押すと赤く光ります",
+                         on_click=update_reaction, 
+                         args=(report["id"], "ナイスファイト", user_name)):
                 st.rerun()
+
+            # 自分が押した場合に赤く表示
+            if user_name in nice_users:
+                st.markdown("""
+                    <script>
+                        document.querySelector('button[data-testid="stButton"]').classList.add('liked');
+                    </script>
+                """, unsafe_allow_html=True)
+
 
         # コメント欄
         comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
