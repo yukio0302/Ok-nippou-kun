@@ -3,6 +3,8 @@ import os
 import time
 import streamlit as st
 import pandas as pd
+from PIL import Image
+import io
 import base64
 from datetime import datetime, timedelta
 import json
