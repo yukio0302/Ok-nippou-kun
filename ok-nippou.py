@@ -303,23 +303,22 @@ def show_notices():
     top_navigation()
 
     notices = load_notices()
+    user_name = st.session_state["user"]["name"]
 
     if not notices:
         st.info(" お知らせはありません。")
         return
 
-    # ✅ 未読・既読を分類
-    new_notices = [n for n in notices if n["既読"] == 0]
-    old_notices = [n for n in notices if n["既読"] == 1]
+    # ✅ 自分の投稿にコメントがあったお知らせ
+    my_notices = [n for n in notices if n["タイトル"] == "新しいコメントが届きました！" and n["内容"].split("\n")[-1].split(": ")[1] == user_name]
 
-    # ✅ 既読処理をセッションで管理
-    if "notice_to_read" not in st.session_state:
-        st.session_state["notice_to_read"] = None
+    # ✅ 他の人の投稿にコメントがあったお知らせ
+    other_notices = [n for n in notices if n["タイトル"] == "新しいコメントが届きました！" and n["内容"].split("\n")[-1].split(": ")[1] != user_name]
 
-    # ✅ 未読のお知らせを上部に表示
-    if new_notices:
+    # ✅ 自分の投稿にコメントがあった場合のお知らせを表示
+    if my_notices:
         st.subheader(" 新着お知らせ")
-        for notice in new_notices:
+        for notice in my_notices:
             with st.container():
                 st.markdown(f"### {notice['タイトル']} ✅")
                 st.write(f" {notice['日付']}")
@@ -327,15 +326,36 @@ def show_notices():
 
                 # ✅ クリックで既読処理を実行
                 if st.button(f"✔️ 既読にする", key=f"read_{notice['id']}"):
-                    st.session_state["notice_to_read"] = notice["id"]
+                    mark_notice_as_read(notice["id"])
+                    st.rerun()  # 画面を更新
 
-    # ✅ 既読処理を実行
-    if st.session_state["notice_to_read"] is not None:
-        mark_notice_as_read(st.session_state["notice_to_read"])
-        st.session_state["notice_to_read"] = None  # 既読処理後にリセット
-        st.rerun()  # ✅ 即リロードして画面を更新！
+    # ✅ 他の人の反応を見る折りたたみボタン
+    if other_notices:
+        with st.expander(" 他の人の反応を見る"):
+            for notice in other_notices:
+                with st.container():
+                    # お知らせ内容を解析
+                    notice_lines = notice["内容"].split("\n")
+                    comment_time = notice_lines[1].strip()
+                    commenter = notice_lines[2].split("さんが")[0].strip()
+                    post_owner = notice_lines[2].split("さんの日報に")[0].split("が")[1].strip()
+                    comment_content = notice_lines[3].split(": ")[1].strip()
+                    execution_date = notice_lines[4].split(": ")[1].strip()
+                    location = notice_lines[5].split(": ")[1].strip()
+                    content = notice_lines[6].split(": ")[1].strip()
+
+                    # お知らせを表示
+                    st.markdown(f"**【お知らせ】**")
+                    st.write(f"{comment_time}")
+                    st.write(f"{commenter}さんが{post_owner}さんの日報にコメントしました！")
+                    st.write(f"コメント内容: {comment_content}")
+                    st.write(f"実施日: {execution_date}")
+                    st.write(f"場所: {location}")
+                    st.write(f"実施内容: {content}")
+                    st.write("----")
 
     # ✅ 既読のお知らせを折りたたみ表示
+    old_notices = [n for n in notices if n["既読"] == 1]
     if old_notices:
         with st.expander(" 過去のお知らせを見る"):
             for notice in old_notices:
