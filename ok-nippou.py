@@ -266,15 +266,14 @@ def timeline():
         st.write(f" **所感:** {report['所感']}")
 
         # ✅ 画像が存在する場合、表示する
-        if report.get("image"):
+if report.get("image"):
     try:
         image_data = base64.b64decode(report["image"])
         corrected_image = correct_image_orientation(image_data)
         st.image(corrected_image, caption="投稿画像", use_container_width=True)
     except Exception as e:
         st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
-
-
+        
         col1, col2 = st.columns(2)
         with col1:
             if st.button(f"❤️ {report['いいね']} いいね！", key=f"like_{report['id']}"):
