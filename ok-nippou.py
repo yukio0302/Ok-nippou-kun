@@ -243,7 +243,7 @@ def timeline():
         st.write(f" **所感:** {report['所感']}")
 
         # ✅ 画像が存在する場合、表示する
-        if report.get("image"):
+if report.get("image"):
     try:
         image_data = base64.b64decode(report["image"])
         image = Image.open(io.BytesIO(image_data))
