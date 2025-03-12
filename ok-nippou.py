@@ -220,17 +220,25 @@ def timeline():
         except Exception as e:
             st.error(f"⚠️ 部署情報の読み込みエラー: {e}")
             return
-    search_query = st.text_input(" 投稿を検索", "")
+            
+    # ✅ 期間に基づいてフィルタリング
+    filtered_reports = []
+    for report in reports:
+        report_date = datetime.strptime(report["実行日"], "%Y-%m-%d")  # 文字列をdatetimeに変換
+        if start_date <= report_date <= end_date:
+            filtered_reports.append(report)
 
+    # ✅ 検索機能
+    search_query = st.text_input(" 投稿を検索", "")
     if search_query:
-        reports = [
-            report for report in reports
+        filtered_reports = [
+            report for report in filtered_reports
             if search_query.lower() in report["実施内容"].lower()
             or search_query.lower() in report["所感"].lower()
             or search_query.lower() in report["カテゴリ"].lower()
         ]
 
-    if not reports:
+    if not filtered_reports:
         st.warning(" 該当する投稿が見つかりませんでした。")
         return
 
