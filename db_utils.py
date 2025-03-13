@@ -174,7 +174,8 @@ def load_notices():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM notices ORDER BY 日付 DESC")
+    # ✅ 現在のユーザーが投稿者であるお知らせのみを取得
+    cur.execute("SELECT * FROM notices WHERE 投稿者 = ? ORDER BY 日付 DESC", (st.session_state["user"]["name"],))
     rows = cur.fetchall()
     conn.close()
 
