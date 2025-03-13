@@ -63,13 +63,14 @@ def init_db(keep_existing=True):
         タイトル TEXT,
         内容 TEXT,
         日付 TEXT,
-        既読 INTEGER DEFAULT 0
+        既読 INTEGER DEFAULT 0,
+        ユーザー TEXT  # お知らせを受けるユーザー
     )
     """)
 
     conn.commit()
     conn.close()
-
+    
 def save_report(report):
     """日報をデータベースに保存"""
     try:
