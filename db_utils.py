@@ -63,9 +63,7 @@ def init_db(keep_existing=True):
         タイトル TEXT,
         内容 TEXT,
         日付 TEXT,
-        既読 INTEGER DEFAULT 0,
-        投稿者 TEXT,  # 誰の投稿か
-        コメント者 TEXT  # 誰がコメントしたか
+        既読 INTEGER DEFAULT 0
     )
     """)
 
