@@ -63,14 +63,13 @@ def init_db(keep_existing=True):
         タイトル TEXT,
         内容 TEXT,
         日付 TEXT,
-        既読 INTEGER DEFAULT 0,
-        ユーザー TEXT  # お知らせを受けるユーザー
+        既読 INTEGER DEFAULT 0
     )
     """)
 
     conn.commit()
     conn.close()
-    
+
 def save_report(report):
     """日報をデータベースに保存"""
     try:
@@ -190,8 +189,7 @@ def load_notices():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # ✅ 現在のユーザーに関連するお知らせのみを取得
-    cur.execute("SELECT * FROM notices WHERE ユーザー = ? ORDER BY 日付 DESC", (st.session_state["user"]["name"],))
+    cur.execute("SELECT * FROM notices ORDER BY 日付 DESC")
     rows = cur.fetchall()
     conn.close()
 
@@ -208,8 +206,7 @@ def mark_notice_as_read(notice_id):
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # ✅ 現在のユーザーに関連するお知らせのみを既読にする
-    cur.execute("UPDATE notices SET 既読 = 1 WHERE id = ? AND ユーザー = ?", (notice_id, st.session_state["user"]["name"]))
+    cur.execute("UPDATE notices SET 既読 = 1 WHERE id = ?", (notice_id,))
     conn.commit()
     conn.close()
 
