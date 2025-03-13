@@ -243,7 +243,7 @@ def timeline():
 
     # ✅ 投稿を表示
     for report in filtered_reports:
-        st.subheader(f"{report['投稿者']} さんの日報")
+        st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
         st.write(f" **実施日:** {report['実行日']}")
         st.write(f" **場所:** {report['場所']}")
         st.write(f" **実施内容:** {report['実施内容']}")
