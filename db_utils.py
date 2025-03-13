@@ -155,8 +155,8 @@ def save_comment(report_id, commenter, comment):
         # ✅ コメントを更新
         cur.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
 
-        # ✅ 投稿者が自分で、かつコメント者が自分でない場合にお知らせを作成
-        if 投稿者 == st.session_state["user"]["name"] and 投稿者 != commenter:
+        # ✅ 投稿者がコメント者と違う場合、かつ投稿者が現在のユーザーの場合のみお知らせを追加
+        if 投稿者 != commenter and 投稿者 == st.session_state["user"]["name"]:
             notification_content = f"""【お知らせ】  
 {new_comment["日時"]}  
 
@@ -168,14 +168,28 @@ def save_comment(report_id, commenter, comment):
 コメント内容: {comment}
 """
 
+            cur.execute("""
+                INSERT INTO notices (タイトル, 内容, 日付, 既読, ユーザー)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                "新しいコメントが届きました！",
+                notification_content,
+                new_comment["日時"],
+                0,  # 既読フラグ（未読）
+                st.session_state["user"]["name"]  # お知らせを受けるユーザー
+            ))
+
+        conn.commit()
+
+    conn.close()
+
 
 def load_notices():
     """お知らせデータを取得"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # ✅ 現在のユーザーが投稿者であるお知らせのみを取得
-    cur.execute("SELECT * FROM notices WHERE 投稿者 = ? ORDER BY 日付 DESC", (st.session_state["user"]["name"],))
+    cur.execute("SELECT * FROM notices ORDER BY 日付 DESC")
     rows = cur.fetchall()
     conn.close()
 
