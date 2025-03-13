@@ -189,7 +189,8 @@ def load_notices():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM notices ORDER BY 日付 DESC")
+    # ✅ 現在のユーザーに関連するお知らせのみを取得
+    cur.execute("SELECT * FROM notices WHERE ユーザー = ? ORDER BY 日付 DESC", (st.session_state["user"]["name"],))
     rows = cur.fetchall()
     conn.close()
 
@@ -206,7 +207,8 @@ def mark_notice_as_read(notice_id):
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("UPDATE notices SET 既読 = 1 WHERE id = ?", (notice_id,))
+    # ✅ 現在のユーザーに関連するお知らせのみを既読にする
+    cur.execute("UPDATE notices SET 既読 = 1 WHERE id = ? AND ユーザー = ?", (notice_id, st.session_state["user"]["name"]))
     conn.commit()
     conn.close()
 
