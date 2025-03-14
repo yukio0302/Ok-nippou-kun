@@ -155,7 +155,7 @@ def save_comment(report_id, commenter, comment):
         # ✅ コメントを更新
         cur.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
 
-        # ✅ 投稿者がコメント者と違う場合、お知らせを追加
+        # ✅ 投稿者がコメント者と違う場合、投稿者にお知らせを追加
         if 投稿者 != commenter:
             notification_content = f"""【お知らせ】  
 {new_comment["日時"]}  
@@ -181,7 +181,6 @@ def save_comment(report_id, commenter, comment):
         conn.commit()
 
     conn.close()
-
 
 def load_notices():
     """お知らせデータを取得"""
