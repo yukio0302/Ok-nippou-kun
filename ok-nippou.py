@@ -388,8 +388,7 @@ def my_page():
                 show_report_details(report)
     else:
         st.info("過去の投稿はありません。")
-
-　　# 🔹 コメントした投稿を表示
+# 🔹 コメントした投稿を表示
     st.subheader("コメントした投稿")
     commented_reports = load_commented_reports(st.session_state["user"]["name"])
 
