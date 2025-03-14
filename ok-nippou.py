@@ -377,8 +377,8 @@ def my_page():
 
         if weekly_reports:
             for report in weekly_reports:
-                with st.expander(f"{report['実行日']} / {report['場所']}"):
-                    show_report_details(report)
+                st.markdown(f"**{report['実行日']} / {report['場所']}**")
+                show_report_details(report)  # 詳細を直接表示
         else:
             st.info("今週の投稿はありません。")
 
@@ -388,8 +388,8 @@ def my_page():
 
         if past_reports:
             for report in past_reports:
-                with st.expander(f"{report['実行日']} / {report['場所']}"):
-                    show_report_details(report)
+                st.markdown(f"**{report['実行日']} / {report['場所']}**")
+                show_report_details(report)  # 詳細を直接表示
         else:
             st.info("過去の投稿はありません。")
 
@@ -399,11 +399,11 @@ def my_page():
 
         if commented_reports:
             for report in commented_reports:
-                with st.expander(f"{report['投稿者']} さんの日報 ({report['実行日']})"):
-                    show_report_details(report)
+                st.markdown(f"**{report['投稿者']} さんの日報 ({report['実行日']})**")
+                show_report_details(report)  # 詳細を直接表示
         else:
             st.info("コメントした投稿はありません。")
-
+            
 # ✅ 投稿詳細（編集・削除機能付き）
 def show_report_details(report):
     """投稿の詳細を表示し、編集・削除機能を提供"""
