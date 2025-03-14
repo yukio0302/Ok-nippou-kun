@@ -203,7 +203,7 @@ def save_comment(report_id, commenter, comment):
     conn.close()
 
 def load_commented_reports(commenter_name):
-    """指定したユーザーがコメントした投稿を取得"""
+    """指定したユーザーがコメントした投稿を取得（新しい日付順にソート）"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
@@ -224,6 +224,9 @@ def load_commented_reports(commenter_name):
                     "投稿日時": row[11]
                 })
                 break  # 同じ投稿に複数コメントがあっても1回だけ表示
+
+    # 実行日で降順にソート
+    commented_reports.sort(key=lambda x: x["実行日"], reverse=True)
 
     return commented_reports
 
