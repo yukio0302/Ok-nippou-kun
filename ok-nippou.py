@@ -312,6 +312,10 @@ def show_notices():
         st.info(" お知らせはありません。")
         return
 
+    # ✅ notice_to_read を初期化
+    if "notice_to_read" not in st.session_state:
+        st.session_state["notice_to_read"] = None
+
     # ✅ 未読・既読を分類
     new_notices = [n for n in notices if n["既読"] == 0]
     old_notices = [n for n in notices if n["既読"] == 1]
