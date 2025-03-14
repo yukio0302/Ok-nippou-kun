@@ -421,11 +421,11 @@ def show_report_details(report):
     if report["投稿者"] == st.session_state["user"]["name"]:
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("✏️ 編集する", key=f"edit_btn_{report['id']}"):
+            if st.button("✏️ 編集する", key=f"edit_btn_{report['id']}_{st.session_state['user']['name']}"):
                 st.session_state[f"edit_mode_{report['id']}"] = True  # 編集モードをON
 
         with col2:
-            if st.button("🗑️ 削除する", key=f"delete_btn_{report['id']}"):
+            if st.button("🗑️ 削除する", key=f"delete_btn_{report['id']}_{st.session_state['user']['name']}"):
                 st.session_state[f"confirm_delete_{report['id']}"] = True  # 削除確認モードをON
 
         # 🔹 削除確認
@@ -434,13 +434,13 @@ def show_report_details(report):
 
             col_confirm, col_cancel = st.columns(2)
             with col_confirm:
-                if st.button("✅ はい、削除する", key=f"confirm_delete_btn_{report['id']}"):
+                if st.button("✅ はい、削除する", key=f"confirm_delete_btn_{report['id']}_{st.session_state['user']['name']}"):
                     delete_report(report["id"])
                     st.success("✅ 削除しました")
                     st.rerun()  # 画面を更新
 
             with col_cancel:
-                if st.button("❌ キャンセル", key=f"cancel_delete_btn_{report['id']}"):
+                if st.button("❌ キャンセル", key=f"cancel_delete_btn_{report['id']}_{st.session_state['user']['name']}"):
                     st.session_state[f"confirm_delete_{report['id']}"] = False  # 削除確認モードをOFF
 
         # 🔹 編集モード
