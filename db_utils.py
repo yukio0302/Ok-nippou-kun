@@ -168,26 +168,29 @@ def save_comment(report_id, commenter, comment):
 コメント内容: {comment}
 """
 
+            # ✅ お知らせを追加する前に、お知らせの対象を日報投稿主に限定
             cur.execute("""
-                INSERT INTO notices (タイトル, 内容, 日付, 既読)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO notices (タイトル, 内容, 日付, 既読, 対象ユーザー)
+                VALUES (?, ?, ?, ?, ?)
             """, (
                 "新しいコメントが届きました！",
                 notification_content,
                 new_comment["日時"],
-                0  # 既読フラグ（未読）
+                0,  # 既読フラグ（未読）
+                投稿者  # お知らせの対象ユーザー（日報投稿主）
             ))
 
         conn.commit()
 
     conn.close()
 
-def load_notices():
-    """お知らせデータを取得"""
+def load_notices(user_name):
+    """お知らせデータを取得（対象ユーザーのみ）"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM notices ORDER BY 日付 DESC")
+    # ✅ 対象ユーザーに紐づくお知らせのみを取得
+    cur.execute("SELECT * FROM notices WHERE 対象ユーザー = ? ORDER BY 日付 DESC", (user_name,))
     rows = cur.fetchall()
     conn.close()
 
