@@ -389,6 +389,17 @@ def my_page():
     else:
         st.info("過去の投稿はありません。")
 
+　　# 🔹 コメントした投稿を表示
+    st.subheader("コメントした投稿")
+    commented_reports = load_commented_reports(st.session_state["user"]["name"])
+
+    if commented_reports:
+        for report in commented_reports:
+            with st.expander(f"{report['投稿者']} さんの日報 ({report['実行日']})"):
+                show_report_details(report)
+    else:
+        st.info("コメントした投稿はありません。")
+
 # ✅ 投稿詳細（編集・削除機能付き）
 def show_report_details(report):
     """投稿の詳細を表示し、編集・削除機能を提供"""
