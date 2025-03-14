@@ -70,6 +70,24 @@ def init_db(keep_existing=True):
     conn.commit()
     conn.close()
 
+def update_db_schema():
+    """既存のデータベーススキーマを更新する"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    # ✅ notices テーブルに 対象ユーザー カラムを追加
+    try:
+        cur.execute("ALTER TABLE notices ADD COLUMN 対象ユーザー TEXT")
+        conn.commit()
+        print("✅ データベーススキーマを更新しました！")
+    except sqlite3.OperationalError as e:
+        print(f"⚠️ スキーマ更新エラー: {e} (既にカラムが存在する可能性があります)")
+
+    conn.close()
+
+# ✅ データベーススキーマを更新
+update_db_schema()
+
 def save_report(report):
     """日報をデータベースに保存"""
     try:
@@ -168,7 +186,7 @@ def save_comment(report_id, commenter, comment):
 コメント内容: {comment}
 """
 
-            # ✅ お知らせを追加する前に、お知らせの対象を日報投稿主に限定
+            # ✅ お知らせを追加
             cur.execute("""
                 INSERT INTO notices (タイトル, 内容, 日付, 既読, 対象ユーザー)
                 VALUES (?, ?, ?, ?, ?)
@@ -226,6 +244,7 @@ def edit_report(report_id, new_date, new_location, new_content, new_remarks):
         print(f"✅ 投稿 (ID: {report_id}) を編集しました！")  # デバッグ用ログ
     except sqlite3.Error as e:
         print(f"❌ データベースエラー: {e}")  # エラーログ
+
 def delete_report(report_id):
     """投稿を削除する（エラーハンドリング付き）"""
     try:
