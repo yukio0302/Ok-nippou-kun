@@ -364,44 +364,45 @@ def my_page():
     reports = load_reports()
     my_reports = [r for r in reports if r["投稿者"] == st.session_state["user"]["name"]]
 
-    st.subheader("今週の投稿")
-    now = datetime.utcnow()
-    start_of_week = now - timedelta(days=now.weekday())
-    end_of_week = start_of_week + timedelta(days=4)
-    
-    weekly_reports = [
-        r for r in my_reports
-        if start_of_week.date() <= datetime.strptime(r["実行日"], "%Y-%m-%d").date() <= end_of_week.date()
-    ]
+    # 🔹 今週の投稿
+    with st.expander("今週の投稿", expanded=False):  # 初期状態は折りたたまれている
+        now = datetime.utcnow()
+        start_of_week = now - timedelta(days=now.weekday())
+        end_of_week = start_of_week + timedelta(days=4)
+        
+        weekly_reports = [
+            r for r in my_reports
+            if start_of_week.date() <= datetime.strptime(r["実行日"], "%Y-%m-%d").date() <= end_of_week.date()
+        ]
 
-   # 🔹 今週の投稿を表示
-    if weekly_reports:
-        for report in weekly_reports:
-            with st.expander(f"{report['実行日']} / {report['場所']}"):
-                show_report_details(report)
-    else:
-        st.info("今週の投稿はありません。")
+        if weekly_reports:
+            for report in weekly_reports:
+                with st.expander(f"{report['実行日']} / {report['場所']}"):
+                    show_report_details(report)
+        else:
+            st.info("今週の投稿はありません。")
 
-    st.subheader("過去の投稿")
-    past_reports = [r for r in my_reports if r not in weekly_reports]
+    # 🔹 過去の投稿
+    with st.expander("過去の投稿", expanded=False):  # 初期状態は折りたたまれている
+        past_reports = [r for r in my_reports if r not in weekly_reports]
 
-    # 🔹 過去の投稿を表示
-    if past_reports:
-        for report in past_reports:
-            with st.expander(f"{report['実行日']} / {report['場所']}"):
-                show_report_details(report)
-    else:
-        st.info("過去の投稿はありません。")
-# 🔹 コメントした投稿を表示
-    st.subheader("コメントした投稿")
-    commented_reports = load_commented_reports(st.session_state["user"]["name"])
+        if past_reports:
+            for report in past_reports:
+                with st.expander(f"{report['実行日']} / {report['場所']}"):
+                    show_report_details(report)
+        else:
+            st.info("過去の投稿はありません。")
 
-    if commented_reports:
-        for report in commented_reports:
-            with st.expander(f"{report['投稿者']} さんの日報 ({report['実行日']})"):
-                show_report_details(report)
-    else:
-        st.info("コメントした投稿はありません。")
+    # 🔹 コメントした投稿
+    with st.expander("コメントした投稿", expanded=False):  # 初期状態は折りたたまれている
+        commented_reports = load_commented_reports(st.session_state["user"]["name"])
+
+        if commented_reports:
+            for report in commented_reports:
+                with st.expander(f"{report['投稿者']} さんの日報 ({report['実行日']})"):
+                    show_report_details(report)
+        else:
+            st.info("コメントした投稿はありません。")
 
 # ✅ 投稿詳細（編集・削除機能付き）
 def show_report_details(report):
