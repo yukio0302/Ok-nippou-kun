@@ -202,6 +202,31 @@ def save_comment(report_id, commenter, comment):
 
     conn.close()
 
+def load_commented_reports(commenter_name):
+    """指定したユーザーがコメントした投稿を取得"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM reports")
+    rows = cur.fetchall()
+    conn.close()
+
+    # コメントした投稿をフィルタリング
+    commented_reports = []
+    for row in rows:
+        comments = json.loads(row[9]) if row[9] else []
+        for comment in comments:
+            if comment["投稿者"] == commenter_name:
+                commented_reports.append({
+                    "id": row[0], "投稿者": row[1], "実行日": row[2], "カテゴリ": row[3], 
+                    "場所": row[4], "実施内容": row[5], "所感": row[6], "いいね": row[7], 
+                    "ナイスファイト": row[8], "コメント": comments, "image": row[10], 
+                    "投稿日時": row[11]
+                })
+                break  # 同じ投稿に複数コメントがあっても1回だけ表示
+
+    return commented_reports
+
 def load_notices(user_name):
     """お知らせデータを取得（対象ユーザーのみ）"""
     conn = sqlite3.connect(DB_PATH)
