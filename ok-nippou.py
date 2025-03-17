@@ -170,11 +170,15 @@ def timeline():
     st.sidebar.subheader("表示期間を選択")
     period_option = st.sidebar.radio(
         "表示する期間を選択",
-        ["1週間以内の投稿", "過去の投稿"]
+        ["24時間以内の投稿", "1週間以内の投稿", "過去の投稿"],
+        index=0  # デフォルトで「24時間以内の投稿」を選択
     )
 
-    # ✅ デフォルトで1週間以内の投稿を表示
-    if period_option == "1週間以内の投稿":
+    # ✅ デフォルトで24時間以内の投稿を表示
+    if period_option == "24時間以内の投稿":
+        start_date = (datetime.now() - timedelta(hours=24)).date()  # 過去24時間
+        end_date = datetime.now().date()  # 今日
+    elif period_option == "1週間以内の投稿":
         start_date = (datetime.now() - timedelta(days=7)).date()  # 過去7日間
         end_date = datetime.now().date()  # 今日
     else:
@@ -239,6 +243,7 @@ def timeline():
             if search_query.lower() in report["実施内容"].lower()
             or search_query.lower() in report["所感"].lower()
             or search_query.lower() in report["カテゴリ"].lower()
+            or search_query.lower() in report["投稿者"].lower()  # 投稿主の名前でも検索
         ]
 
     if not filtered_reports:
