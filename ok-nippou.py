@@ -176,12 +176,13 @@ def timeline():
 
     # ✅ デフォルトで24時間以内の投稿を表示
     if period_option == "24時間以内の投稿":
-        start_date = (datetime.now() - timedelta(hours=24)).date()  # 過去24時間
-        end_date = datetime.now().date()  # 今日
+        start_datetime = datetime.now() + timedelta(hours=9) - timedelta(hours=24)  # 過去24時間（JST）
+        end_datetime = datetime.now() + timedelta(hours=9)  # 現在時刻（JST）
     elif period_option == "1週間以内の投稿":
-        start_date = (datetime.now() - timedelta(days=7)).date()  # 過去7日間
-        end_date = datetime.now().date()  # 今日
+        start_datetime = datetime.now() + timedelta(hours=9) - timedelta(days=7)  # 過去7日間（JST）
+        end_datetime = datetime.now() + timedelta(hours=9)  # 現在時刻（JST）
     else:
+        
         # ✅ 過去の投稿を選択した場合、カレンダーで期間を指定
         st.sidebar.subheader("過去の投稿を表示")
         col1, col2 = st.sidebar.columns(2)
@@ -193,8 +194,8 @@ def timeline():
     # ✅ 選択された期間に該当する投稿をフィルタリング
     filtered_reports = []
     for report in reports:
-        report_date = datetime.strptime(report["実行日"], "%Y-%m-%d").date()
-        if start_date <= report_date <= end_date:
+        report_datetime = datetime.strptime(report["投稿日時"], "%Y-%m-%d %H:%M:%S")
+        if start_datetime <= report_datetime <= end_datetime:
             filtered_reports.append(report)
 
     # ✅ 現在のユーザーの所属部署を取得
