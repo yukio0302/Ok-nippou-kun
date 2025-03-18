@@ -175,35 +175,32 @@ def post_weekly_schedule():
     start_date = st.date_input("開始日", today)
     end_date = st.date_input("終了日", today + timedelta(days=6))
 
-    # 各曜日の予定を入力
-    st.subheader("各曜日の予定を入力してください")
-    monday = st.text_area("月曜日の予定")
-    tuesday = st.text_area("火曜日の予定")
-    wednesday = st.text_area("水曜日の予定")
-    thursday = st.text_area("木曜日の予定")
-    friday = st.text_area("金曜日の予定")
-    saturday = st.text_area("土曜日の予定")
-    sunday = st.text_area("日曜日の予定")
+    # 開始日と終了日の範囲を計算
+    date_range = pd.date_range(start=start_date, end=end_date)
+
+    # 各日の予定を入力するフォーム
+    st.subheader("各日の予定を入力してください（休みの日は空欄でOK）")
+    schedule = {}
+    for date in date_range:
+        day_of_week = date.strftime("%A")  # 曜日を取得
+        date_str = date.strftime("%Y年%m月%d日")  # 日付をフォーマット
+        key = f"{date_str} ({day_of_week})"  # 例: "2023年10月30日 (月)"
+        schedule[key] = st.text_area(key)  # 各日の予定を入力
 
     submit_button = st.button("投稿する")
     if submit_button:
-        schedule = {
+        # 週間予定を保存するデータ形式に変換
+        weekly_schedule = {
             "投稿者": st.session_state["user"]["name"],
             "開始日": start_date.strftime("%Y-%m-%d"),
             "終了日": end_date.strftime("%Y-%m-%d"),
-            "月曜日": monday,
-            "火曜日": tuesday,
-            "水曜日": wednesday,
-            "木曜日": thursday,
-            "金曜日": friday,
-            "土曜日": saturday,
-            "日曜日": sunday
+            "予定": schedule  # 日付付きのキーで予定を保存
         }
-        save_weekly_schedule(schedule)
+        save_weekly_schedule(weekly_schedule)
         st.success("✅ 週間予定を投稿しました！")
         time.sleep(1)
-        switch_page("タイムライン")
-
+        switch_page("週間予定")
+        
 def show_weekly_schedules():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
