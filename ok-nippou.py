@@ -119,9 +119,9 @@ def login():
             st.error("社員コードまたはパスワードが間違っています。")
 
 def save_weekly_schedule_comment(schedule_id, commenter_name, comment_text):
-    # 現在の日時を取得
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+    # 現在の日時を取得（修正箇所）
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # datetime.datetime → datetime
+    
     # 既存のコメントを取得
     conn = get_db_connection()
     cur = conn.cursor()
@@ -147,28 +147,30 @@ def save_weekly_schedule_comment(schedule_id, commenter_name, comment_text):
     # 🔔 お知らせ通知を追加（投稿者に通知）
     notify_user(schedule_id, commenter_name, comment_text)
 
-
 def load_weekly_schedules():
     """週間予定データを取得（最新の投稿順にソート）"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT id, 投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時, コメント FROM weekly_schedules ORDER BY 投稿日時 DESC")
+    # 正しいカラム構造に合わせたクエリに変更
+    cur.execute("SELECT id, 投稿者, 開始日, 終了日, 予定, 投稿日時, コメント FROM weekly_schedules ORDER BY 投稿日時 DESC")
+    
     rows = cur.fetchall()
     conn.close()
 
-    # ✅ データを辞書リストに変換
     schedules = []
     for row in rows:
+        # 各カラムのインデックスを調整
         schedules.append({
-            "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3], 
-            "月曜日": row[4], "火曜日": row[5], "水曜日": row[6], 
-            "木曜日": row[7], "金曜日": row[8], "土曜日": row[9], 
-            "日曜日": row[10], "投稿日時": row[11],
-            "コメント": row[12] if row[12] else "[]"  # None の場合は空のリスト
+            "id": row[0],
+            "投稿者": row[1],
+            "開始日": row[2],
+            "終了日": row[3],
+            "予定": json.loads(row[4]) if row[4] else {},  # JSONデータをパース
+            "投稿日時": row[5],
+            "コメント": json.loads(row[6]) if row[6] else []  # コメントデータをパース
         })
     return schedules
-
 
 def post_weekly_schedule():
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -195,10 +197,8 @@ def post_weekly_schedule():
 
     submit_button = st.button("投稿する")
     if submit_button:
-        schedule = {
-            "投稿者": st.session_state["user"]["name"],
-            "開始日": start_date.strftime("%Y-%m-%d"),
-            "終了日": end_date.strftime("%Y-%m-%d"),
+        # 🌟 JSON形式で予定を保存
+        schedule_data = {
             "月曜日": monday,
             "火曜日": tuesday,
             "水曜日": wednesday,
@@ -206,6 +206,14 @@ def post_weekly_schedule():
             "金曜日": friday,
             "土曜日": saturday,
             "日曜日": sunday
+        }
+        
+        schedule = {
+            "投稿者": st.session_state["user"]["name"],
+            "開始日": start_date.strftime("%Y-%m-%d"),
+            "終了日": end_date.strftime("%Y-%m-%d"),
+            "予定": json.dumps(schedule_data, ensure_ascii=False),  # 🌟 JSON変換
+            "投稿日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
         }
         save_weekly_schedule(schedule)
         st.success("✅ 週間予定を投稿しました！")
@@ -228,13 +236,19 @@ def show_weekly_schedules():
 
     for schedule in schedules:
         with st.expander(f"{schedule['投稿者']} さんの週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
-            st.write(f"**月曜日:** {schedule['月曜日']}")
-            st.write(f"**火曜日:** {schedule['火曜日']}")
-            st.write(f"**水曜日:** {schedule['水曜日']}")
-            st.write(f"**木曜日:** {schedule['木曜日']}")
-            st.write(f"**金曜日:** {schedule['金曜日']}")
-            st.write(f"**土曜日:** {schedule['土曜日']}")
-            st.write(f"**日曜日:** {schedule['日曜日']}")
+            # 🌟 JSONデータから予定を取得
+            try:
+                plan = json.loads(schedule["予定"])
+                st.write(f"**月曜日:** {plan.get('月曜日', '')}")
+                st.write(f"**火曜日:** {plan.get('火曜日', '')}")
+                st.write(f"**水曜日:** {plan.get('水曜日', '')}")
+                st.write(f"**木曜日:** {plan.get('木曜日', '')}")
+                st.write(f"**金曜日:** {plan.get('金曜日', '')}")
+                st.write(f"**土曜日:** {plan.get('土曜日', '')}")
+                st.write(f"**日曜日:** {plan.get('日曜日', '')}")
+            except json.JSONDecodeError:
+                st.error("予定データの読み込みに失敗しました")
+            
             st.write(f"**投稿日時:** {schedule['投稿日時']}")
 
         # 🔽 ここからコメント機能
@@ -264,7 +278,6 @@ def show_weekly_schedules():
                         st.warning("⚠️ 空白のコメントは投稿できません！")
 
     st.write("----")
-
 
 # ✅ 日報投稿
 def post_report():
