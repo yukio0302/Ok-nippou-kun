@@ -118,30 +118,35 @@ def login():
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
-def save_weekly_schedule(schedule):
-    """週間予定をデータベースに保存"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
+def save_weekly_schedule_comment(schedule_id, commenter_name, comment_text):
+    # 現在の日時を取得
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # ✅ 投稿日時を JST で保存
-        schedule["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+    # 既存のコメントを取得
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT コメント FROM weekly_schedules WHERE id = ?", (schedule_id,))
+    result = cur.fetchone()
+    
+    if result:
+        comments = json.loads(result[0]) if result[0] else []
+    else:
+        comments = []
 
-        cur.execute("""
-        INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            schedule["投稿者"], schedule["開始日"], schedule["終了日"], 
-            schedule["月曜日"], schedule["火曜日"], schedule["水曜日"], 
-            schedule["木曜日"], schedule["金曜日"], schedule["土曜日"], 
-            schedule["日曜日"], schedule["投稿日時"]
-        ))
+    # 新しいコメントを追加
+    new_comment = {"投稿者": commenter_name, "日時": now, "コメント": comment_text}
+    comments.append(new_comment)
 
-        conn.commit()
-        conn.close()
-        print("✅ 週間予定を保存しました！")  # デバッグログ
-    except Exception as e:
-        print(f"⚠️ 週間予定の保存エラー: {e}")  # エラー内容を表示
+    # JSON 文字列に変換して更新
+    updated_comments = json.dumps(comments, ensure_ascii=False)
+
+    cur.execute("UPDATE weekly_schedules SET コメント = ? WHERE id = ?", (updated_comments, schedule_id))
+    conn.commit()
+    conn.close()
+
+    # 🔔 お知らせ通知を追加（投稿者に通知）
+    notify_user(schedule_id, commenter_name, comment_text)
+
 
 def load_weekly_schedules():
     """週間予定データを取得（最新の投稿順にソート）"""
@@ -228,31 +233,34 @@ def show_weekly_schedules():
             st.write(f"**土曜日:** {schedule['土曜日']}")
             st.write(f"**日曜日:** {schedule['日曜日']}")
             st.write(f"**投稿日時:** {schedule['投稿日時']}")
-            
 
-# 🔽 既存コメントの表示
-            comments = json.loads(schedule.get("コメント", "[]"))
-            st.subheader("💬 コメント")
-            for c in comments:
-                st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
+            # 🔽 ここからコメント機能
+            comments = json.loads(schedule.get("コメント", "[]"))  # JSON文字列をリストに変換
+            comment_count = len(comments)
 
-            # 🔽 コメント入力フォーム
-            comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
-            if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-                if comment_text.strip():
-                    save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                    st.experimental_rerun()
-                else:
-                    st.warning("コメントを入力してください。")
+            with st.expander(f"💬 ({comment_count}件)のコメントを見る・追加する"):
+                if comments:
+                    for c in comments:
+                        st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
-def add_comments_column():
-    """weekly_schedules テーブルにコメントカラムを追加"""
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("ALTER TABLE weekly_schedules ADD COLUMN コメント TEXT DEFAULT '[]'")
-    conn.commit()
-    conn.close()
-    print("✅ コメントカラムを追加しました！")
+                if schedule.get("id") is None:
+                    st.error("⚠️ 投稿の ID が見つかりません。")
+                    continue
+
+                commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
+                new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{schedule['id']}")
+
+                if st.button("コメントを投稿", key=f"submit_comment_{schedule['id']}"):
+                    if new_comment and new_comment.strip():
+                        print(f"️ コメント投稿デバッグ: schedule_id={schedule['id']}, commenter={commenter_name}, comment={new_comment}")
+                        save_weekly_schedule_comment(schedule["id"], commenter_name, new_comment)
+                        st.success("✅ コメントを投稿しました！")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ 空白のコメントは投稿できません！")
+
+    st.write("----")
+
 
 
 # ✅ 日報投稿
