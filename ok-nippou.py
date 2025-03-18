@@ -6,7 +6,7 @@ import pandas as pd
 import base64
 from datetime import datetime, timedelta
 import json
-from sidebar_module import sidebar_navigation  # 別ファイルからインポート
+import sidebar_navigation
 
 
 # ヘルパー関数: 現在時刻に9時間を加算する
