@@ -156,19 +156,12 @@ def load_weekly_schedules():
     # ✅ データを辞書リストに変換
     schedules = []
     for row in rows:
-        try:
-            # row[4] が None または無効な JSON の場合、空の辞書をデフォルト値として使用
-            schedule_data = json.loads(row[4]) if row[4] else {}
-        except json.JSONDecodeError:
-            # JSON デコードに失敗した場合、空の辞書をデフォルト値として使用
-            schedule_data = {}
-
         schedules.append({
             "id": row[0],
             "投稿者": row[1],
             "開始日": row[2],
             "終了日": row[3],
-            "予定": schedule_data,  # デコードされた JSON データ
+            "予定": json.loads(row[4]),  # JSON 形式の予定をデコード
             "投稿日時": row[5]
         })
     return schedules
@@ -228,10 +221,14 @@ def show_weekly_schedules():
 
     for schedule in schedules:
         with st.expander(f"{schedule['投稿者']} さんの週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
-            # 予定を表示
-            for key, value in schedule["予定"].items():
-                st.write(f"**{key}**")
-                st.write(value if value else "（予定なし）")
+            st.write(f"**月曜日:** {schedule['月曜日']}")
+            st.write(f"**火曜日:** {schedule['火曜日']}")
+            st.write(f"**水曜日:** {schedule['水曜日']}")
+            st.write(f"**木曜日:** {schedule['木曜日']}")
+            st.write(f"**金曜日:** {schedule['金曜日']}")
+            st.write(f"**土曜日:** {schedule['土曜日']}")
+            st.write(f"**日曜日:** {schedule['日曜日']}")
+            st.write(f"**投稿日時:** {schedule['投稿日時']}")
 
 # ✅ 日報投稿
 def post_report():
