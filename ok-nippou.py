@@ -32,24 +32,69 @@ def switch_page(page_name):
     """ページを切り替える（即時リロードはなし！）"""
     st.session_state["page"] = page_name
 
-# ✅ 左サイドバーのナビゲーション
-def sidebar_navigation():
-    st.sidebar.title("📌 メニュー")
-    
-    if st.sidebar.button("⏳ タイムライン"):
-        switch_page("タイムライン")
+# ✅ ナビゲーションバー（修正済み）
+def top_navigation():
+    st.markdown("""
+    <style>
+        .nav-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #ffffff;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2列 */
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+        }
+        .nav-item {
+            text-align: center;
+            font-size: 14px;
+            padding: 10px;
+            cursor: pointer;
+            color: #666;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+        }
+        .nav-item.active {
+            color: black;
+            font-weight: bold;
+            background-color: #ddd;
+        }
+        @media (max-width: 600px) {
+            .nav-bar {
+                grid-template-columns: repeat(2, 1fr); /* スマホでも2列を維持 */
+            }
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
-    if st.sidebar.button("📅 週間予定投稿"):
-        switch_page("週間予定投稿")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("⏳ タイムライン"):
+            st.session_state.page = "タイムライン"
+            st.rerun()
+        if st.button("📅 週間予定投稿"):  # 週間予定投稿ボタンを追加
+            st.session_state.page = "週間予定投稿"
+            st.rerun()
+    with col2:
+        if st.button("🔔 お知らせ"):  # お知らせボタンはそのまま
+            st.session_state.page = "お知らせ"
+            st.rerun()
+        if st.button("✏️ 日報投稿"):
+            st.session_state.page = "日報投稿"
+            st.rerun()
 
-    if st.sidebar.button("🔔 お知らせ"):
-        switch_page("お知らせ")
+    # マイページボタンを追加
+    if st.button("🚹 マイページ"):
+        st.session_state.page = "マイページ"
+        st.rerun()
 
-    if st.sidebar.button("✏️ 日報投稿"):
-        switch_page("日報投稿")
-
-    if st.sidebar.button("🚹 マイページ"):
-        switch_page("マイページ")
+    if "page" not in st.session_state:
+        st.session_state.page = "タイムライン"
         
 # ✅ ログイン機能（修正済み）
 def login():
