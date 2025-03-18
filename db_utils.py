@@ -69,19 +69,26 @@ def init_db(keep_existing=True):
     )
     """)
 
-    # 新しいテーブルを作成
-        cur.execute("""
-        CREATE TABLE weekly_schedules (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            投稿者 TEXT NOT NULL,
-            開始日 TEXT NOT NULL,
-            終了日 TEXT NOT NULL,
-            予定 TEXT NOT NULL,
-            投稿日時 TEXT NOT NULL,
-            コメント TEXT DEFAULT '[]'
-        )
-        """)
-        conn.commit()
+    # ✅ 週間予定データのテーブル作成（存在しない場合のみ）
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS weekly_schedules (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        投稿者 TEXT,
+        開始日 TEXT,
+        終了日 TEXT,
+        月曜日 TEXT,
+        火曜日 TEXT,
+        水曜日 TEXT,
+        木曜日 TEXT,
+        金曜日 TEXT,
+        土曜日 TEXT,
+        日曜日 TEXT,
+        投稿日時 TEXT,
+    コメント TEXT DEFAULT '[]'
+    )
+    """)
+
+    conn.commit()
     conn.close()
 
 def update_db_schema():
