@@ -229,6 +229,78 @@ def show_weekly_schedules():
             st.write(f"**日曜日:** {schedule['日曜日']}")
             st.write(f"**投稿日時:** {schedule['投稿日時']}")
 
+ # コメント欄
+            st.write("----")
+            comment_count = len(schedule["コメント"]) if schedule["コメント"] else 0
+            with st.expander(f"💬 コメントを見る・追加する ({comment_count}件)"):
+                # 既存のコメント表示
+                if schedule["コメント"]:
+                    for comment in schedule["コメント"]:
+                        st.write(f"👤 **{comment['投稿者']}** ({comment['日時']}):")
+                        st.write(f"　{comment['コメント']}")
+                        st.write("---")
+                
+                # 新しいコメント投稿フォーム
+                if schedule.get("id") is None:
+                    st.error("⚠️ 予定のIDが見つかりません")
+                    continue
+                
+                commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
+                new_comment = st.text_area(
+                    f"✏️ {commenter_name}さんのコメントを入力",
+                    key=f"weekly_comment_{schedule['id']}",
+                    height=100
+                )
+                
+                if st.button("📤 コメントを投稿", key=f"weekly_submit_{schedule['id']}"):
+                    if new_comment.strip():
+                        save_weekly_schedule_comment(
+                            schedule_id=schedule["id"],
+                            commenter=commenter_name,
+                            comment=new_comment
+                        )
+                        st.success("✅ コメントを投稿しました！")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ コメント内容を入力してください")
+
+    st.write("----")
+
+# 週間予定コメント保存関数
+def save_weekly_schedule_comment(schedule_id, commenter, comment):
+    """週間予定にコメントを保存"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+
+        # 現在のコメントを取得
+        cur.execute("SELECT コメント FROM weekly_schedules WHERE id = ?", (schedule_id,))
+        result = cur.fetchone()
+        current_comments = json.loads(result[0]) if result and result[0] else []
+
+        # 新しいコメントを追加
+        new_comment = {
+            "投稿者": commenter,
+            "日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
+            "コメント": comment.strip()
+        }
+        current_comments.append(new_comment)
+
+        # データベースを更新
+        cur.execute("""
+            UPDATE weekly_schedules
+            SET コメント = ?
+            WHERE id = ?
+        """, (json.dumps(current_comments, ensure_ascii=False), schedule_id))
+
+        conn.commit()
+        conn.close()
+        print(f"✅ 週間予定コメント保存成功: {schedule_id}")
+        
+    except Exception as e:
+        print(f"⚠️ 週間予定コメント保存エラー: {str(e)}")
+        st.error("コメントの保存に失敗しました")
+
 # ✅ 日報投稿
 def post_report():
     if "user" not in st.session_state or st.session_state["user"] is None:
