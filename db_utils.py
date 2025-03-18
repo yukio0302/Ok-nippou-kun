@@ -83,7 +83,8 @@ def init_db(keep_existing=True):
         金曜日 TEXT,
         土曜日 TEXT,
         日曜日 TEXT,
-        投稿日時 TEXT
+        投稿日時 TEXT,
+    コメント TEXT DEFAULT '[]'
     )
     """)
 
