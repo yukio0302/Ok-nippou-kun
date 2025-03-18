@@ -75,26 +75,26 @@ def top_navigation():
     col1, col2 = st.columns(2)
     with col1:
         if st.button("⏳ タイムライン"):
-            st.session_state.page = "タイムライン"
+            st.session_state["page"] = "タイムライン"
             st.rerun()
-        if st.button("📅 週間予定投稿"):  # 週間予定投稿ボタンを追加
-            st.session_state.page = "週間予定投稿"
+        if st.button("📅 週間予定"):  # 週間予定ボタン
+            st.session_state["page"] = "週間予定"
             st.rerun()
     with col2:
-        if st.button("🔔 お知らせ"):  # お知らせボタンはそのまま
-            st.session_state.page = "お知らせ"
+        if st.button("🔔 お知らせ"):
+            st.session_state["page"] = "お知らせ"
             st.rerun()
         if st.button("✏️ 日報投稿"):
-            st.session_state.page = "日報投稿"
+            st.session_state["page"] = "日報投稿"
             st.rerun()
 
     # マイページボタンを追加
     if st.button("🚹 マイページ"):
-        st.session_state.page = "マイページ"
+        st.session_state["page"] = "マイページ"
         st.rerun()
 
     if "page" not in st.session_state:
-        st.session_state.page = "タイムライン"
+        st.session_state["page"] = "タイムライン"
         
 # ✅ ログイン機能（修正済み）
 def login():
@@ -614,7 +614,9 @@ else:
         show_notices()
     elif st.session_state["page"] == "マイページ":
         my_page()
-    elif st.session_state["page"] == "週間予定投稿":  # 週間予定投稿ページを追加
+    elif st.session_state["page"] == "週間予定投稿":  # 週間予定投稿ページ
         post_weekly_schedule()
-    elif st.session_state["page"] == "週間予定":  # 週間予定表示ページを追加
+    elif st.session_state["page"] == "週間予定":  # 週間予定表示ページ
         show_weekly_schedules()
+    else:
+        st.error("無効なページです。")  # デフォルトのエラーメッセージ
