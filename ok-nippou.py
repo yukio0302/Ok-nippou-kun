@@ -127,15 +127,14 @@ def save_weekly_schedule(schedule):
         # ✅ 投稿日時を JST で保存
         schedule["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
 
-        # 予定を JSON 形式で保存
-        schedule_json = json.dumps(schedule["予定"], ensure_ascii=False)
-
         cur.execute("""
-        INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 予定, 投稿日時)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             schedule["投稿者"], schedule["開始日"], schedule["終了日"], 
-            schedule_json, schedule["投稿日時"]
+            schedule["月曜日"], schedule["火曜日"], schedule["水曜日"], 
+            schedule["木曜日"], schedule["金曜日"], schedule["土曜日"], 
+            schedule["日曜日"], schedule["投稿日時"]
         ))
 
         conn.commit()
@@ -157,15 +156,12 @@ def load_weekly_schedules():
     schedules = []
     for row in rows:
         schedules.append({
-            "id": row[0],
-            "投稿者": row[1],
-            "開始日": row[2],
-            "終了日": row[3],
-            "予定": json.loads(row[4]),  # JSON 形式の予定をデコード
-            "投稿日時": row[5]
+            "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3], 
+            "月曜日": row[4], "火曜日": row[5], "水曜日": row[6], 
+            "木曜日": row[7], "金曜日": row[8], "土曜日": row[9], 
+            "日曜日": row[10], "投稿日時": row[11]
         })
     return schedules
-    
 def post_weekly_schedule():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -198,13 +194,19 @@ def post_weekly_schedule():
             "投稿者": st.session_state["user"]["name"],
             "開始日": start_date.strftime("%Y-%m-%d"),
             "終了日": end_date.strftime("%Y-%m-%d"),
-            "予定": schedule  # 日付付きのキーで予定を保存
+            "月曜日": schedule.get(f"{start_date.strftime('%Y年%m月%d日')} (月)", ""),
+            "火曜日": schedule.get(f"{(start_date + timedelta(days=1)).strftime('%Y年%m月%d日')} (火)", ""),
+            "水曜日": schedule.get(f"{(start_date + timedelta(days=2)).strftime('%Y年%m月%d日')} (水)", ""),
+            "木曜日": schedule.get(f"{(start_date + timedelta(days=3)).strftime('%Y年%m月%d日')} (木)", ""),
+            "金曜日": schedule.get(f"{(start_date + timedelta(days=4)).strftime('%Y年%m月%d日')} (金)", ""),
+            "土曜日": schedule.get(f"{(start_date + timedelta(days=5)).strftime('%Y年%m月%d日')} (土)", ""),
+            "日曜日": schedule.get(f"{(start_date + timedelta(days=6)).strftime('%Y年%m月%d日')} (日)", ""),
         }
         save_weekly_schedule(weekly_schedule)
         st.success("✅ 週間予定を投稿しました！")
         time.sleep(1)
         switch_page("週間予定")
-        
+
 def show_weekly_schedules():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -221,14 +223,18 @@ def show_weekly_schedules():
 
     for schedule in schedules:
         with st.expander(f"{schedule['投稿者']} さんの週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
-            st.write(f"**月曜日:** {schedule['月曜日']}")
-            st.write(f"**火曜日:** {schedule['火曜日']}")
-            st.write(f"**水曜日:** {schedule['水曜日']}")
-            st.write(f"**木曜日:** {schedule['木曜日']}")
-            st.write(f"**金曜日:** {schedule['金曜日']}")
-            st.write(f"**土曜日:** {schedule['土曜日']}")
-            st.write(f"**日曜日:** {schedule['日曜日']}")
-            st.write(f"**投稿日時:** {schedule['投稿日時']}")
+            # 開始日と終了日から日付範囲を計算
+            start_date = datetime.strptime(schedule["開始日"], "%Y-%m-%d")
+            end_date = datetime.strptime(schedule["終了日"], "%Y-%m-%d")
+            date_range = pd.date_range(start=start_date, end=end_date)
+
+            # 各日の予定を表示
+            for date in date_range:
+                day_of_week = date.strftime("%A")  # 曜日を取得
+                date_str = date.strftime("%Y年%m月%d日")  # 日付をフォーマット
+                key = f"{date_str} ({day_of_week})"  # 例: "2023年10月30日 (月)"
+                st.write(f"**{key}**")
+                st.write(schedule.get(day_of_week, "（予定なし）"))  # 予定がない場合は「（予定なし）」と表示
 
 # ✅ 日報投稿
 def post_report():
