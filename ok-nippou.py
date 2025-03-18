@@ -156,12 +156,19 @@ def load_weekly_schedules():
     # ✅ データを辞書リストに変換
     schedules = []
     for row in rows:
+        try:
+            # row[4] が None または無効な JSON の場合、空の辞書をデフォルト値として使用
+            schedule_data = json.loads(row[4]) if row[4] else {}
+        except json.JSONDecodeError:
+            # JSON デコードに失敗した場合、空の辞書をデフォルト値として使用
+            schedule_data = {}
+
         schedules.append({
             "id": row[0],
             "投稿者": row[1],
             "開始日": row[2],
             "終了日": row[3],
-            "予定": json.loads(row[4]),  # JSON 形式の予定をデコード
+            "予定": schedule_data,  # デコードされた JSON データ
             "投稿日時": row[5]
         })
     return schedules
