@@ -127,14 +127,15 @@ def save_weekly_schedule(schedule):
         # ✅ 投稿日時を JST で保存
         schedule["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
 
+        # 予定を JSON 形式で保存
+        schedule_json = json.dumps(schedule["予定"], ensure_ascii=False)
+
         cur.execute("""
-        INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 予定, 投稿日時)
+        VALUES (?, ?, ?, ?, ?)
         """, (
             schedule["投稿者"], schedule["開始日"], schedule["終了日"], 
-            schedule["月曜日"], schedule["火曜日"], schedule["水曜日"], 
-            schedule["木曜日"], schedule["金曜日"], schedule["土曜日"], 
-            schedule["日曜日"], schedule["投稿日時"]
+            schedule_json, schedule["投稿日時"]
         ))
 
         conn.commit()
