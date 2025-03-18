@@ -228,14 +228,10 @@ def show_weekly_schedules():
 
     for schedule in schedules:
         with st.expander(f"{schedule['投稿者']} さんの週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
-            st.write(f"**月曜日:** {schedule['月曜日']}")
-            st.write(f"**火曜日:** {schedule['火曜日']}")
-            st.write(f"**水曜日:** {schedule['水曜日']}")
-            st.write(f"**木曜日:** {schedule['木曜日']}")
-            st.write(f"**金曜日:** {schedule['金曜日']}")
-            st.write(f"**土曜日:** {schedule['土曜日']}")
-            st.write(f"**日曜日:** {schedule['日曜日']}")
-            st.write(f"**投稿日時:** {schedule['投稿日時']}")
+            # 予定を表示
+            for key, value in schedule["予定"].items():
+                st.write(f"**{key}**")
+                st.write(value if value else "（予定なし）")
 
 # ✅ 日報投稿
 def post_report():
