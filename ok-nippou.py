@@ -200,6 +200,31 @@ def post_weekly_schedule():
         time.sleep(1)
         switch_page("タイムライン")
 
+def show_weekly_schedules():
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+
+    st.title("週間予定")
+    top_navigation()
+
+    schedules = load_weekly_schedules()
+
+    if not schedules:
+        st.info("週間予定はありません。")
+        return
+
+    for schedule in schedules:
+        with st.expander(f"{schedule['投稿者']} さんの週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
+            st.write(f"**月曜日:** {schedule['月曜日']}")
+            st.write(f"**火曜日:** {schedule['火曜日']}")
+            st.write(f"**水曜日:** {schedule['水曜日']}")
+            st.write(f"**木曜日:** {schedule['木曜日']}")
+            st.write(f"**金曜日:** {schedule['金曜日']}")
+            st.write(f"**土曜日:** {schedule['土曜日']}")
+            st.write(f"**日曜日:** {schedule['日曜日']}")
+            st.write(f"**投稿日時:** {schedule['投稿日時']}")
+
 # ✅ 日報投稿
 def post_report():
     if "user" not in st.session_state or st.session_state["user"] is None:
