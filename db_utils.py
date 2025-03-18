@@ -312,4 +312,6 @@ def delete_report(report_id):
             print("✅ 削除成功！")
             return True
 
-    except sqlite
+    except sqlite3.Error as e:
+        print(f"❌ データベースエラー: {e}")
+        return False
