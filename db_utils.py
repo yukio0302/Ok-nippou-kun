@@ -37,6 +37,7 @@ def init_db(keep_existing=True):
     if not keep_existing:
         cur.execute("DROP TABLE IF EXISTS reports")
         cur.execute("DROP TABLE IF EXISTS notices")
+        cur.execute("DROP TABLE IF EXISTS weekly_schedules")  # 週間予定テーブルを削除
 
     # ✅ 日報データのテーブル作成（存在しない場合のみ）
     cur.execute("""
@@ -63,7 +64,26 @@ def init_db(keep_existing=True):
         タイトル TEXT,
         内容 TEXT,
         日付 TEXT,
-        既読 INTEGER DEFAULT 0
+        既読 INTEGER DEFAULT 0,
+        対象ユーザー TEXT
+    )
+    """)
+
+    # ✅ 週間予定データのテーブル作成（存在しない場合のみ）
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS weekly_schedules (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        投稿者 TEXT,
+        開始日 TEXT,
+        終了日 TEXT,
+        月曜日 TEXT,
+        火曜日 TEXT,
+        水曜日 TEXT,
+        木曜日 TEXT,
+        金曜日 TEXT,
+        土曜日 TEXT,
+        日曜日 TEXT,
+        投稿日時 TEXT
     )
     """)
 
