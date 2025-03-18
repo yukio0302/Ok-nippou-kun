@@ -614,3 +614,7 @@ else:
         show_notices()
     elif st.session_state["page"] == "マイページ":
         my_page()
+    elif st.session_state["page"] == "週間予定投稿":  # 週間予定投稿ページを追加
+        post_weekly_schedule()
+    elif st.session_state["page"] == "週間予定":  # 週間予定表示ページを追加
+        show_weekly_schedules()
