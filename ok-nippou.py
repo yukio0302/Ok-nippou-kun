@@ -6,8 +6,6 @@ import pandas as pd
 import base64
 from datetime import datetime, timedelta
 import json
-import sidebar_navigation
-
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
@@ -34,45 +32,69 @@ def switch_page(page_name):
     """ページを切り替える（即時リロードはなし！）"""
     st.session_state["page"] = page_name
 
-# メニューを左側に表示
-def show_sidebar():
-    st.sidebar.title("メニュー")  # メニューのタイトル
-    st.sidebar.markdown("---")  # 区切り線
+# ✅ ナビゲーションバー（修正済み）
+def top_navigation():
+    st.markdown("""
+    <style>
+        .nav-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #ffffff;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2列 */
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+        }
+        .nav-item {
+            text-align: center;
+            font-size: 14px;
+            padding: 10px;
+            cursor: pointer;
+            color: #666;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+        }
+        .nav-item.active {
+            color: black;
+            font-weight: bold;
+            background-color: #ddd;
+        }
+        @media (max-width: 600px) {
+            .nav-bar {
+                grid-template-columns: repeat(2, 1fr); /* スマホでも2列を維持 */
+            }
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
-    # メニューボタン
-    if st.sidebar.button("⏳ タイムライン"):
-        st.session_state["page"] = "タイムライン"
-        st.rerun()
-    if st.sidebar.button("📅 週間予定"):
-        st.session_state["page"] = "週間予定"
-        st.rerun()
-    if st.sidebar.button("🔔 お知らせ"):
-        st.session_state["page"] = "お知らせ"
-        st.rerun()
-    if st.sidebar.button("✏️ 日報投稿"):
-        st.session_state["page"] = "日報投稿"
-        st.rerun()
-    if st.sidebar.button("🚹 マイページ"):
-        st.session_state["page"] = "マイページ"
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("⏳ タイムライン"):
+            st.session_state.page = "タイムライン"
+            st.rerun()
+        if st.button("📅 週間予定投稿"):  # 週間予定投稿ボタンを追加
+            st.session_state.page = "週間予定投稿"
+            st.rerun()
+    with col2:
+        if st.button("🔔 お知らせ"):  # お知らせボタンはそのまま
+            st.session_state.page = "お知らせ"
+            st.rerun()
+        if st.button("✏️ 日報投稿"):
+            st.session_state.page = "日報投稿"
+            st.rerun()
+
+    # マイページボタンを追加
+    if st.button("🚹 マイページ"):
+        st.session_state.page = "マイページ"
         st.rerun()
 
-    st.sidebar.markdown("---")  # 区切り線
-    st.sidebar.write(f"最終更新: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")  # 最終更新時刻
-
-# メインコンテンツ
-def show_main_content():
-    if st.session_state.get("page") == "タイムライン":
-        timeline()
-    elif st.session_state.get("page") == "週間予定":
-        show_weekly_schedules()
-    elif st.session_state.get("page") == "お知らせ":
-        show_notices()
-    elif st.session_state.get("page") == "日報投稿":
-        post_report()
-    elif st.session_state.get("page") == "マイページ":
-        my_page()
-    else:
-        st.error("ページが見つかりませんでした。")
+    if "page" not in st.session_state:
+        st.session_state.page = "タイムライン"
         
 # ✅ ログイン機能（修正済み）
 def login():
@@ -142,7 +164,7 @@ def post_weekly_schedule():
         return
 
     st.title("週間予定投稿")
-    sidebar_navigation()
+    top_navigation()
 
     # 開始日と終了日を選択
     today = datetime.today().date()
@@ -185,7 +207,7 @@ def post_report():
         return
 
     st.title("日報投稿")
-    sidebar_navigation()
+    top_navigation()
 
      # 選択可能な日付リスト（1週間前～本日）
     today = datetime.today().date()
@@ -231,7 +253,7 @@ def timeline():
         return
 
     st.title(" タイムライン")
-    sidebar_navigation()
+    top_navigation()
 
     # 週間予定ボタンを追加
     if st.button("📅 週間予定"):
@@ -385,7 +407,7 @@ def show_notices():
         return
 
     st.title(" お知らせ")
-    sidebar_navigation()
+    top_navigation()
 
     # ✅ 現在のユーザー名を取得
     user_name = st.session_state["user"]["name"]
@@ -440,7 +462,7 @@ def my_page():
         return
 
     st.title("マイページ")
-    sidebar_navigation()
+    top_navigation()
 
     reports = load_reports()
     my_reports = [r for r in reports if r["投稿者"] == st.session_state["user"]["name"]]
