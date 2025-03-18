@@ -157,12 +157,15 @@ def load_weekly_schedules():
     schedules = []
     for row in rows:
         schedules.append({
-            "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3], 
-            "月曜日": row[4], "火曜日": row[5], "水曜日": row[6], 
-            "木曜日": row[7], "金曜日": row[8], "土曜日": row[9], 
-            "日曜日": row[10], "投稿日時": row[11]
+            "id": row[0],
+            "投稿者": row[1],
+            "開始日": row[2],
+            "終了日": row[3],
+            "予定": json.loads(row[4]),  # JSON 形式の予定をデコード
+            "投稿日時": row[5]
         })
     return schedules
+    
 def post_weekly_schedule():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
