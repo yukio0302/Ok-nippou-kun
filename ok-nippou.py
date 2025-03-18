@@ -77,20 +77,25 @@ def top_navigation():
         if st.button("⏳ タイムライン"):
             st.session_state.page = "タイムライン"
             st.rerun()
-        if st.button("🔔 お知らせ"):
-            st.session_state.page = "お知らせ"
+        if st.button("📅 週間予定投稿"):  # 週間予定投稿ボタンを追加
+            st.session_state.page = "週間予定投稿"
             st.rerun()
     with col2:
+        if st.button("🔔 お知らせ"):  # お知らせボタンはそのまま
+            st.session_state.page = "お知らせ"
+            st.rerun()
         if st.button("✏️ 日報投稿"):
             st.session_state.page = "日報投稿"
             st.rerun()
-        if st.button("🚹 マイページ"):
-            st.session_state.page = "マイページ"
-            st.rerun()
+
+    # マイページボタンを追加
+    if st.button("🚹 マイページ"):
+        st.session_state.page = "マイページ"
+        st.rerun()
 
     if "page" not in st.session_state:
         st.session_state.page = "タイムライン"
-
+        
 # ✅ ログイン機能（修正済み）
 def login():
     st.title(" ログイン")
