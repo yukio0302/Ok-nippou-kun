@@ -315,3 +315,64 @@ def delete_report(report_id):
     except sqlite3.Error as e:
         print(f"❌ データベースエラー: {e}")
         return False
+        
+def save_weekly_schedule(schedule):
+    """週間予定をデータベースに保存"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+
+        # ✅ 投稿日時を JST で保存
+        schedule["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+
+        cur.execute("""
+        INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            schedule["投稿者"], schedule["開始日"], schedule["終了日"], 
+            schedule["月曜日"], schedule["火曜日"], schedule["水曜日"], 
+            schedule["木曜日"], schedule["金曜日"], schedule["土曜日"], 
+            schedule["日曜日"], schedule["投稿日時"]
+        ))
+
+        conn.commit()
+        conn.close()
+        print("✅ 週間予定を保存しました！")  # デバッグログ
+    except Exception as e:
+        print(f"⚠️ 週間予定の保存エラー: {e}")  # エラー内容を表示
+
+def load_weekly_schedules():
+    """週間予定データを取得（最新の投稿順にソート）"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM weekly_schedules ORDER BY 投稿日時 DESC")
+    rows = cur.fetchall()
+    conn.close()
+
+    # ✅ データを辞書リストに変換
+    schedules = []
+    for row in rows:
+        schedules.append({
+            "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3], 
+            "月曜日": row[4], "火曜日": row[5], "水曜日": row[6], 
+            "木曜日": row[7], "金曜日": row[8], "土曜日": row[9], 
+            "日曜日": row[10], "投稿日時": row[11]
+        })
+    return schedules
+
+def update_weekly_schedule(schedule_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday):
+    """週間予定を更新する"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE weekly_schedules
+            SET 月曜日 = ?, 火曜日 = ?, 水曜日 = ?, 木曜日 = ?, 金曜日 = ?, 土曜日 = ?, 日曜日 = ?
+            WHERE id = ?
+        """, (monday, tuesday, wednesday, thursday, friday, saturday, sunday, schedule_id))
+        conn.commit()
+        conn.close()
+        print(f"✅ 週間予定 (ID: {schedule_id}) を編集しました！")  # デバッグ用ログ
+    except sqlite3.Error as e:
+        print(f"❌ データベースエラー: {e}")  # エラーログ
