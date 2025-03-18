@@ -75,26 +75,26 @@ def top_navigation():
     col1, col2 = st.columns(2)
     with col1:
         if st.button("⏳ タイムライン"):
-            st.session_state["page"] = "タイムライン"
+            st.session_state.page = "タイムライン"
             st.rerun()
-        if st.button("📅 週間予定"):  # 週間予定ボタン
-            st.session_state["page"] = "週間予定"
+        if st.button("📅 週間予定投稿"):  # 週間予定投稿ボタンを追加
+            st.session_state.page = "週間予定投稿"
             st.rerun()
     with col2:
-        if st.button("🔔 お知らせ"):
-            st.session_state["page"] = "お知らせ"
+        if st.button("🔔 お知らせ"):  # お知らせボタンはそのまま
+            st.session_state.page = "お知らせ"
             st.rerun()
         if st.button("✏️ 日報投稿"):
-            st.session_state["page"] = "日報投稿"
+            st.session_state.page = "日報投稿"
             st.rerun()
 
     # マイページボタンを追加
     if st.button("🚹 マイページ"):
-        st.session_state["page"] = "マイページ"
+        st.session_state.page = "マイページ"
         st.rerun()
 
     if "page" not in st.session_state:
-        st.session_state["page"] = "タイムライン"
+        st.session_state.page = "タイムライン"
         
 # ✅ ログイン機能（修正済み）
 def login():
@@ -400,30 +400,6 @@ def timeline():
 
     st.write("----")
 
-def show_weekly_schedules():
-    if "user" not in st.session_state or st.session_state["user"] is None:
-        st.error("ログインしてください。")
-        return
-
-    st.title("週間予定")
-    top_navigation()
-
-    schedules = load_weekly_schedules()
-
-    if not schedules:
-        st.info("週間予定の投稿がありません。")
-        return
-
-    for schedule in schedules:
-        with st.expander(f"{schedule['投稿者']} さんの週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
-            st.write(f"**月曜日 ({schedule['開始日']}):** {schedule['月曜日']}")
-            st.write(f"**火曜日 ({schedule['開始日']}):** {schedule['火曜日']}")
-            st.write(f"**水曜日 ({schedule['開始日']}):** {schedule['水曜日']}")
-            st.write(f"**木曜日 ({schedule['開始日']}):** {schedule['木曜日']}")
-            st.write(f"**金曜日 ({schedule['開始日']}):** {schedule['金曜日']}")
-            st.write(f"**土曜日 ({schedule['開始日']}):** {schedule['土曜日']}")
-            st.write(f"**日曜日 ({schedule['開始日']}):** {schedule['日曜日']}")
-
 # ✅ お知らせを表示（未読を強調し、既読を折りたたむ）
 def show_notices():
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -638,9 +614,7 @@ else:
         show_notices()
     elif st.session_state["page"] == "マイページ":
         my_page()
-    elif st.session_state["page"] == "週間予定投稿":  # 週間予定投稿ページ
+    elif st.session_state["page"] == "週間予定投稿":  # 週間予定投稿ページを追加
         post_weekly_schedule()
-    elif st.session_state["page"] == "週間予定":  # 週間予定表示ページ
+    elif st.session_state["page"] == "週間予定":  # 週間予定表示ページを追加
         show_weekly_schedules()
-    else:
-        st.error("無効なページです。")  # デフォルトのエラーメッセージ
