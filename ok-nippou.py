@@ -250,6 +250,11 @@ def timeline():
     st.title(" タイムライン")
     top_navigation()
 
+    # 週間予定ボタンを追加
+    if st.button("📅 週間予定"):
+        st.session_state["page"] = "週間予定"
+        st.rerun()
+
     reports = load_reports()
 
     # ✅ 期間選択用のUIを追加
@@ -268,7 +273,6 @@ def timeline():
         start_datetime = datetime.now() + timedelta(hours=9) - timedelta(days=7)  # 過去7日間（JST）
         end_datetime = datetime.now() + timedelta(hours=9)  # 現在時刻（JST）
     else:
-        
         # ✅ 過去の投稿を選択した場合、カレンダーで期間を指定
         st.sidebar.subheader("過去の投稿を表示")
         col1, col2 = st.sidebar.columns(2)
@@ -276,6 +280,8 @@ def timeline():
             start_date = st.date_input("開始日", datetime.now().date() - timedelta(days=365), max_value=datetime.now().date() - timedelta(days=1))
         with col2:
             end_date = st.date_input("終了日", datetime.now().date() - timedelta(days=1), min_value=start_date, max_value=datetime.now().date() - timedelta(days=1))
+        start_datetime = datetime(start_date.year, start_date.month, start_date.day)
+        end_datetime = datetime(end_date.year, end_date.month, end_date.day) + timedelta(days=1)
 
     # ✅ 選択された期間に該当する投稿をフィルタリング
     filtered_reports = []
