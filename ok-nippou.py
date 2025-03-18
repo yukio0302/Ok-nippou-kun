@@ -153,7 +153,7 @@ def load_weekly_schedules():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM weekly_schedules ORDER BY 投稿日時 DESC")
+    cur.execute("SELECT id, 投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時, コメント FROM weekly_schedules ORDER BY 投稿日時 DESC")
     rows = cur.fetchall()
     conn.close()
 
@@ -164,9 +164,12 @@ def load_weekly_schedules():
             "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3], 
             "月曜日": row[4], "火曜日": row[5], "水曜日": row[6], 
             "木曜日": row[7], "金曜日": row[8], "土曜日": row[9], 
-            "日曜日": row[10], "投稿日時": row[11]
+            "日曜日": row[10], "投稿日時": row[11],
+            "コメント": row[12] if row[12] else "[]"  # None の場合は空のリスト
         })
     return schedules
+
+
 def post_weekly_schedule():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -234,10 +237,11 @@ def show_weekly_schedules():
             st.write(f"**日曜日:** {schedule['日曜日']}")
             st.write(f"**投稿日時:** {schedule['投稿日時']}")
 
-            # 🔽 ここからコメント機能
-            comments = json.loads(schedule.get("コメント", "[]"))  # JSON文字列をリストに変換
-            comment_count = len(comments)
+        # 🔽 ここからコメント機能
+        comments = json.loads(schedule.get("コメント", "[]"))  # JSON文字列をリストに変換
+        comment_count = len(comments)
 
+        with st.container():  # ここで `st.expander()` のネストを防ぐ
             with st.expander(f"💬 ({comment_count}件)のコメントを見る・追加する"):
                 if comments:
                     for c in comments:
@@ -260,7 +264,6 @@ def show_weekly_schedules():
                         st.warning("⚠️ 空白のコメントは投稿できません！")
 
     st.write("----")
-
 
 
 # ✅ 日報投稿
