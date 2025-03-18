@@ -228,8 +228,8 @@ def show_weekly_schedules():
             st.write(f"**土曜日:** {schedule['土曜日']}")
             st.write(f"**日曜日:** {schedule['日曜日']}")
             st.write(f"**投稿日時:** {schedule['投稿日時']}")
-
- # コメント欄
+            
+            # コメント欄
             st.write("----")
             comment_count = len(schedule["コメント"]) if schedule["コメント"] else 0
             with st.expander(f"💬 コメントを見る・追加する ({comment_count}件)"):
@@ -263,7 +263,7 @@ def show_weekly_schedules():
                         st.rerun()
                     else:
                         st.warning("⚠️ コメント内容を入力してください")
-
+    
     st.write("----")
 
 # 週間予定コメント保存関数
