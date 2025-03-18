@@ -230,40 +230,30 @@ def show_weekly_schedules():
             st.write(f"**投稿日時:** {schedule['投稿日時']}")
             
 
-# 週間予定コメント保存関数
-def save_weekly_schedule_comment(schedule_id, commenter, comment):
-    """週間予定にコメントを保存"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
+# 🔽 既存コメントの表示
+            comments = json.loads(schedule.get("コメント", "[]"))
+            st.subheader("💬 コメント")
+            for c in comments:
+                st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
-        # 現在のコメントを取得
-        cur.execute("SELECT コメント FROM weekly_schedules WHERE id = ?", (schedule_id,))
-        result = cur.fetchone()
-        current_comments = json.loads(result[0]) if result and result[0] else []
+            # 🔽 コメント入力フォーム
+            comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
+            if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
+                if comment_text.strip():
+                    save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+                    st.experimental_rerun()
+                else:
+                    st.warning("コメントを入力してください。")
 
-        # 新しいコメントを追加
-        new_comment = {
-            "投稿者": commenter,
-            "日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
-            "コメント": comment.strip()
-        }
-        current_comments.append(new_comment)
+def add_comments_column():
+    """weekly_schedules テーブルにコメントカラムを追加"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("ALTER TABLE weekly_schedules ADD COLUMN コメント TEXT DEFAULT '[]'")
+    conn.commit()
+    conn.close()
+    print("✅ コメントカラムを追加しました！")
 
-        # データベースを更新
-        cur.execute("""
-            UPDATE weekly_schedules
-            SET コメント = ?
-            WHERE id = ?
-        """, (json.dumps(current_comments, ensure_ascii=False), schedule_id))
-
-        conn.commit()
-        conn.close()
-        print(f"✅ 週間予定コメント保存成功: {schedule_id}")
-        
-    except Exception as e:
-        print(f"⚠️ 週間予定コメント保存エラー: {str(e)}")
-        st.error("コメントの保存に失敗しました")
 
 # ✅ 日報投稿
 def post_report():
