@@ -19,6 +19,9 @@ from db_utils import (
     update_reaction, save_comment, load_commented_reports  # 追加
 )
 
+# ✅ データベースのパス
+DB_PATH = "/mount/src/ok-nippou-kun/Ok-nippou-kun/data/reports.db"
+
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
 
