@@ -140,11 +140,14 @@ def save_weekly_schedule(schedule):
             schedule["日曜日"], schedule["投稿日時"]
         ))
 
-        conn.commit()
-        conn.close()
-        print("✅ 週間予定を保存しました！")  # デバッグログ
+        conn.commit()  # 明示的にコミット
+        print(f"✅ コメントを保存しました (Schedule ID: {schedule_id})")  # デバッグログ
+
     except Exception as e:
-        print(f"⚠️ 週間予定の保存エラー: {e}")  # エラー内容を表示
+        print(f"⚠️ コメント保存エラー: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
 
 def load_weekly_schedules():
     """週間予定データを取得（最新の投稿順にソート）"""
@@ -242,9 +245,10 @@ def show_weekly_schedules():
             # 🔽 コメント入力フォーム
             comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
             if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-                if comment_text.strip():
-                    save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                    st.rerun()
+        if comment_text.strip():
+            save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+            st.session_state[f"comment_{schedule['id']}"] = ""  # 入力欄をクリア
+            st.experimental_rerun()  # 画面全体を強制更新
                 else:
                     st.warning("コメントを入力してください。")
 
