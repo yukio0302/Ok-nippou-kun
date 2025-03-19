@@ -470,6 +470,36 @@ def my_page():
         else:
             st.info("過去の投稿はありません。")
 
+    with st.expander("週間予定", expanded=False):
+        my_schedules = [s for s in schedules if s["投稿者"] == st.session_state["user"]["name"]]
+
+        if my_schedules:
+            for schedule in my_schedules:
+                with st.expander(f"{schedule['開始日']} ～ {schedule['終了日']}"):
+                    monday = st.text_area("月曜日", value=schedule['月曜日'], key=f"monday_{schedule['id']}")
+                    tuesday = st.text_area("火曜日", value=schedule['火曜日'], key=f"tuesday_{schedule['id']}")
+                    wednesday = st.text_area("水曜日", value=schedule['水曜日'], key=f"wednesday_{schedule['id']}")
+                    thursday = st.text_area("木曜日", value=schedule['木曜日'], key=f"thursday_{schedule['id']}")
+                    friday = st.text_area("金曜日", value=schedule['金曜日'], key=f"friday_{schedule['id']}")
+                    saturday = st.text_area("土曜日", value=schedule['土曜日'], key=f"saturday_{schedule['id']}")
+                    sunday = st.text_area("日曜日", value=schedule['日曜日'], key=f"sunday_{schedule['id']}")
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("編集", key=f"edit_schedule_{schedule['id']}"):
+                            update_weekly_schedule(
+                                schedule["id"], monday, tuesday, wednesday, thursday, friday, saturday, sunday
+                            )
+                            st.success("週間予定を編集しました！")
+                            st.rerun()
+                    with col2:
+                        if st.button("削除", key=f"delete_schedule_{schedule['id']}"):
+                            delete_weekly_schedule(schedule["id"])
+                            st.success("週間予定を削除しました！")
+                            st.rerun()
+        else:
+            st.info("投稿した週間予定はありません。")
+    
     with st.expander("コメントした投稿", expanded=False):
         commented_reports = load_commented_reports(st.session_state["user"]["name"])
 
