@@ -186,7 +186,10 @@ def show_weekly_schedules():
             st.write(f"**日曜日:** {schedule['日曜日']}")
             st.write(f"**投稿日時:** {schedule['投稿日時']}")
             
-            comments = json.loads(schedule.get("コメント") or "[]") # 修正箇所
+            comment_str = schedule.get("コメント")
+            if not isinstance(comment_str, str):
+                comment_str = "[]" # 文字列でない場合は空のJSON配列を使用
+            comments = json.loads(comment_str)
             st.subheader(" コメント")
             for c in comments:
                 st.write(f"️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
