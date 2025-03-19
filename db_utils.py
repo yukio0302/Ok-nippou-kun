@@ -321,11 +321,10 @@ def add_comments_column():
 def save_weekly_schedule_comment(schedule_id, commenter, comment):
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("SELECT 投稿者, 開始日, 終了日, コメント FROM weekly_schedules WHERE id = ?", (schedule_id,))
+    cur.execute("SELECT コメント FROM weekly_schedules WHERE id = ?", (schedule_id,))
     row = cur.fetchone()
     if row:
-        投稿者, 開始日, 終了日, comments = row
-        comments = json.loads(comments) if comments else []
+        comments = json.loads(row[0]) if row[0] else []
         new_comment = {
             "投稿者": commenter, 
             "日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"), 
@@ -333,11 +332,5 @@ def save_weekly_schedule_comment(schedule_id, commenter, comment):
         }
         comments.append(new_comment)
         cur.execute("UPDATE weekly_schedules SET コメント = ? WHERE id = ?", (json.dumps(comments), schedule_id))
-        if 投稿者 != commenter:
-            notification_content = f"""【お知らせ】\n{new_comment["日時"]}\n\n期間: {開始日} ～ {終了日}\nの週間予定投稿に {commenter} さんがコメントしました。\nコメント内容: {comment}"""
-            cur.execute("""
-                INSERT INTO notices (タイトル, 内容, 日付, 既読, 対象ユーザー)
-                VALUES (?, ?, ?, ?, ?)
-            """, ("新しいコメントが届きました！", notification_content, new_comment["日時"], 0, 投稿者)) # 修正箇所: None を投稿者に変更
         conn.commit()
     conn.close()
