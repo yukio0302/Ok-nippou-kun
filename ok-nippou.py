@@ -469,8 +469,18 @@ def my_page():
                 show_report_details(report)
         else:
             st.info("過去の投稿はありません。")
+    
+    with st.expander("コメントした投稿", expanded=False):
+        commented_reports = load_commented_reports(st.session_state["user"]["name"])
 
-    schedules = load_weekly_schedules() # 追加
+        if commented_reports:
+            for report in commented_reports:
+                st.markdown(f"**{report['投稿者']} さんの日報 ({report['実行日']})**")
+                show_report_details(report)
+        else:
+            st.info("コメントした投稿はありません。")
+
+schedules = load_weekly_schedules() # 追加
     with st.expander("週間予定", expanded=False):
         my_schedules = [s for s in schedules if s["投稿者"] == st.session_state["user"]["name"]]
 
@@ -512,16 +522,6 @@ def my_page():
                             st.rerun()
         else:
             st.info("投稿した週間予定はありません。")
-    
-    with st.expander("コメントした投稿", expanded=False):
-        commented_reports = load_commented_reports(st.session_state["user"]["name"])
-
-        if commented_reports:
-            for report in commented_reports:
-                st.markdown(f"**{report['投稿者']} さんの日報 ({report['実行日']})**")
-                show_report_details(report)
-        else:
-            st.info("コメントした投稿はありません。")
 
 def show_report_details(report):
     st.write(f" **場所:** {report['場所']}")
