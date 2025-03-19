@@ -25,8 +25,6 @@ DB_PATH = "/mount/src/ok-nippou-kun/Ok-nippou-kun/data/reports.db"
 
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
-# メインコードの最初の方（データベース初期化後）に追加
-add_comments_column()  # 週間予定テーブルにコメントカラムが存在することを保証
 
 # ✅ ログイン状態を管理
 if "user" not in st.session_state:
