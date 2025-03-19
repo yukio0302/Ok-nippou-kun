@@ -185,22 +185,30 @@ def show_weekly_schedules():
             st.write(f"**土曜日:** {schedule['土曜日']}")
             st.write(f"**日曜日:** {schedule['日曜日']}")
             st.write(f"**投稿日時:** {schedule['投稿日時']}")
-            
-            comment_str = schedule.get("コメント")
-            if not isinstance(comment_str, str):
-                comment_str = "[]" # 文字列でない場合は空のJSON配列を使用
-            comments = json.loads(comment_str)
-            st.subheader(" コメント")
-            for c in comments:
-                st.write(f"️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
-            comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
-            if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-                if comment_text.strip():
-                    save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                    st.rerun()
-                else:
-                    st.warning("コメントを入力してください。")
+            comment_count = len(schedule["コメント"]) if schedule["コメント"] else 0
+            with st.expander(f" ({comment_count}件)のコメントを見る・追加する "):
+                if schedule["コメント"]:
+                    for c in schedule["コメント"]:
+                        st.write(f" {c['投稿者']} ({c['日時']}): {c['コメント']}")
+
+                if schedule.get("id") is None:
+                    st.error("⚠️ 投稿の ID が見つかりません。")
+                    continue
+
+                commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
+                new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{schedule['id']}")
+
+                if st.button(" コメントを投稿", key=f"submit_comment_{schedule['id']}"):
+                    if new_comment and new_comment.strip():
+                        print(f"️ コメント投稿デバッグ: schedule_id={schedule['id']}, commenter={commenter_name}, comment={new_comment}")
+                        save_weekly_schedule_comment(schedule["id"], commenter_name, new_comment)
+                        st.success("✅ コメントを投稿しました！")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ 空白のコメントは投稿できません！")
+
+        st.write("----")
 
 # 日報投稿
 def post_report():
