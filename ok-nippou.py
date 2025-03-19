@@ -16,7 +16,8 @@ def get_current_time():
 from db_utils import (
     init_db, authenticate_user, save_report, load_reports, 
     load_notices, mark_notice_as_read, edit_report, delete_report, 
-    update_reaction, save_comment, load_commented_reports  # 追加
+    update_reaction, save_comment, load_commented_reports,
+    save_weekly_schedule_comment, add_comments_column  # 追加
 )
 
 # ✅ データベースのパス
