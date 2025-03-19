@@ -338,6 +338,6 @@ def save_weekly_schedule_comment(schedule_id, commenter, comment):
             cur.execute("""
                 INSERT INTO notices (タイトル, 内容, 日付, 既読, 対象ユーザー)
                 VALUES (?, ?, ?, ?, ?)
-            """, ("新しいコメントが届きました！", notification_content, new_comment["日時"], 0, 投稿者))
+            """, ("新しいコメントが届きました！", notification_content, new_comment["日時"], 0, 投稿者)) # 修正箇所: None を投稿者に変更
         conn.commit()
     conn.close()
