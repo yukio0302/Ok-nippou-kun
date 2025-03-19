@@ -186,7 +186,7 @@ def show_weekly_schedules():
             st.write(f"**日曜日:** {schedule['日曜日']}")
             st.write(f"**投稿日時:** {schedule['投稿日時']}")
             
-            comments = json.loads(schedule.get("コメント", "[]"))
+            comments = json.loads(schedule.get("コメント") or "[]") # 修正箇所
             st.subheader(" コメント")
             for c in comments:
                 st.write(f"️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
