@@ -418,7 +418,7 @@ def show_notices():
                 if st.button(f"✔️ 既読にする", key=f"read_{notice['id']}"):
                     st.session_state["notice_to_read"] = notice["id"]
 
-    if st.session_sion_state["notice_to_read"] is not None:
+    if st.session_state["notice_to_read"] is not None:
         mark_notice_as_read(st.session_state["notice_to_read"])
         st.session_state["notice_to_read"] = None
         st.rerun()
@@ -470,6 +470,7 @@ def my_page():
         else:
             st.info("過去の投稿はありません。")
 
+    schedules = load_weekly_schedules() # 追加
     with st.expander("週間予定", expanded=False):
         my_schedules = [s for s in schedules if s["投稿者"] == st.session_state["user"]["name"]]
 
