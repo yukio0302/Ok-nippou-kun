@@ -295,22 +295,6 @@ def load_weekly_schedules():
         })
     return schedules
 
-# 週間予定更新
-def update_weekly_schedule(schedule_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday):
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        cur.execute("""
-            UPDATE weekly_schedules
-            SET 月曜日 = ?, 火曜日 = ?, 水曜日 = ?, 木曜日 = ?, 金曜日 = ?, 土曜日 = ?, 日曜日 = ?
-            WHERE id = ?
-        """, (monday, tuesday, wednesday, thursday, friday, saturday, sunday, schedule_id))
-        conn.commit()
-        conn.close()
-        print(f"✅ 週間予定 (ID: {schedule_id}) を編集しました！")
-    except sqlite3.Error as e:
-        print(f"❌ データベースエラー: {e}")
-
 # 週間予定コメントカラム追加
 def add_comments_column():
     conn = sqlite3.connect(DB_PATH)
@@ -342,23 +326,23 @@ def save_weekly_schedule_comment(schedule_id, commenter, comment):
         conn.commit()
     conn.close()
 
-# 週間予定編集
-def update_weekly_schedule(schedule_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday):
+# 週間予定更新 (修正): コメントカラムの更新も行う
+def update_weekly_schedule(schedule_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday, comment):
     try:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute("""
             UPDATE weekly_schedules
-            SET 月曜日 = ?, 火曜日 = ?, 水曜日 = ?, 木曜日 = ?, 金曜日 = ?, 土曜日 = ?, 日曜日 = ?
+            SET 月曜日 = ?, 火曜日 = ?, 水曜日 = ?, 木曜日 = ?, 金曜日 = ?, 土曜日 = ?, 日曜日 = ?, コメント = ?
             WHERE id = ?
-        """, (monday, tuesday, wednesday, thursday, friday, saturday, sunday, schedule_id))
+        """, (monday, tuesday, wednesday, thursday, friday, saturday, sunday, json.dumps(comment), schedule_id))
         conn.commit()
         conn.close()
         print(f"✅ 週間予定 (ID: {schedule_id}) を編集しました！")
     except sqlite3.Error as e:
         print(f"❌ データベースエラー: {e}")
 
-# 週間予定削除
+# 週間予定削除 (追加): 週間予定を削除する
 def delete_weekly_schedule(schedule_id):
     try:
         with sqlite3.connect(DB_PATH) as conn:
