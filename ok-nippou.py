@@ -244,7 +244,7 @@ def show_weekly_schedules():
             if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
                 if comment_text.strip():
                     save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.warning("コメントを入力してください。")
 
