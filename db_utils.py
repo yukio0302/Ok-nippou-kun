@@ -379,6 +379,21 @@ def update_weekly_schedule(schedule_id, monday, tuesday, wednesday, thursday, fr
     except sqlite3.Error as e:
         print(f"❌ データベースエラー: {e}")  # エラーログ
 
+def add_comments_column():
+    """weekly_schedules テーブルにコメントカラムを追加（存在しない場合のみ）"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    try:
+        # カラムが存在するかチェック
+        cur.execute("SELECT コメント FROM weekly_schedules LIMIT 1")
+    except sqlite3.OperationalError:
+        # カラムが存在しない場合のみ追加
+        cur.execute("ALTER TABLE weekly_schedules ADD COLUMN コメント TEXT DEFAULT '[]'")
+        conn.commit()
+        print("✅ コメントカラムを追加しました！")
+    finally:
+        conn.close()
+
 def save_weekly_schedule_comment(schedule_id, commenter, comment):
     """週間予定へのコメントを保存＆通知を追加"""
     conn = sqlite3.connect(DB_PATH)
