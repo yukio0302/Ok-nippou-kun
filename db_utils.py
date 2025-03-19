@@ -334,3 +334,36 @@ def save_weekly_schedule_comment(schedule_id, commenter, comment):
         cur.execute("UPDATE weekly_schedules SET コメント = ? WHERE id = ?", (json.dumps(comments), schedule_id))
         conn.commit()
     conn.close()
+
+# 週間予定編集
+def update_weekly_schedule(schedule_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE weekly_schedules
+            SET 月曜日 = ?, 火曜日 = ?, 水曜日 = ?, 木曜日 = ?, 金曜日 = ?, 土曜日 = ?, 日曜日 = ?
+            WHERE id = ?
+        """, (monday, tuesday, wednesday, thursday, friday, saturday, sunday, schedule_id))
+        conn.commit()
+        conn.close()
+        print(f"✅ 週間予定 (ID: {schedule_id}) を編集しました！")
+    except sqlite3.Error as e:
+        print(f"❌ データベースエラー: {e}")
+
+# 週間予定削除
+def delete_weekly_schedule(schedule_id):
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            c = conn.cursor()
+            print(f"️ 週間予定削除処理開始: schedule_id={schedule_id}")
+            c.execute("DELETE FROM weekly_schedules WHERE id = ?", (schedule_id,))
+            conn.commit()
+            if c.rowcount == 0:
+                print(f"⚠️ 削除対象の週間予定（ID: {schedule_id}）が見つかりませんでした。")
+                return False
+            print("✅ 週間予定削除成功！")
+            return True
+    except sqlite3.Error as e:
+        print(f"❌ データベースエラー: {e}")
+        return False
