@@ -485,11 +485,23 @@ def my_page():
                     saturday = st.text_area("土曜日", value=schedule['土曜日'], key=f"saturday_{schedule['id']}")
                     sunday = st.text_area("日曜日", value=schedule['日曜日'], key=f"sunday_{schedule['id']}")
 
+                    # コメントの読み込みと表示
+                    comment_str = schedule.get("コメント")
+                    if not isinstance(comment_str, str):
+                        comment_str = "[]"  # 文字列でない場合は空のJSON配列を使用
+                    comments = json.loads(comment_str)
+                    st.subheader(" コメント")
+                    for c in comments:
+                        st.write(f"️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
+
+                    # コメント入力欄
+                    comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
+
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.button("編集", key=f"edit_schedule_{schedule['id']}"):
                             update_weekly_schedule(
-                                schedule["id"], monday, tuesday, wednesday, thursday, friday, saturday, sunday
+                                schedule["id"], monday, tuesday, wednesday, thursday, friday, saturday, sunday, comments
                             )
                             st.success("週間予定を編集しました！")
                             st.rerun()
