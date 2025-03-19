@@ -14,10 +14,10 @@ def get_current_time():
 
 # サブコーディングから必要な関数をインポート
 from db_utils import (
-    init_db, authenticate_user, save_report, load_reports, 
-    load_notices, mark_notice_as_read, edit_report, delete_report, 
-    update_reaction, save_comment, load_commented_reports,
-    save_weekly_schedule_comment, add_comments_column  # 追加
+    init_db, authenticate_user, handle_comment, get_comments,
+    load_reports, load_weekly_schedules, update_reaction,
+    load_notices, mark_notice_read, save_report, save_weekly_schedule,
+    update_item, delete_item
 )
 
 # ✅ データベースのパス
