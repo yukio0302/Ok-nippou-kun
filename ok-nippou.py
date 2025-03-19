@@ -8,6 +8,9 @@ from datetime import datetime, timedelta
 import json
 import sqlite3
 
+import sys
+sys.path.append("/mount/src/ok-nippou-kun/Ok-nippou-kun")
+
 # サブコードから必要な関数をインポート
 from db_utils import (
     init_db, authenticate_user, save_report, load_reports,
