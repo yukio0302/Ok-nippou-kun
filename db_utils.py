@@ -280,11 +280,18 @@ def load_weekly_schedules():
     schedules = []
     for row in rows:
         schedules.append({
-            "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3], 
-            "月曜日": row[4], "火曜日": row[5], "水曜日": row[6], 
-            "木曜日": row[7], "金曜日": row[8], "土曜日": row[9], 
-            "日曜日": row[10], "投稿日時": row[11],
-            "コメント": json.loads(row[12]) if row[12] else []
+            "id": row[0],
+            "投稿者": row[1],
+            "開始日": row[2],
+            "終了日": row[3],
+            "月曜日": row[4],
+            "火曜日": row[5],
+            "水曜日": row[6],
+            "木曜日": row[7],
+            "金曜日": row[8],
+            "土曜日": row[9],
+            "日曜日": row[10],
+            "投稿日時": row[11]
         })
     return schedules
 
