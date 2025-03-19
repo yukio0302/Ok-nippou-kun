@@ -195,14 +195,12 @@ def show_weekly_schedules():
                 st.write(f"️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
 
             comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
-            if st.button("コメントを投稿", key=f"submit_comment_{schedule['id']}"):
-    if new_comment and new_comment.strip():
-        print(f"️ コメント投稿デバッグ: schedule_id={schedule['id']}, commenter={commenter_name}, comment={new_comment}")
-        save_weekly_schedule_comment(schedule["id"], commenter_name, new_comment)
-        st.success("✅ コメントを投稿しました！")
-        st.experimental_rerun()  # 変更箇所
-    else:
-        st.warning("⚠️ 空白のコメントは投稿できません！")
+            if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
+                if comment_text.strip():
+                    save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+                    st.rerun()
+                else:
+                    st.warning("コメントを入力してください。")
 
 # 日報投稿
 def post_report():
