@@ -96,7 +96,6 @@ def save_report(report):
 
         # ✅ 投稿日時を JST で保存
         report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-        report["実行日"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d")  # 実行日もJSTで保存
 
         cur.execute("""
         INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント, 画像, 投稿日時)
