@@ -6,7 +6,6 @@ import pandas as pd
 import base64
 from datetime import datetime, timedelta
 import json
-import sqlite3
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
@@ -16,17 +15,11 @@ def get_current_time():
 from db_utils import (
     init_db, authenticate_user, save_report, load_reports, 
     load_notices, mark_notice_as_read, edit_report, delete_report, 
-    update_reaction, save_comment, load_commented_reports,
-    save_weekly_schedule_comment, add_comments_column  # 追加
+    update_reaction, save_comment, load_commented_reports  # 追加
 )
-
-# ✅ データベースのパス
-DB_PATH = "/mount/src/ok-nippou-kun/Ok-nippou-kun/data/reports.db"
 
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
-# メインコードの最初の方（データベース初期化後）に追加
-add_comments_column()  # 週間予定テーブルにコメントカラムが存在することを保証
 
 # ✅ ログイン状態を管理
 if "user" not in st.session_state:
@@ -206,57 +199,6 @@ def post_weekly_schedule():
         st.success("✅ 週間予定を投稿しました！")
         time.sleep(1)
         switch_page("タイムライン")
-
-def show_weekly_schedules():
-    if "user" not in st.session_state or st.session_state["user"] is None:
-        st.error("ログインしてください。")
-        return
-
-    st.title("週間予定")
-    top_navigation()
-
-    schedules = load_weekly_schedules()
-
-    if not schedules:
-        st.info("週間予定はありません。")
-        return
-
-    for schedule in schedules:
-        with st.expander(f"{schedule['投稿者']} さんの週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
-            st.write(f"**月曜日:** {schedule['月曜日']}")
-            st.write(f"**火曜日:** {schedule['火曜日']}")
-            st.write(f"**水曜日:** {schedule['水曜日']}")
-            st.write(f"**木曜日:** {schedule['木曜日']}")
-            st.write(f"**金曜日:** {schedule['金曜日']}")
-            st.write(f"**土曜日:** {schedule['土曜日']}")
-            st.write(f"**日曜日:** {schedule['日曜日']}")
-            st.write(f"**投稿日時:** {schedule['投稿日時']}")
-            
-
-# 🔽 既存コメントの表示
-            comments = json.loads(schedule.get("コメント", "[]"))
-            st.subheader("💬 コメント")
-            for c in comments:
-                st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
-
-            # 🔽 コメント入力フォーム
-            comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
-            if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-                if comment_text.strip():
-                    save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                    st.rerun()
-                else:
-                    st.warning("コメントを入力してください。")
-
-def add_comments_column():
-    """weekly_schedules テーブルにコメントカラムを追加"""
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("ALTER TABLE weekly_schedules ADD COLUMN コメント TEXT DEFAULT '[]'")
-    conn.commit()
-    conn.close()
-    print("✅ コメントカラムを追加しました！")
-
 
 # ✅ 日報投稿
 def post_report():
