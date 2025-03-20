@@ -83,8 +83,7 @@ def init_db(keep_existing=True):
         金曜日 TEXT,
         土曜日 TEXT,
         日曜日 TEXT,
-        投稿日時 TEXT,
-    コメント TEXT DEFAULT '[]'
+        投稿日時 TEXT
     )
     """)
 
@@ -358,8 +357,7 @@ def load_weekly_schedules():
             "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3], 
             "月曜日": row[4], "火曜日": row[5], "水曜日": row[6], 
             "木曜日": row[7], "金曜日": row[8], "土曜日": row[9], 
-            "日曜日": row[10], "投稿日時": row[11],
-            "コメント": json.loads(row[12]) if row[12] else []  # コメントをJSONデコード
+            "日曜日": row[10], "投稿日時": row[11]
         })
     return schedules
 
@@ -378,71 +376,3 @@ def update_weekly_schedule(schedule_id, monday, tuesday, wednesday, thursday, fr
         print(f"✅ 週間予定 (ID: {schedule_id}) を編集しました！")  # デバッグ用ログ
     except sqlite3.Error as e:
         print(f"❌ データベースエラー: {e}")  # エラーログ
-
-def add_comments_column():
-    """weekly_schedules テーブルにコメントカラムを追加（存在しない場合のみ）"""
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    try:
-        # カラムが存在するかチェック
-        cur.execute("SELECT コメント FROM weekly_schedules LIMIT 1")
-    except sqlite3.OperationalError:
-        # カラムが存在しない場合のみ追加
-        cur.execute("ALTER TABLE weekly_schedules ADD COLUMN コメント TEXT DEFAULT '[]'")
-        conn.commit()
-        print("✅ コメントカラムを追加しました！")
-    finally:
-        conn.close()
-
-def save_weekly_schedule_comment(schedule_id, commenter, comment):
-    """週間予定へのコメントを保存＆通知を追加"""
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    # ✅ 週間予定の情報を取得
-    cur.execute("SELECT 投稿者, 開始日, 終了日, コメント FROM weekly_schedules WHERE id = ?", (schedule_id,))
-    row = cur.fetchone()
-
-    if row:
-        投稿者 = row[0]  # 投稿者名
-        開始日 = row[1]  # 開始日
-        終了日 = row[2]  # 終了日
-        comments = json.loads(row[3]) if row[3] else []
-
-        # ✅ 新しいコメントを追加
-        new_comment = {
-            "投稿者": commenter, 
-            "日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"), 
-            "コメント": comment
-        }
-        comments.append(new_comment)
-
-        # ✅ コメントを更新
-        cur.execute("UPDATE weekly_schedules SET コメント = ? WHERE id = ?", 
-                  (json.dumps(comments), schedule_id))
-
-        # ✅ 投稿者がコメント者と違う場合、投稿者にお知らせを追加
-        if 投稿者 != commenter:
-            notification_content = f"""【お知らせ】  
-{new_comment["日時"]}  
-
-期間: {開始日} ～ {終了日}  
-の週間予定投稿に {commenter} さんがコメントしました。  
-コメント内容: {comment}
-"""
-
-            # ✅ お知らせを追加
-            cur.execute("""
-                INSERT INTO notices (タイトル, 内容, 日付, 既読, 対象ユーザー)
-                VALUES (?, ?, ?, ?, ?)
-            """, (
-                "新しいコメントが届きました！",
-                notification_content,
-                new_comment["日時"],
-                0,  # 既読フラグ（未読）
-                投稿者  # お知らせの対象ユーザー（週間予定投稿主）
-            ))
-
-        conn.commit()
-
-    conn.close()
