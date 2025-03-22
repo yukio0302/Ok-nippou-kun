@@ -70,34 +70,34 @@ def init_db(keep_existing=True):
     """)
 
     # ✅ 週間予定データのテーブル作成（存在しない場合のみ）
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS weekly_plans (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            投稿者 TEXT,
-            週開始日 TEXT,
-            週終了日 TEXT,
-            予定 TEXT,
-            いいね INTEGER DEFAULT 0,
-            ナイスファイト INTEGER DEFAULT 0,
-            コメント TEXT DEFAULT '[]',
-            投稿日時 TEXT
-        )
-    """)
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS weekly_plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        投稿者 TEXT,
+        週開始日 TEXT,
+        週終了日 TEXT,
+        予定 TEXT,
+        いいね INTEGER DEFAULT 0,
+        ナイスファイト INTEGER DEFAULT 0,
+        コメント TEXT DEFAULT '[]',
+        投稿日時 TEXT
+    )
+""")
 
-    # ✅ 週報データのテーブル作成（存在しない場合のみ）
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS weekly_reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            投稿者 TEXT,
-            週開始日 TEXT,
-            週終了日 TEXT,
-            週報内容 TEXT,
-            いいね INTEGER DEFAULT 0,
-            ナイスファイト INTEGER DEFAULT 0,
-            コメント TEXT DEFAULT '[]',
-            投稿日時 TEXT
-        )
-    """)
+# ✅ 週報データのテーブル作成（存在しない場合のみ）
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS weekly_reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        投稿者 TEXT,
+        週開始日 TEXT,
+        週終了日 TEXT,
+        週報内容 TEXT,
+        いいね INTEGER DEFAULT 0,
+        ナイスファイト INTEGER DEFAULT 0,
+        コメント TEXT DEFAULT '[]',
+        投稿日時 TEXT
+    )
+""")
 
     conn.commit()
     conn.close()
