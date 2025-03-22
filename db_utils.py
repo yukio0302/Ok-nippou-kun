@@ -68,6 +68,18 @@ def init_db(keep_existing=True):
     )
     """)
 
+     # ✅ 週間予定データのテーブル作成（存在しない場合のみ）
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS weekly_plans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            投稿者 TEXT,
+            週開始日 TEXT,
+            週終了日 TEXT,
+            予定 TEXT,
+            投稿日時 TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 
