@@ -246,10 +246,9 @@ def timeline():
         if report.get("image"):
             try:
                 # Base64データをデコードして画像を表示
-                st.image(base64.b64decode(report["image"]), caption="投稿画像", use_column_width=True)
+                st.image(base64.b64decode(report["image"]), caption="投稿画像", use_container_width=True) # ✅ use_column_width を use_container_width に修正
             except Exception as e:
                 st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
-
 
         col1, col2 = st.columns(2)
         with col1:
