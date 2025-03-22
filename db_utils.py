@@ -257,3 +257,35 @@ def delete_report(report_id):
     except sqlite3.Error as e:
         print(f"❌ データベースエラー: {e}")
         return False
+# db_utils.py
+
+def save_weekly_plan(投稿者, 週開始日, 週終了日, 予定):
+    """週間予定をデータベースに保存"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    投稿日時 = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S") # 現在日時をJSTで取得
+
+    cur.execute("""
+        INSERT INTO weekly_plans (投稿者, 週開始日, 週終了日, 予定, 投稿日時)
+        VALUES (?, ?, ?, ?, ?)
+    """, (投稿者, 週開始日, 週終了日, 予定, 投稿日時))
+
+    conn.commit()
+    conn.close()
+
+def load_weekly_plans():
+    """週間予定データを取得"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM weekly_plans ORDER BY 投稿日時 DESC")
+    rows = cur.fetchall()
+    conn.close()
+
+    weekly_plans = []
+    for row in rows:
+        weekly_plans.append({
+            "id": row[0], "投稿者": row[1], "週開始日": row[2], "週終了日": row[3],
+            "予定": row[4], "投稿日時": row[5]
+        })
+    return weekly_plans
