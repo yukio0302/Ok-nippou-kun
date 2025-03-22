@@ -6,6 +6,7 @@ import pandas as pd
 import base64
 from datetime import datetime, timedelta
 import json
+import sqlite3
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
@@ -15,11 +16,17 @@ def get_current_time():
 from db_utils import (
     init_db, authenticate_user, save_report, load_reports, 
     load_notices, mark_notice_as_read, edit_report, delete_report, 
-    update_reaction, save_comment, load_commented_reports  # 追加
+    update_reaction, save_comment, load_commented_reports,
+    save_weekly_schedule_comment, add_comments_column  # 追加
 )
+
+# ✅ データベースのパス
+DB_PATH = "/mount/src/ok-nippou-kun/Ok-nippou-kun/data/reports.db"
 
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
+# メインコードの最初の方（データベース初期化後）に追加
+add_comments_column()  # 週間予定テーブルにコメントカラムが存在することを保証
 
 # ✅ ログイン状態を管理
 if "user" not in st.session_state:
@@ -77,20 +84,25 @@ def top_navigation():
         if st.button("⏳ タイムライン"):
             st.session_state.page = "タイムライン"
             st.rerun()
-        if st.button("🔔 お知らせ"):
-            st.session_state.page = "お知らせ"
+        if st.button("📅 週間予定投稿"):  # 週間予定投稿ボタンを追加
+            st.session_state.page = "週間予定投稿"
             st.rerun()
     with col2:
+        if st.button("🔔 お知らせ"):  # お知らせボタンはそのまま
+            st.session_state.page = "お知らせ"
+            st.rerun()
         if st.button("✏️ 日報投稿"):
             st.session_state.page = "日報投稿"
             st.rerun()
-        if st.button("🚹 マイページ"):
-            st.session_state.page = "マイページ"
-            st.rerun()
+
+    # マイページボタンを追加
+    if st.button("🚹 マイページ"):
+        st.session_state.page = "マイページ"
+        st.rerun()
 
     if "page" not in st.session_state:
         st.session_state.page = "タイムライン"
-
+        
 # ✅ ログイン機能（修正済み）
 def login():
     st.title(" ログイン")
@@ -108,6 +120,143 @@ def login():
             st.rerun()  # ✅ ここで即リロード！
         else:
             st.error("社員コードまたはパスワードが間違っています。")
+
+def save_weekly_schedule(schedule):
+    """週間予定をデータベースに保存"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+
+        # ✅ 投稿日時を JST で保存
+        schedule["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+
+        cur.execute("""
+        INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            schedule["投稿者"], schedule["開始日"], schedule["終了日"], 
+            schedule["月曜日"], schedule["火曜日"], schedule["水曜日"], 
+            schedule["木曜日"], schedule["金曜日"], schedule["土曜日"], 
+            schedule["日曜日"], schedule["投稿日時"]
+        ))
+
+        conn.commit()
+        conn.close()
+        print("✅ 週間予定を保存しました！")  # デバッグログ
+    except Exception as e:
+        print(f"⚠️ 週間予定の保存エラー: {e}")  # エラー内容を表示
+
+def load_weekly_schedules():
+    """週間予定データを取得（最新の投稿順にソート）"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM weekly_schedules ORDER BY 投稿日時 DESC")
+    rows = cur.fetchall()
+    conn.close()
+
+    # ✅ データを辞書リストに変換
+    schedules = []
+    for row in rows:
+        schedules.append({
+            "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3], 
+            "月曜日": row[4], "火曜日": row[5], "水曜日": row[6], 
+            "木曜日": row[7], "金曜日": row[8], "土曜日": row[9], 
+            "日曜日": row[10], "投稿日時": row[11]
+        })
+    return schedules
+def post_weekly_schedule():
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+
+    st.title("週間予定投稿")
+    top_navigation()
+
+    # 開始日と終了日を選択
+    today = datetime.today().date()
+    start_date = st.date_input("開始日", today)
+    end_date = st.date_input("終了日", today + timedelta(days=6))
+
+    # 各曜日の予定を入力
+    st.subheader("各曜日の予定を入力してください")
+    monday = st.text_area("月曜日の予定")
+    tuesday = st.text_area("火曜日の予定")
+    wednesday = st.text_area("水曜日の予定")
+    thursday = st.text_area("木曜日の予定")
+    friday = st.text_area("金曜日の予定")
+    saturday = st.text_area("土曜日の予定")
+    sunday = st.text_area("日曜日の予定")
+
+    submit_button = st.button("投稿する")
+    if submit_button:
+        schedule = {
+            "投稿者": st.session_state["user"]["name"],
+            "開始日": start_date.strftime("%Y-%m-%d"),
+            "終了日": end_date.strftime("%Y-%m-%d"),
+            "月曜日": monday,
+            "火曜日": tuesday,
+            "水曜日": wednesday,
+            "木曜日": thursday,
+            "金曜日": friday,
+            "土曜日": saturday,
+            "日曜日": sunday
+        }
+        save_weekly_schedule(schedule)
+        st.success("✅ 週間予定を投稿しました！")
+        time.sleep(1)
+        switch_page("タイムライン")
+
+def show_weekly_schedules():
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+
+    st.title("週間予定")
+    top_navigation()
+
+    schedules = load_weekly_schedules()
+
+    if not schedules:
+        st.info("週間予定はありません。")
+        return
+
+    for schedule in schedules:
+        with st.expander(f"{schedule['投稿者']} さんの週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
+            st.write(f"**月曜日:** {schedule['月曜日']}")
+            st.write(f"**火曜日:** {schedule['火曜日']}")
+            st.write(f"**水曜日:** {schedule['水曜日']}")
+            st.write(f"**木曜日:** {schedule['木曜日']}")
+            st.write(f"**金曜日:** {schedule['金曜日']}")
+            st.write(f"**土曜日:** {schedule['土曜日']}")
+            st.write(f"**日曜日:** {schedule['日曜日']}")
+            st.write(f"**投稿日時:** {schedule['投稿日時']}")
+            
+
+# 🔽 既存コメントの表示
+            comments = json.loads(schedule.get("コメント", "[]"))
+            st.subheader("💬 コメント")
+            for c in comments:
+                st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
+
+            # 🔽 コメント入力フォーム
+            comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
+            if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
+                if comment_text.strip():
+                    save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+                    st.rerun()
+                else:
+                    st.warning("コメントを入力してください。")
+
+def add_comments_column():
+    """weekly_schedules テーブルにコメントカラムを追加"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("ALTER TABLE weekly_schedules ADD COLUMN コメント TEXT DEFAULT '[]'")
+    conn.commit()
+    conn.close()
+    print("✅ コメントカラムを追加しました！")
+
 
 # ✅ 日報投稿
 def post_report():
@@ -164,19 +313,28 @@ def timeline():
     st.title(" タイムライン")
     top_navigation()
 
+    # 週間予定ボタンを追加
+    if st.button("📅 週間予定"):
+        st.session_state["page"] = "週間予定"
+        st.rerun()
+
     reports = load_reports()
 
     # ✅ 期間選択用のUIを追加
     st.sidebar.subheader("表示期間を選択")
     period_option = st.sidebar.radio(
         "表示する期間を選択",
-        ["1週間以内の投稿", "過去の投稿"]
+        ["24時間以内の投稿", "1週間以内の投稿", "過去の投稿"],
+        index=0  # デフォルトで「24時間以内の投稿」を選択
     )
 
-    # ✅ デフォルトで1週間以内の投稿を表示
-    if period_option == "1週間以内の投稿":
-        start_date = (datetime.now() - timedelta(days=7)).date()  # 過去7日間
-        end_date = datetime.now().date()  # 今日
+    # ✅ デフォルトで24時間以内の投稿を表示
+    if period_option == "24時間以内の投稿":
+        start_datetime = datetime.now() + timedelta(hours=9) - timedelta(hours=24)  # 過去24時間（JST）
+        end_datetime = datetime.now() + timedelta(hours=9)  # 現在時刻（JST）
+    elif period_option == "1週間以内の投稿":
+        start_datetime = datetime.now() + timedelta(hours=9) - timedelta(days=7)  # 過去7日間（JST）
+        end_datetime = datetime.now() + timedelta(hours=9)  # 現在時刻（JST）
     else:
         # ✅ 過去の投稿を選択した場合、カレンダーで期間を指定
         st.sidebar.subheader("過去の投稿を表示")
@@ -185,12 +343,14 @@ def timeline():
             start_date = st.date_input("開始日", datetime.now().date() - timedelta(days=365), max_value=datetime.now().date() - timedelta(days=1))
         with col2:
             end_date = st.date_input("終了日", datetime.now().date() - timedelta(days=1), min_value=start_date, max_value=datetime.now().date() - timedelta(days=1))
+        start_datetime = datetime(start_date.year, start_date.month, start_date.day)
+        end_datetime = datetime(end_date.year, end_date.month, end_date.day) + timedelta(days=1)
 
     # ✅ 選択された期間に該当する投稿をフィルタリング
     filtered_reports = []
     for report in reports:
-        report_date = datetime.strptime(report["実行日"], "%Y-%m-%d").date()
-        if start_date <= report_date <= end_date:
+        report_datetime = datetime.strptime(report["投稿日時"], "%Y-%m-%d %H:%M:%S")
+        if start_datetime <= report_datetime <= end_datetime:
             filtered_reports.append(report)
 
     # ✅ 現在のユーザーの所属部署を取得
@@ -239,6 +399,7 @@ def timeline():
             if search_query.lower() in report["実施内容"].lower()
             or search_query.lower() in report["所感"].lower()
             or search_query.lower() in report["カテゴリ"].lower()
+            or search_query.lower() in report["投稿者"].lower()  # 投稿主の名前でも検索
         ]
 
     if not filtered_reports:
@@ -403,6 +564,38 @@ def my_page():
                 show_report_details(report)  # 詳細を直接表示
         else:
             st.info("コメントした投稿はありません。")
+
+    # 🔹 週間予定の編集機能
+    with st.expander("週間予定の編集", expanded=False):  # 初期状態は折りたたまれている
+        st.subheader("週間予定の編集")
+        schedules = load_weekly_schedules()
+        user_schedules = [s for s in schedules if s["投稿者"] == st.session_state["user"]["name"]]
+
+        if user_schedules:
+            for schedule in user_schedules:
+                with st.expander(f"週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
+                    edit_weekly_schedule_form(schedule)
+        else:
+            st.info("週間予定はありません。")
+
+# ✅ 週間予定の編集フォーム
+def edit_weekly_schedule_form(schedule):
+    """週間予定の編集フォーム"""
+    new_monday = st.text_area("月曜日の予定", schedule["月曜日"])
+    new_tuesday = st.text_area("火曜日の予定", schedule["火曜日"])
+    new_wednesday = st.text_area("水曜日の予定", schedule["水曜日"])
+    new_thursday = st.text_area("木曜日の予定", schedule["木曜日"])
+    new_friday = st.text_area("金曜日の予定", schedule["金曜日"])
+    new_saturday = st.text_area("土曜日の予定", schedule["土曜日"])
+    new_sunday = st.text_area("日曜日の予定", schedule["日曜日"])
+
+    if st.button("💾 保存", key=f"save_{schedule['id']}"):
+        update_weekly_schedule(
+            schedule["id"], new_monday, new_tuesday, new_wednesday, 
+            new_thursday, new_friday, new_saturday, new_sunday
+        )
+        st.success("✅ 編集を保存しました")
+        st.rerun()
             
 # ✅ 投稿詳細（編集・削除機能付き）
 def show_report_details(report):
@@ -479,3 +672,7 @@ else:
         show_notices()
     elif st.session_state["page"] == "マイページ":
         my_page()
+    elif st.session_state["page"] == "週間予定投稿":  # 週間予定投稿ページを追加
+        post_weekly_schedule()
+    elif st.session_state["page"] == "週間予定":  # 週間予定表示ページを追加
+        show_weekly_schedules()
