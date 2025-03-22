@@ -282,11 +282,12 @@ def save_weekly_plan(投稿者, 週開始日, 週終了日, 予定):
     """週間予定をデータベースに保存"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
+    投稿日時 = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S") # 現在日時をJSTで取得
 
     cur.execute("""
         INSERT INTO weekly_plans (投稿者, 週開始日, 週終了日, 予定, 投稿日時)
         VALUES (?, ?, ?, ?, ?)
-    """, (投稿者, 週開始日, 週終了日, 予定, (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")))
+    """, (投稿者, 週開始日, 週終了日, 予定, 投稿日時))
 
     conn.commit()
     conn.close()
@@ -314,11 +315,12 @@ def save_weekly_report(投稿者, 週開始日, 週終了日, 週報内容):
     """週報をデータベースに保存"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
+    投稿日時 = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S") # 現在日時をJSTで取得
 
     cur.execute("""
         INSERT INTO weekly_reports (投稿者, 週開始日, 週終了日, 週報内容, 投稿日時)
         VALUES (?, ?, ?, ?, ?)
-    """, (投稿者, 週開始日, 週終了日, 週報内容, (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")))
+    """, (投稿者, 週開始日, 週終了日, 週報内容, 投稿日時))
 
     conn.commit()
     conn.close()
