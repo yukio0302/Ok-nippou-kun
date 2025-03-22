@@ -192,7 +192,7 @@ def timeline():
         with col1:
             start_date = st.date_input("開始日", datetime.now() - timedelta(days=365), max_value=datetime.now() - timedelta(days=9))
         with col2:
-            end_date = st.date_input("終了日", datetime.now() - timedelta(days=9), min_value=start_date, max_value=datetime.now() - timedelta(daysend_date = st.date_input("終了日", datetime.now() - timedelta(days=9), min_value=start_date, max_value=datetime.now() - timedelta(days=9))
+            end_date = st.date_input("終了日", datetime.now() - timedelta(days=9), min_value=start_date, max_value=datetime.now() - timedelta(days=9))
 
     # ✅ 現在のユーザーの所属部署を取得
     user_departments = st.session_state["user"]["depart"]  # 配列で取得
