@@ -227,7 +227,7 @@ def load_notices():
     notices = []
     for row in rows:
         notices.append({
-            "id": row[0], "タイトル": row[1], "内容": row[2], "日付": row[3], "既読": row
+            "id": row[0], "タイトル": row[1], "内容": row[2], "日付": row[3], "既読": row[4]
         })
     return notices
 
