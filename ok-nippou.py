@@ -6,6 +6,7 @@ import pandas as pd
 import base64
 from datetime import datetime, timedelta
 import json
+import calendar
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
@@ -151,6 +152,37 @@ def post_report():
         switch_page("タイムライン")
 
 
+def post_weekly_plan():
+    """週間予定投稿フォーム"""
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+
+    st.title("週間予定投稿")
+    top_navigation()
+
+    today = datetime.today().date()
+    start_of_next_week = today + timedelta(days=(7 - today.weekday()))  # 次の月曜日の日付
+    end_of_next_week = start_of_next_week + timedelta(days=6)  # 次の日曜日の日付
+
+    # 週の選択
+    selected_week = st.date_input("週を選択", start_of_next_week)
+    start_of_selected_week = selected_week - timedelta(days=selected_week.weekday())
+    end_of_selected_week = start_of_selected_week + timedelta(days=6)
+
+    # 予定入力
+    weekly_plan = {}
+    for i in range(7):
+        current_date = start_of_selected_week + timedelta(days=i)
+        day_name = calendar.day_name[current_date.weekday()]
+        weekly_plan[current_date.strftime("%Y-%m-%d")] = st.text_input(f"{current_date.strftime('%m月%d日')} ({day_name}) の予定", "")
+
+    if st.button("投稿する"):
+        save_weekly_plan(st.session_state["user"]["name"], start_of_selected_week.strftime("%Y-%m-%d"), end_of_selected_week.strftime("%Y-%m-%d"), json.dumps(weekly_plan))
+        st.success("週間予定を投稿しました！")
+        time.sleep(1)
+        switch_page("タイムライン")
+
 # ✅ タイムライン（コメント機能修正）
 def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -284,6 +316,17 @@ def timeline():
                     st.warning("⚠️ 空白のコメントは投稿できません！")
 
     st.write("----")
+     
+    # ✅ 週間予定を表示
+    st.subheader("週間予定")
+    weekly_plans = load_weekly_plans()
+    for plan in weekly_plans:
+        if start_date.date() <= datetime.strptime(plan["週開始日"], "%Y-%m-%d").date() <= end_date.date():
+            st.write(f"**{plan['投稿者']} さんの週間予定 ({plan['週開始日']} ~ {plan['週終了日']})**")
+            weekly_plan_data = json.loads(plan["予定"])
+            for date, plan_text in weekly_plan_data.items():
+                st.write(f"- {datetime.strptime(date, '%Y-%m-%d').strftime('%m月%d日')} ({calendar.day_name[datetime.strptime(date, '%Y-%m-%d').weekday()]})：{plan_text}")
+            st.write("----")
 
 # ✅ お知らせを表示（未読を強調し、既読を折りたたむ）
 def show_notices():
