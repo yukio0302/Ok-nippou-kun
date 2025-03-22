@@ -494,6 +494,8 @@ else:
         timeline()
     elif st.session_state["page"] == "日報投稿":
         post_report()
+    elif st.session_state["page"] == "週間予定投稿":
+        post_weekly_plan()
     elif st.session_state["page"] == "お知らせ":
         show_notices()
     elif st.session_state["page"] == "マイページ":
