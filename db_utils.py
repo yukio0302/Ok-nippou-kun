@@ -166,7 +166,7 @@ def save_comment(report_id, commenter, comment):
     cur = conn.cursor()
 
     # ✅ 投稿の情報を取得
-    cur.execute("SELECT 投稿者, 実行日, 場所, 実施内容, コメント FROM reports WHERE id = ?", (report_id,))
+    cur.execute("SELECT 投稿者, 実行日, 場所, 実施内容, カテゴリ, コメント FROM reports WHERE id = ?", (report_id,)) # カテゴリも取得
     row = cur.fetchone()
 
     if row:
@@ -174,7 +174,8 @@ def save_comment(report_id, commenter, comment):
         実行日 = row[1]  # 実施日
         場所 = row[2]  # 場所
         実施内容 = row[3]  # 実施内容
-        comments = json.loads(row[4]) if row[4] else []
+        カテゴリ = row[4] # カテゴリ
+        comments = json.loads(row[5]) if row[5] else []
 
         # ✅ 新しいコメントを追加
         new_comment = {
@@ -192,6 +193,7 @@ def save_comment(report_id, commenter, comment):
             notification_content = f"""【お知らせ】
 {new_comment["日時"]}
 
+カテゴリ: {カテゴリ}
 実施日: {実行日}
 場所: {場所}
 実施内容: {実施内容}
