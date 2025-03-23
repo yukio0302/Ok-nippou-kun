@@ -35,3 +35,32 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+/* サイドバーのスタイリング */
+section[data-testid="stSidebar"] {
+    background-color: #1d2088 !important;
+    padding: 20px 10px !important;
+}
+
+/* サイドバーボタンのスタイル */
+div[data-testid="stSidebarNav"] button {
+    color: white !important;
+    width: 100% !important;
+    text-align: left !important;
+    margin: 5px 0 !important;
+    padding: 10px !important;
+}
+
+/* 表示期間選択のテキスト色 */
+div[data-testid="stSidebarNav"] label {
+    color: white !important;
+}
+
+/* ラジオボタンの色変更 */
+div[data-testid="stSidebarNav"] .stRadio [role="radiogroup"] {
+    accent-color: #14ae67 !important;
+}
+
+/* アクティブなボタンのスタイル */
+div[data-testid="stSidebarNav"] button:focus {
+    background-color: rgba(255,255,255,0.1) !important;
+}
