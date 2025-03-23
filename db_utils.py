@@ -37,6 +37,11 @@ def init_db(keep_existing=True):
     if not keep_existing:
         cur.execute("DROP TABLE IF EXISTS reports")
         cur.execute("DROP TABLE IF EXISTS notices")
+        cur.execute("DROP TABLE IF EXISTS weekly_plans")
+        # ▼▼▼ 追加する部分 ▼▼▼
+        cur.execute("DROP TABLE IF EXISTS reactions")
+        cur.execute("DROP TABLE IF EXISTS comments")
+        # ▲▲▲ 追加終了 ▲▲▲
 
     # ✅ 日報データのテーブル作成（存在しない場合のみ）
     cur.execute("""
@@ -78,6 +83,30 @@ def init_db(keep_existing=True):
             投稿日時 TEXT
         )
     """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS reactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        target_type TEXT CHECK(target_type IN ('report', 'weekly_plan')),
+        target_id INTEGER,
+        user_id TEXT,
+        stamp_type TEXT CHECK(stamp_type IN ('いいね', 'ナイスファイト')),
+        timestamp TEXT
+    )
+    """)
+
+    # コメント管理テーブル
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        target_type TEXT CHECK(target_type IN ('report', 'weekly_plan')),
+        target_id INTEGER,
+        user_id TEXT,
+        comment TEXT,
+        timestamp TEXT
+    )
+    """)
+    # ▲▲▲ 追加終了 ▲▲▲
 
     conn.commit()
     conn.close()
