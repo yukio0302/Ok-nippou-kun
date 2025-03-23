@@ -20,6 +20,14 @@ from db_utils import (
     save_weekly_schedule_comment, add_comments_column  # 追加
 )
 
+# CSSファイルを読み込む関数
+def load_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+# CSSファイルの読み込み
+load_css("style.css")
+
 # ✅ データベースのパス
 DB_PATH = "/mount/src/ok-nippou-kun/Ok-nippou-kun/data/reports.db"
 
