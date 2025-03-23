@@ -257,17 +257,43 @@ def timeline():
             return
     search_query = st.text_input(" 投稿を検索", "")
 
-    if search_query:
-        reports = [
-            report for report in reports
-            if search_query.lower() in report["実施内容"].lower()
-            or search_query.lower() in report["所感"].lower()
-            or search_query.lower() in report["カテゴリ"].lower()
-        ]
-
-    if not reports:
+# 日報と週間予定を結合して検索
+if search_query:
+    # 日報の検索（既存処理）
+    filtered_reports = [
+        report for report in reports
+        if search_query.lower() in report["実施内容"].lower()
+        or search_query.lower() in report["所感"].lower()
+        or search_query.lower() in report["カテゴリ"].lower()
+    ]
+    
+    # 週間予定の検索（追加処理）
+    weekly_plans = load_weekly_plans()
+    filtered_plans = [
+        plan for plan in weekly_plans
+        if any(search_query.lower() in str(value).lower() 
+              for value in json.loads(plan["予定"]).values())
+    ]
+    
+    # 検索結果を統合
+    has_reports = len(filtered_reports) > 0
+    has_plans = len(filtered_plans) > 0
+    
+    if not has_reports and not has_plans:
         st.warning(" 該当する投稿が見つかりませんでした。")
         return
+else:
+    filtered_reports = reports
+    filtered_plans = []
+
+# 検索結果表示
+if filtered_reports:
+    st.subheader("日報検索結果")
+    # 既存の日報表示処理を再利用
+    
+if filtered_plans:
+    st.subheader("週間予定検索結果")
+    # 週間予定表示処理を追加
 
     # ✅ 投稿を表示
     for report in reports:
@@ -342,6 +368,8 @@ def timeline():
             # コメント表示
             if plan['comments']:
                 st.write("**コメント**")
+                for comment in plan['comments']:
+                    st.write(f"- {comment}")
 
 # ✅ お知らせを表示（未読を強調し、既読を折りたたむ）
 def show_notices():
