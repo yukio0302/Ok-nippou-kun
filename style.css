@@ -1,0 +1,39 @@
+/* サイドバー */
+.sidebar {
+    background-color: #1e1e1e; /* 黒に近い背景色 */
+    color: white;
+    width: 200px; /* サイドバーの幅 */
+    position: fixed; /* 固定配置 */
+    top: 0;
+    left: 0;
+    height: 100%;
+}
+
+/* メニュー */
+.menu {
+    padding: 20px;
+}
+
+.menu a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.menu a:hover {
+    background-color: #333; /* ホバー時の背景色 */
+}
+
+/* メニュー項目のカラーリング */
+.menu a:nth-child(1) {
+    background-color: #4285f4; /* 青 */
+}
+
+.menu a:nth-child(2) {
+    background-color: #34a853; /* 緑 */
+}
+
+/* 他の要素のスタイル */
+/* ... */
