@@ -1,5 +1,3 @@
-
-
 /* サイドバー */
 .sidebar {
     background-color: #1d2088; /* サイドバーの背景色 */
@@ -9,21 +7,21 @@
     top: 0;
     left: 0;
     height: 100%;
-    padding-top: 20px; /* サイドバー上部の余白 */
+    padding-top: 20px;
 }
 
 /* メニュー */
 .menu {
-    padding: 20px 0; /* メニューの上下の余白 */
+    padding: 20px 0;
 }
 
 .menu a {
     display: block;
     color: white;
     text-decoration: none;
-    padding: 10px 20px; /* メニュー項目の余白 */
+    padding: 10px 20px;
     border-radius: 5px;
-    margin-bottom: 5px; /* メニュー項目間の余白 */
+    margin-bottom: 5px;
 }
 
 .menu a:hover {
@@ -67,25 +65,11 @@
 
 /* 表示期間を選択 */
 .stRadio label {
-    color: white; /* テキスト色を白に */
+    color: white;
 }
 
 .stRadio input[type="radio"]:checked + label::before {
-    background-color: #14ae67; /* 選択されたラジオボタンの色 */
+    background-color: #14ae67;
 }
 
 /* 必要に応じて、他の要素のスタイルも調整 */
-.stApp, .st-emotion-cache-1y4p8pa, .st-emotion-cache-16txtl3, .st-emotion-cache-10trblm, .st-emotion-cache-16idsys, .st-emotion-cache-1kyx7lk, .st-emotion-cache-16c70f1, .st-emotion-cache-10trblm, .st-emotion-cache-16idsys, .st-emotion-cache-1kyx7lk, .st-emotion-cache-16c70f1 {
-    background-color: black;
-    color: white;
-}
-
-.stButton>button, .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div, .stDateInput>div>div>input {
-    background-color: #333;
-    color: white;
-    border: 1px solid #555;
-}
-
-.stButton>button:hover, .stTextInput>div>div>input:hover, .stTextArea>div>div>textarea:hover, .stSelectbox>div>div>div:hover, .stDateInput>div>div>input:hover {
-    background-color: #555;
-}
