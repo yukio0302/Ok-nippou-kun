@@ -13,7 +13,7 @@ def get_current_time():
     return datetime.now() + timedelta(hours=9)  # JSTで現在時刻を取得
 
 # サブコーディングから必要な関数をインポート
-from db_utils import init_db, authenticate_user, save_report, load_reports, load_notices, mark_notice_as_read, edit_report, delete_report, update_reaction, save_comment
+from db_utils import init_db, authenticate_user, save_report, load_reports, load_notices, mark_notice_as_read, edit_report, delete_report, update_reaction, save_comment, save_weekly_plan, load_weekly_plans
 
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
