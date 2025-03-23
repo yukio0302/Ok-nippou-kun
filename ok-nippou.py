@@ -293,7 +293,7 @@ def timeline():
             # 既存の日報表示処理
 
     # 週間予定表示（検索結果/通常表示）
-    if filtered_plans:
+if filtered_plans:
         st.subheader("週間予定検索結果" if search_query else "週間予定一覧")
         for plan in filtered_plans:
             # 既存の週間予定表示処理
