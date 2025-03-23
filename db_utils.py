@@ -273,18 +273,37 @@ def save_weekly_plan(投稿者, 週開始日, 週終了日, 予定):
     conn.close()
 
 def load_weekly_plans():
-    """週間予定データを取得"""
+    """週間予定データを取得（リアクション・コメント情報付き）"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM weekly_plans ORDER BY 投稿日時 DESC")
-    rows = cur.fetchall()
-    conn.close()
-
+    # 既存クエリを拡張
+    cur.execute("""
+        SELECT 
+            wp.*,
+            (SELECT COUNT(*) FROM reactions 
+             WHERE target_type='weekly_plan' AND target_id=wp.id) as stamp_count,
+            (SELECT GROUP_CONCAT(comment, '|||') FROM comments 
+             WHERE target_type='weekly_plan' AND target_id=wp.id) as comments
+        FROM weekly_plans wp
+        ORDER BY 投稿日時 DESC
+    """)
+    
     weekly_plans = []
-    for row in rows:
-        weekly_plans.append({
-            "id": row[0], "投稿者": row[1], "週開始日": row[2], "週終了日": row[3],
-            "予定": row[4], "投稿日時": row[5]
-        })
+    for row in cur.fetchall():
+        # 既存データの互換性を維持
+        plan = {
+            "id": row[0],
+            "投稿者": row[1],
+            "週開始日": row[2],
+            "週終了日": row[3],
+            "予定": json.loads(row[4]),
+            "投稿日時": row[5],
+            # 新しいフィールドを追加
+            "stamp_count": row[6],
+            "comments": row[7].split('|||') if row[7] else []
+        }
+        weekly_plans.append(plan)
+    
+    conn.close()
     return weekly_plans
