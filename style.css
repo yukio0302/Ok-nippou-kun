@@ -1,40 +1,94 @@
+body {
+    background-color: black;
+    color: white;
+}
+
 /* サイドバー */
 .sidebar {
-    background-color: #1e1e1e; /* 黒に近い背景色 */
+    background-color: #1d2088; /* サイドバーの背景色 */
     color: white;
-    width: 200px; /* サイドバーの幅 */
-    position: fixed; /* 固定配置 */
+    width: 200px;
+    position: fixed;
     top: 0;
     left: 0;
     height: 100%;
+    padding-top: 20px; /* サイドバー上部の余白 */
 }
 
 /* メニュー */
 .menu {
-    padding: 20px;
+    padding: 20px 0; /* メニューの上下の余白 */
 }
 
 .menu a {
     display: block;
     color: white;
     text-decoration: none;
-    padding: 10px;
+    padding: 10px 20px; /* メニュー項目の余白 */
     border-radius: 5px;
+    margin-bottom: 5px; /* メニュー項目間の余白 */
 }
 
 .menu a:hover {
-    background-color: #333; /* ホバー時の背景色 */
+    background-color: #333;
 }
 
-/* メニュー項目のカラーリング */
-.menu a:nth-child(1) {
-    background-color: #4285f4; /* 青 */
+/* メニュー項目のアイコン */
+.menu a::before {
+    content: "";
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    background-size: contain;
+    background-repeat: no-repeat;
 }
 
-.menu a:nth-child(2) {
-    background-color: #34a853; /* 緑 */
+.menu a:nth-child(1)::before {
+    background-image: url('data:image/svg+xml,...'); /* タイムラインのアイコン（SVGデータURI） */
 }
 
-/* 他の要素のスタイル */
-/* 必要に応じて、さらに詳細なスタイルを追加 */
-/* ... */
+.menu a:nth-child(2)::before {
+    background-image: url('data:image/svg+xml,...'); /* 週間予定のアイコン（SVGデータURI） */
+}
+
+.menu a:nth-child(3)::before {
+    background-image: url('data:image/svg+xml,...'); /* お知らせのアイコン（SVGデータURI） */
+}
+
+.menu a:nth-child(4)::before {
+    background-image: url('data:image/svg+xml,...'); /* 週間予定投稿のアイコン（SVGデータURI） */
+}
+
+.menu a:nth-child(5)::before {
+    background-image: url('data:image/svg+xml,...'); /* 日報作成のアイコン（SVGデータURI） */
+}
+
+.menu a:nth-child(6)::before {
+    background-image: url('data:image/svg+xml,...'); /* マイページのアイコン（SVGデータURI） */
+}
+
+/* 表示期間を選択 */
+.stRadio label {
+    color: white; /* テキスト色を白に */
+}
+
+.stRadio input[type="radio"]:checked + label::before {
+    background-color: #14ae67; /* 選択されたラジオボタンの色 */
+}
+
+/* 必要に応じて、他の要素のスタイルも調整 */
+.stApp, .st-emotion-cache-1y4p8pa, .st-emotion-cache-16txtl3, .st-emotion-cache-10trblm, .st-emotion-cache-16idsys, .st-emotion-cache-1kyx7lk, .st-emotion-cache-16c70f1, .st-emotion-cache-10trblm, .st-emotion-cache-16idsys, .st-emotion-cache-1kyx7lk, .st-emotion-cache-16c70f1 {
+    background-color: black;
+    color: white;
+}
+
+.stButton>button, .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div, .stDateInput>div>div>input {
+    background-color: #333;
+    color: white;
+    border: 1px solid #555;
+}
+
+.stButton>button:hover, .stTextInput>div>div>input:hover, .stTextArea>div>div>textarea:hover, .stSelectbox>div>div>div:hover, .stDateInput>div>div>input:hover {
+    background-color: #555;
+}
