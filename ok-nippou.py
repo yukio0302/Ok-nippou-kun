@@ -76,6 +76,37 @@ def top_navigation():
 
 # ...（以下、元のコードと同じ。その他の関数やメインロジックは変更なし）...
         
+# ✅ サイドバーナビゲーションの追加
+def sidebar_navigation():
+    with st.sidebar:
+        st.markdown("""
+        <style>
+            .sidebar-menu {
+                color: white !important;
+                margin-bottom: 30px;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # ナビゲーションボタン
+        if st.button("⏳ タイムライン", key="sidebar_timeline"):
+            switch_page("タイムライン")
+            
+        if st.button("📅 週間予定", key="sidebar_weekly"):
+            switch_page("週間予定")
+            
+        if st.button("🔔 お知らせ", key="sidebar_notice"):
+            switch_page("お知らせ")
+            
+        if st.button("✈️ 週間予定投稿", key="sidebar_post_schedule"):
+            switch_page("週間予定投稿")
+            
+        if st.button("📝 日報作成", key="sidebar_post_report"):
+            switch_page("日報投稿")
+            
+        if st.button("👤 マイページ", key="sidebar_mypage"):
+            switch_page("マイページ")
+
 # ✅ ログイン機能（修正済み）
 def login():
     st.title(" ログイン")
@@ -655,6 +686,21 @@ def edit_report_form(report):
 if st.session_state["user"] is None:
     login()
 else:
+    sidebar_navigation()  # サイドバーナビゲーションを追加
+    
+    # 表示期間選択のスタイリングを維持
+    st.sidebar.subheader("表示期間を選択")
+    period_option = st.sidebar.radio(
+        "表示する期間を選択",
+        ["24時間以内の投稿", "1週間以内の投稿", "過去の投稿"],
+        index=0
+    )
+    
+    # 既存のページ表示ロジックは変更なし
+    if st.session_state["page"] == "タイムライン":
+        timeline()
+    elif st.session_state["page"] == "日報投稿":
+        post_report()
     if st.session_state["page"] == "タイムライン":
         timeline()
     elif st.session_state["page"] == "日報投稿":
