@@ -67,8 +67,10 @@ div[data-testid="stSidebarNav"] button:focus {
 
 /* 画像のスタイリング */
 section[data-testid="stSidebar"] img {
-    padding: 15px;
-    background: white;
-    border-radius: 10px;
+    padding: 0 !important;       /* 余白を除去 */
+    background: transparent !important;  /* 背景色を透明に */
+    border: none !important;      /* 枠線を除去 */
     margin-top: 10px;
+    border-radius: 0 !important;  /* 角丸を除去 */
+}
 }
