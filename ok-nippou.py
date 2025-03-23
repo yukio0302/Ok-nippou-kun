@@ -255,136 +255,81 @@ def timeline():
         except Exception as e:
             st.error(f"⚠️ 部署情報の読み込みエラー: {e}")
             return
-    # 検索機能 --------------------------------------------------
     search_query = st.text_input(" 投稿を検索", "")
 
-    # 検索条件がある場合
     if search_query:
-        # 日報検索
-        filtered_reports = [
+        reports = [
             report for report in reports
             if search_query.lower() in report["実施内容"].lower()
             or search_query.lower() in report["所感"].lower()
             or search_query.lower() in report["カテゴリ"].lower()
         ]
-        
-        # 週間予定検索
-        weekly_plans = load_weekly_plans()
-        filtered_plans = [
-            plan for plan in weekly_plans
-            if any(search_query.lower() in str(value).lower() 
-                for value in json.loads(plan["予定"]).values())
-        ]
-        
-        # 結果チェック
-        if not filtered_reports and not filtered_plans:
-            st.warning(" 該当する投稿が見つかりませんでした。")
 
-    # 検索条件がない場合
-    else:
-        filtered_reports = reports
-        filtered_plans = load_weekly_plans()
-
-    def timeline():
-    # ...（既存のコード）...
-
-    # 表示処理 --------------------------------------------------
-    # 日報表示（検索結果/通常表示）
-    if filtered_reports:
-        st.subheader("日報検索結果" if search_query else "最新の日報")
-        for report in filtered_reports:
-            # ▼▼▼ 日報表示処理開始 ▼▼▼
-            st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
-            st.write(f" **実施日:** {report['実行日']}")
-            st.write(f" **場所:** {report['場所']}")
-            st.write(f" **実施内容:** {report['実施内容']}")
-            st.write(f" **所感:** {report['所感']}")
-
-            if report.get("image"):
-                try:
-                    st.image(base64.b64decode(report["image"]), caption="投稿画像", use_container_width=True)
-                except Exception as e:
-                    st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
-
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button(f"❤️ {report['いいね']} いいね！", key=f"like_{report['id']}"):
-                    update_reaction(report["id"], "いいね")
-                    st.rerun()
-            with col2:
-                if st.button(f"💪 {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
-                    update_reaction(report["id"], "ナイスファイト")
-                    st.rerun()
-
-            # コメント欄
-            comment_count = len(report["コメント"]) if report["コメント"] else 0
-            with st.expander(f" ({comment_count}件)のコメントを見る・追加する "):
-                if report["コメント"]:
-                    for c in report["コメント"]:
-                        st.write(f" {c['投稿者']} ({c['日時']}): {c['コメント']}")
-
-                commenter_name = st.session_state["user"]["name"]
-                new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
-                if st.button(" コメントを投稿", key=f"submit_comment_{report['id']}"):
-                    if new_comment.strip():
-                        save_comment(report["id"], commenter_name, new_comment)
-                        st.success("✅ コメントを投稿しました！")
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ 空白のコメントは投稿できません！")
-            st.write("----")
-            # ▲▲▲ 日報表示処理終了 ▲▲▲
-
-    # 週間予定表示（検索結果/通常表示） ▼▼▼ インデント修正 ▼▼▼
-    if filtered_plans:
-        st.subheader("週間予定検索結果" if search_query else "週間予定一覧")
-        for plan in filtered_plans:
-            with st.expander(f"{plan['投稿者']} さんの週報 ({plan['週開始日']}〜{plan['週終了日']}) ▽"):
-                for date, content in json.loads(plan["予定"]).items():
-                    st.write(f"**{date}**: {content}")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button(f"👍 いいね! ({plan['stamp_count']})", key=f"weekly_like_{plan['id']}"):
-                        update_reaction('weekly_plan', plan['id'])
-                with col2:
-                    if st.button(f"💬 コメント ({len(plan['comments'])})", key=f"weekly_comment_{plan['id']}"):
-                        handle_comment('weekly_plan', plan['id'])
-                
-                if plan['comments']:
-                    st.write("**コメント**")
-                    for comment in plan['comments']:
-                        st.write(f"- {comment}")
-
-    # ▼▼▼ 重複していた不要な表示処理を削除 ▼▼▼
-    # 両方ない場合の処理（検索時のみ）
-    if search_query and not filtered_reports and not filtered_plans:
+    if not reports:
         st.warning(" 該当する投稿が見つかりませんでした。")
+        return
+
+    # ✅ 投稿を表示
+    for report in reports:
+        st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
+        st.write(f" **実施日:** {report['実行日']}")
+        st.write(f" **場所:** {report['場所']}")
+        st.write(f" **実施内容:** {report['実施内容']}")
+        st.write(f" **所感:** {report['所感']}")
+
+        # ✅ 画像が存在する場合、表示する
+        if report.get("image"):
+            try:
+                # Base64データをデコードして画像を表示
+                st.image(base64.b64decode(report["image"]), caption="投稿画像", use_container_width=True) # ✅ use_column_width を use_container_width に修正
+            except Exception as e:
+                st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button(f"❤️ {report['いいね']} いいね！", key=f"like_{report['id']}"):
+                update_reaction(report["id"], "いいね")
+                st.rerun()
+        with col2:
+            if st.button(f"💪 {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
+                update_reaction(report["id"], "ナイスファイト")
+                st.rerun()
+
+        # コメント欄
+        comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
+        with st.expander(f" ({comment_count}件)のコメントを見る・追加する "):  # 件数を表示
+            if report["コメント"]:
+                for c in report["コメント"]:
+                    st.write(f" {c['投稿者']} ({c['日時']}): {c['コメント']}")
+
+            if report.get("id") is None:
+                st.error("⚠️ 投稿の ID が見つかりません。")
+                continue
+
+            commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
+            new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
+
+            if st.button(" コメントを投稿", key=f"submit_comment_{report['id']}"):
+                if new_comment and new_comment.strip():
+                    print(f"️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
+                    save_comment(report["id"], commenter_name, new_comment)
+                    st.success("✅ コメントを投稿しました！")
+                    st.rerun()
+                else:
+                    st.warning("⚠️ 空白のコメントは投稿できません！")
+
+    st.write("----")
      
-     # 週間予定の表示セクション
-    st.subheader("週間予定一覧")
+    # ✅ 週間予定を表示
+    st.subheader("週間予定")
     weekly_plans = load_weekly_plans()
-    
     for plan in weekly_plans:
-        with st.expander(f"{plan['投稿者']} さんの週報 ({plan['週開始日']}〜{plan['週終了日']}) ▽"):
-            # 予定詳細表示
-            for date, content in plan['予定'].items():
-                st.write(f"**{date}**: {content}")
-            
-            # リアクション機能
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button(f"👍 いいね! ({plan['stamp_count']})", key=f"weekly_like_{plan['id']}"):
-                    update_reaction('weekly_plan', plan['id'])
-            with col2:
-                if st.button(f"💬 コメント ({len(plan['comments'])})", key=f"weekly_comment_{plan['id']}"):
-                    handle_comment('weekly_plan', plan['id'])
-            
-            # コメント表示
-            if plan['comments']:
-                st.write("**コメント**")
-                for comment in plan['comments']:
-                    st.write(f"- {comment}")
+        if start_date.date() <= datetime.strptime(plan["週開始日"], "%Y-%m-%d").date() <= end_date.date():
+            st.write(f"**{plan['投稿者']} さんの週間予定 ({plan['週開始日']} ~ {plan['週終了日']})**")
+            weekly_plan_data = json.loads(plan["予定"])
+            for date, plan_text in weekly_plan_data.items():
+                st.write(f"- {datetime.strptime(date, '%Y-%m-%d').strftime('%m月%d日')} ({calendar.day_name[datetime.strptime(date, '%Y-%m-%d').weekday()]})：{plan_text}")
+            st.write("----")
 
 # ✅ お知らせを表示（未読を強調し、既読を折りたたむ）
 def show_notices():
