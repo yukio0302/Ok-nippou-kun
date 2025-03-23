@@ -356,15 +356,15 @@ def show_notices():
 
     # ✅ 未読のお知らせを上部に表示
     if new_notices:
-        st.subheader(f"新着お知らせ ({len(new_notices)}件)")
+        st.subheader(" 新着お知らせ")
         for notice in new_notices:
             with st.container():
-                st.markdown(f"### ✉️ {notice['タイトル']}")
-                st.caption(f"受信日時: {notice['日付']}")
-                st.markdown(f"```\n{notice['内容']}\n```")  # 書式整形
-                
-                # 既読ボタン
-                if st.button(f"既読にする", key=f"read_{notice['id']}"):
+                st.markdown(f"### {notice['タイトル']} ✅")
+                st.write(f" {notice['日付']}")
+                st.write(notice["内容"])
+
+                # ✅ クリックで既読処理を実行
+                if st.button(f"✔️ 既読にする", key=f"read_{notice['id']}"):
                     st.session_state["notice_to_read"] = notice["id"]
 
     # ✅ 既読処理を実行
