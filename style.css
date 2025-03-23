@@ -1,101 +1,37 @@
-/* サイドバー */
-.sidebar {
-    background-color: #1d2088;
-    color: white;
-    width: 200px;
+/* ナビゲーションバーのスタイル */
+.nav-bar {
     position: fixed;
     top: 0;
     left: 0;
-    height: 100%;
-    padding-top: 20px;
-}
-
-/* メニュー */
-.menu {
-    padding: 20px 0;
-}
-
-.menu a {
-    display: block;
-    color: white;
-    text-decoration: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    margin-bottom: 5px;
-}
-
-.menu a:hover {
-    background-color: #333;
-}
-
-/* メニュー項目のアイコン */
-.menu a::before {
-    content: "";
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    margin-right: 10px;
-    background-size: contain;
-    background-repeat: no-repeat;
-}
-
-.menu a:nth-child(1)::before {
-    background-image: url('data:image/svg+xml,...'); /* タイムラインのアイコン（SVGデータURI） */
-}
-
-.menu a:nth-child(2)::before {
-    background-image: url('data:image/svg+xml,...'); /* 週間予定のアイコン（SVGデータURI） */
-}
-
-.menu a:nth-child(3)::before {
-    background-image: url('data:image/svg+xml,...'); /* お知らせのアイコン（SVGデータURI） */
-}
-
-.menu a:nth-child(4)::before {
-    background-image: url('data:image/svg+xml,...'); /* 週間予定投稿のアイコン（SVGデータURI） */
-}
-
-.menu a:nth-child(5)::before {
-    background-image: url('data:image/svg+xml,...'); /* 日報作成のアイコン（SVGデータURI） */
-}
-
-.menu a:nth-child(6)::before {
-    background-image: url('data:image/svg+xml,...'); /* マイページのアイコン（SVGデータURI） */
-}
-
-/* 表示期間を選択 */
-.stRadio label {
-    color: white;
-}
-
-.stRadio input[type="radio"]:checked + label::before {
-    background-color: #14ae67;
-}
-
-/* タイムラインの投稿 */
-.report-container {
-    border: 1px solid #ccc;
-    padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 5px;
-}
-
-.report-header {
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-/* コメント欄 */
-.comment-container {
-    margin-top: 10px;
+    width: 100%;
+    background-color: #ffffff;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
     padding: 10px;
-    border: 1px solid #ddd;
+    border-bottom: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+}
+
+.nav-item {
+    text-align: center;
+    font-size: 14px;
+    padding: 10px;
+    cursor: pointer;
+    color: #666;
+    background-color: #f8f8f8;
     border-radius: 5px;
 }
 
-.comment-author {
+.nav-item.active {
+    color: black;
     font-weight: bold;
-    margin-right: 5px;
+    background-color: #ddd;
 }
 
-/* 必要に応じて、他の要素のスタイルも追加 */
+@media (max-width: 600px) {
+    .nav-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
