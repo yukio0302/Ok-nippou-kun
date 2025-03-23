@@ -121,6 +121,11 @@ def sidebar_navigation():
 
 # ✅ ログイン機能（修正済み）
 def login():
+    # ロゴ表示（中央揃え）
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        st.image("OK-Nippou4.png", use_container_width=True)  # 画像をコンテナ幅に合わせる
+
     st.title(" ログイン")
     employee_code = st.text_input("社員コード")
     password = st.text_input("パスワード", type="password")
