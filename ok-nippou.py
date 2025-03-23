@@ -255,37 +255,53 @@ def timeline():
         except Exception as e:
             st.error(f"⚠️ 部署情報の読み込みエラー: {e}")
             return
+    # 検索機能 --------------------------------------------------
     search_query = st.text_input(" 投稿を検索", "")
 
-# 日報と週間予定を結合して検索
-if search_query:
-    # 日報の検索（既存処理）
-    filtered_reports = [
-        report for report in reports
-        if search_query.lower() in report["実施内容"].lower()
-        or search_query.lower() in report["所感"].lower()
-        or search_query.lower() in report["カテゴリ"].lower()
-    ]
-    
-    # 週間予定の検索（追加処理）
-    weekly_plans = load_weekly_plans()
-    filtered_plans = [
-        plan for plan in weekly_plans
-        if any(search_query.lower() in str(value).lower() 
-              for value in json.loads(plan["予定"]).values())
-    ]
-    
-    # 検索結果を統合
-    has_reports = len(filtered_reports) > 0
-    has_plans = len(filtered_plans) > 0
-    
-    if not has_reports and not has_plans:
-        st.warning(" 該当する投稿が見つかりませんでした。")
-        return
-else:
-    filtered_reports = reports
-    filtered_plans = []
+    # 検索条件がある場合
+    if search_query:
+        # 日報検索
+        filtered_reports = [
+            report for report in reports
+            if search_query.lower() in report["実施内容"].lower()
+            or search_query.lower() in report["所感"].lower()
+            or search_query.lower() in report["カテゴリ"].lower()
+        ]
+        
+        # 週間予定検索
+        weekly_plans = load_weekly_plans()
+        filtered_plans = [
+            plan for plan in weekly_plans
+            if any(search_query.lower() in str(value).lower() 
+                for value in json.loads(plan["予定"]).values())
+        ]
+        
+        # 結果チェック
+        if not filtered_reports and not filtered_plans:
+            st.warning(" 該当する投稿が見つかりませんでした。")
 
+    # 検索条件がない場合
+    else:
+        filtered_reports = reports
+        filtered_plans = load_weekly_plans()
+
+    # 表示処理 --------------------------------------------------
+    # 日報表示（検索結果/通常表示）
+    if filtered_reports:
+        st.subheader("日報検索結果" if search_query else "最新の日報")
+        for report in filtered_reports:
+            # 既存の日報表示処理
+
+    # 週間予定表示（検索結果/通常表示）
+    if filtered_plans:
+        st.subheader("週間予定検索結果" if search_query else "週間予定一覧")
+        for plan in filtered_plans:
+            # 既存の週間予定表示処理
+
+    # 両方ない場合の処理（検索時のみ）
+    if search_query and not filtered_reports and not filtered_plans:
+        st.warning(" 該当する投稿が見つかりませんでした。")
+        
 # 検索結果表示
 if filtered_reports:
     st.subheader("日報検索結果")
