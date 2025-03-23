@@ -73,4 +73,18 @@ section[data-testid="stSidebar"] img {
     margin-top: 10px;
     border-radius: 0 !important;  /* 角丸を除去 */
 }
+
+/* ログイン画面の画像スタイリング */
+div[data-testid="column"] img {
+    margin-bottom: 30px !important;
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));
+}
+
+/* モバイル表示用 */
+@media (max-width: 768px) {
+    div[data-testid="column"] img {
+        width: 70% !important;
+        margin: 0 auto 20px !important;
+    }
+}
 }
