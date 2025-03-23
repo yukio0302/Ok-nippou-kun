@@ -48,46 +48,8 @@ def switch_page(page_name):
     """ページを切り替える（即時リロードはなし！）"""
     st.session_state["page"] = page_name
 
-# ✅ ナビゲーションバー（修正済み）
+# ✅ ナビゲーションバー（CSSを削除）
 def top_navigation():
-    st.markdown("""
-    <style>
-        .nav-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: #ffffff;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr); /* 2列 */
-            gap: 10px;
-            padding: 10px;
-            border-bottom: 1px solid #ccc;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            z-index: 9999;
-        }
-        .nav-item {
-            text-align: center;
-            font-size: 14px;
-            padding: 10px;
-            cursor: pointer;
-            color: #666;
-            background-color: #f8f8f8;
-            border-radius: 5px;
-        }
-        .nav-item.active {
-            color: black;
-            font-weight: bold;
-            background-color: #ddd;
-        }
-        @media (max-width: 600px) {
-            .nav-bar {
-                grid-template-columns: repeat(2, 1fr); /* スマホでも2列を維持 */
-            }
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
     col1, col2 = st.columns(2)
     with col1:
         if st.button("⏳ タイムライン"):
@@ -111,6 +73,8 @@ def top_navigation():
 
     if "page" not in st.session_state:
         st.session_state.page = "タイムライン"
+
+# ...（以下、元のコードと同じ。その他の関数やメインロジックは変更なし）...
         
 # ✅ ログイン機能（修正済み）
 def login():
