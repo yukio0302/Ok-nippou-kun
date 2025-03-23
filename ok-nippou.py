@@ -173,34 +173,52 @@ def post_weekly_schedule():
     st.title("週間予定投稿")
     top_navigation()
 
-    # 開始日と終了日を選択
-    today = datetime.today().date()
-    start_date = st.date_input("開始日", today)
-    end_date = st.date_input("終了日", today + timedelta(days=6))
+    # 週選択用のヘルパー関数
+    def generate_week_options():
+        """選択可能な週のリストを生成（過去4週～未来4週）"""
+        today = datetime.today().date()
+        options = []
+        for i in range(-4, 5):
+            start = today - timedelta(days=today.weekday()) + timedelta(weeks=i)
+            end = start + timedelta(days=6)
+            week_label = f"{start.month}/{start.day}（月）～{end.month}/{end.day}（日）"
+            options.append((start, end, week_label))
+        return options
 
-    # 各曜日の予定を入力
-    st.subheader("各曜日の予定を入力してください")
-    monday = st.text_area("月曜日の予定")
-    tuesday = st.text_area("火曜日の予定")
-    wednesday = st.text_area("水曜日の予定")
-    thursday = st.text_area("木曜日の予定")
-    friday = st.text_area("金曜日の予定")
-    saturday = st.text_area("土曜日の予定")
-    sunday = st.text_area("日曜日の予定")
+    # 週選択UI
+    week_options = generate_week_options()
+    selected_week = st.selectbox(
+        "該当週を選択",
+        options=week_options,
+        format_func=lambda x: x[2],
+        index=4
+    )
+    start_date, end_date, _ = selected_week
 
-    submit_button = st.button("投稿する")
-    if submit_button:
+    # 各日の予定入力
+    weekly_plan = {}
+    for i in range(7):
+        current_date = start_date + timedelta(days=i)
+        weekday_jp = ["月", "火", "水", "木", "金", "土", "日"][current_date.weekday()]
+        date_label = f"{current_date.month}月{current_date.day}日（{weekday_jp}）"
+        
+        weekly_plan[current_date.strftime("%Y-%m-%d")] = st.text_input(
+            f"{date_label} の予定",
+            key=f"plan_{current_date}"
+        )
+
+    if st.button("投稿する"):
         schedule = {
             "投稿者": st.session_state["user"]["name"],
             "開始日": start_date.strftime("%Y-%m-%d"),
             "終了日": end_date.strftime("%Y-%m-%d"),
-            "月曜日": monday,
-            "火曜日": tuesday,
-            "水曜日": wednesday,
-            "木曜日": thursday,
-            "金曜日": friday,
-            "土曜日": saturday,
-            "日曜日": sunday
+            "月曜日": weekly_plan[(start_date + timedelta(days=0)).strftime("%Y-%m-%d")],
+            "火曜日": weekly_plan[(start_date + timedelta(days=1)).strftime("%Y-%m-%d")],
+            "水曜日": weekly_plan[(start_date + timedelta(days=2)).strftime("%Y-%m-%d")],
+            "木曜日": weekly_plan[(start_date + timedelta(days=3)).strftime("%Y-%m-%d")],
+            "金曜日": weekly_plan[(start_date + timedelta(days=4)).strftime("%Y-%m-%d")],
+            "土曜日": weekly_plan[(start_date + timedelta(days=5)).strftime("%Y-%m-%d")],
+            "日曜日": weekly_plan[(start_date + timedelta(days=6)).strftime("%Y-%m-%d")]
         }
         save_weekly_schedule(schedule)
         st.success("✅ 週間予定を投稿しました！")
