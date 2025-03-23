@@ -20,13 +20,14 @@ from db_utils import (
     save_weekly_schedule_comment, add_comments_column  # 追加
 )
 
-# CSSファイルを読み込む関数
+# 絶対パスでCSSファイルを読み込む関数
 def load_css(file_name):
-    with open(file_name) as f:
+    with open(file_name) as f:  # 絶対パスをそのまま使用
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-# CSSファイルの読み込み
-load_css("style.css")
+# 絶対パスでCSSファイルを読み込む
+css_file_path = "/mount/src/ok-nippou-kun/Ok-nippou-kun/style.css"  # 絶対パスを設定
+load_css(css_file_path)
 
 # ✅ データベースのパス
 DB_PATH = "/mount/src/ok-nippou-kun/Ok-nippou-kun/data/reports.db"
