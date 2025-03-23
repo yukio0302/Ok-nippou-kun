@@ -26,7 +26,7 @@ def load_css(file_name):
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 # 絶対パスでCSSファイルを読み込む
-css_file_path = "Ok-nippou-kun/style.css"  # 絶対パスを設定
+css_file_path = "style.css"  # 絶対パスを設定
 load_css(css_file_path)
 
 # ✅ データベースのパス
