@@ -36,27 +36,5 @@
 }
 
 /* 他の要素のスタイル */
-body {
-    background-color: black;
-    color: white; /* 文字色を白に設定 */
-}
-
-/* 必要に応じて、他の要素のスタイルも調整 */
-.stApp, .st-emotion-cache-1y4p8pa, .st-emotion-cache-16txtl3, .st-emotion-cache-10trblm, .st-emotion-cache-16idsys, .st-emotion-cache-1kyx7lk, .st-emotion-cache-16c70f1, .st-emotion-cache-10trblm, .st-emotion-cache-16idsys, .st-emotion-cache-1kyx7lk, .st-emotion-cache-16c70f1 {
-    background-color: black;
-    color: white; /* 文字色を白に設定 */
-}
-
-/* Streamlitのボタンや入力欄などの要素のスタイルも調整 */
-.stButton>button, .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div, .stDateInput>div>div>input {
-    background-color: #333; /* 背景色を少し明るく */
-    color: white;
-    border: 1px solid #555; /* 枠線を少し明るく */
-}
-
-.stButton>button:hover, .stTextInput>div>div>input:hover, .stTextArea>div>div>textarea:hover, .stSelectbox>div>div>div:hover, .stDateInput>div>div>input:hover {
-    background-color: #555; /* ホバー時の背景色を少し明るく */
-}
-
 /* 必要に応じて、さらに詳細なスタイルを追加 */
 /* ... */
