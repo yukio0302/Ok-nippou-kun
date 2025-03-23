@@ -79,6 +79,18 @@ def top_navigation():
 # ✅ サイドバーナビゲーションの追加
 def sidebar_navigation():
     with st.sidebar:
+         # 画像表示（サイドバー上部）
+        st.image("OK-Nippou.png", use_column_width=True)
+        
+        # ナビゲーションボタン
+        st.markdown("""
+        <style>
+            /* 画像とボタンの間隔調整 */
+            .stImage {
+                margin-bottom: 30px !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
         st.markdown("""
         <style>
             .sidebar-menu {
