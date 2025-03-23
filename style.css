@@ -64,3 +64,11 @@ div[data-testid="stSidebarNav"] .stRadio [role="radiogroup"] {
 div[data-testid="stSidebarNav"] button:focus {
     background-color: rgba(255,255,255,0.1) !important;
 }
+
+/* 画像のスタイリング */
+section[data-testid="stSidebar"] img {
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+    margin-top: 10px;
+}
