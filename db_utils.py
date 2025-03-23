@@ -37,11 +37,6 @@ def init_db(keep_existing=True):
     if not keep_existing:
         cur.execute("DROP TABLE IF EXISTS reports")
         cur.execute("DROP TABLE IF EXISTS notices")
-        cur.execute("DROP TABLE IF EXISTS weekly_plans")
-        # ▼▼▼ 追加する部分 ▼▼▼
-        cur.execute("DROP TABLE IF EXISTS reactions")
-        cur.execute("DROP TABLE IF EXISTS comments")
-        # ▲▲▲ 追加終了 ▲▲▲
 
     # ✅ 日報データのテーブル作成（存在しない場合のみ）
     cur.execute("""
@@ -63,15 +58,14 @@ def init_db(keep_existing=True):
 
     # ✅ お知らせデータのテーブル作成（存在しない場合のみ）
     cur.execute("""
-CREATE TABLE IF NOT EXISTS notices (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    タイトル TEXT,
-    内容 TEXT,
-    日付 TEXT,
-    既読 INTEGER DEFAULT 0,
-    recipient_id TEXT  -- ▼▼▼ 受信者IDを追加 ▼▼▼
-)
-""")
+    CREATE TABLE IF NOT EXISTS notices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        タイトル TEXT,
+        内容 TEXT,
+        日付 TEXT,
+        既読 INTEGER DEFAULT 0
+    )
+    """)
 
      # ✅ 週間予定データのテーブル作成（存在しない場合のみ）
     cur.execute("""
@@ -84,30 +78,6 @@ CREATE TABLE IF NOT EXISTS notices (
             投稿日時 TEXT
         )
     """)
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS reactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        target_type TEXT CHECK(target_type IN ('report', 'weekly_plan')),
-        target_id INTEGER,
-        user_id TEXT,
-        stamp_type TEXT CHECK(stamp_type IN ('いいね', 'ナイスファイト')),
-        timestamp TEXT
-    )
-    """)
-
-    # コメント管理テーブル
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS comments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        target_type TEXT CHECK(target_type IN ('report', 'weekly_plan')),
-        target_id INTEGER,
-        user_id TEXT,
-        comment TEXT,
-        timestamp TEXT
-    )
-    """)
-    # ▲▲▲ 追加終了 ▲▲▲
 
     conn.commit()
     conn.close()
@@ -199,28 +169,26 @@ def save_comment(report_id, commenter, comment):
 
         # ✅ 投稿者がコメント者と違う場合、お知らせを追加
         if 投稿者 != commenter:
-        notification_content = f"""【{commenter}さんからコメント】
-{new_comment["日時"]}
+            notification_content = f"""【お知らせ】  
+{new_comment["日時"]}  
 
-対象日報:
-実施日: {実行日}
-場所: {場所}
-実施内容: {実施内容[:30]}...  # 冒頭30文字のみ表示
+実施日: {実行日}  
+場所: {場所}  
+実施内容: {実施内容}  
 
-コメント内容:
-{comment}
+の投稿に {commenter} さんがコメントしました。  
+コメント内容: {comment}
 """
 
-        cur.execute("""
-            INSERT INTO notices (タイトル, 内容, 日付, 既読, recipient_id)
-            VALUES (?, ?, ?, ?, ?)  -- ▼▼▼ 受信者IDを追加 ▼▼▼
-        """, (
-            "新しいコメントが届きました！",
-            notification_content,
-            new_comment["日時"],
-            0,  # 既読フラグ（未読）
-            投稿者  # 日報投稿者のID
-        ))
+            cur.execute("""
+                INSERT INTO notices (タイトル, 内容, 日付, 既読)
+                VALUES (?, ?, ?, ?)
+            """, (
+                "新しいコメントが届きました！",
+                notification_content,
+                new_comment["日時"],
+                0  # 既読フラグ（未読）
+            ))
 
         conn.commit()
 
@@ -232,24 +200,15 @@ def load_notices():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # ▼▼▼ 現在のユーザーIDでフィルタリング ▼▼▼
-    cur.execute("""
-        SELECT * FROM notices 
-        WHERE recipient_id = ? 
-        ORDER BY 日付 DESC
-    """, (st.session_state["user"]["code"],))  # 社員コードを使用
-
+    cur.execute("SELECT * FROM notices ORDER BY 日付 DESC")
     rows = cur.fetchall()
     conn.close()
 
+    # ✅ データを辞書リストに変換
     notices = []
     for row in rows:
         notices.append({
-            "id": row[0],
-            "タイトル": row[1],
-            "内容": row[2],
-            "日付": row[3],
-            "既読": row[4]
+            "id": row[0], "タイトル": row[1], "内容": row[2], "日付": row[3], "既読": row[4]
         })
     return notices
 
