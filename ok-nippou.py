@@ -320,16 +320,28 @@ def timeline():
 
     st.write("----")
      
-    # ✅ 週間予定を表示
-    st.subheader("週間予定")
+     # 週間予定の表示セクション
+    st.subheader("週間予定一覧")
     weekly_plans = load_weekly_plans()
+    
     for plan in weekly_plans:
-        if start_date.date() <= datetime.strptime(plan["週開始日"], "%Y-%m-%d").date() <= end_date.date():
-            st.write(f"**{plan['投稿者']} さんの週間予定 ({plan['週開始日']} ~ {plan['週終了日']})**")
-            weekly_plan_data = json.loads(plan["予定"])
-            for date, plan_text in weekly_plan_data.items():
-                st.write(f"- {datetime.strptime(date, '%Y-%m-%d').strftime('%m月%d日')} ({calendar.day_name[datetime.strptime(date, '%Y-%m-%d').weekday()]})：{plan_text}")
-            st.write("----")
+        with st.expander(f"{plan['投稿者']} さんの週報 ({plan['週開始日']}〜{plan['週終了日']}) ▽"):
+            # 予定詳細表示
+            for date, content in plan['予定'].items():
+                st.write(f"**{date}**: {content}")
+            
+            # リアクション機能
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"👍 いいね! ({plan['stamp_count']})", key=f"weekly_like_{plan['id']}"):
+                    update_reaction('weekly_plan', plan['id'])
+            with col2:
+                if st.button(f"💬 コメント ({len(plan['comments'])})", key=f"weekly_comment_{plan['id']}"):
+                    handle_comment('weekly_plan', plan['id'])
+            
+            # コメント表示
+            if plan['comments']:
+                st.write("**コメント**")
 
 # ✅ お知らせを表示（未読を強調し、既読を折りたたむ）
 def show_notices():
