@@ -53,9 +53,8 @@ def switch_page(page_name):
 # ✅ サイドバーナビゲーションの追加
 def sidebar_navigation():
     with st.sidebar:
-         # 画像表示（サイドバー上部）
+        # 画像表示（サイドバー上部）
         st.image("OK-Nippou5.png", use_container_width=True)
-        
         # ナビゲーションボタン
         st.markdown("""
         <style>
@@ -63,34 +62,30 @@ def sidebar_navigation():
             .stImage {
                 margin-bottom: 30px !important;
             }
-        </style>
-        """, unsafe_allow_html=True)
-        st.markdown("""
-        <style>
             .sidebar-menu {
                 color: white !important;
-                margin-bottom: 30px;
+                margin-bottom: 5px; /* ボタンの間隔を調整 */
+            }
+            .sidebar-menu img {
+                width: 100%; /* 画像をサイドバーの幅に合わせる */
+                max-width: 150px; /* 画像の最大幅を設定（必要に応じて調整） */
+                margin-bottom: 5px; /* 画像の下の余白を調整 */
+                cursor: pointer; /* カーソルをポインターに変更 */
             }
         </style>
         """, unsafe_allow_html=True)
-        
-        # ナビゲーションボタン
-        if st.button("⏳ タイムライン", key="sidebar_timeline"):
+        # ナビゲーションボタン（画像リンク）
+        if st.sidebar.markdown('<img src="8.png" alt="タイムライン">', unsafe_allow_html=True):
             switch_page("タイムライン")
-            
-        if st.button("📅 週間予定", key="sidebar_weekly"):
+        if st.sidebar.markdown('<img src="5.png" alt="週間予定">', unsafe_allow_html=True):
             switch_page("週間予定")
-            
-        if st.button("🔔 お知らせ", key="sidebar_notice"):
+        if st.sidebar.markdown('<img src="7.png" alt="お知らせ">', unsafe_allow_html=True):
             switch_page("お知らせ")
-            
-        if st.button("✈️ 週間予定投稿", key="sidebar_post_schedule"):
+        if st.sidebar.markdown('<img src="4.png" alt="週間予定投稿">', unsafe_allow_html=True):
             switch_page("週間予定投稿")
-            
-        if st.button("📝 日報作成", key="sidebar_post_report"):
+        if st.sidebar.markdown('<img src="3.png" alt="日報作成">', unsafe_allow_html=True):
             switch_page("日報投稿")
-            
-        if st.button("👤 マイページ", key="sidebar_mypage"):
+        if st.sidebar.markdown('<img src="6.png" alt="マイページ">', unsafe_allow_html=True):
             switch_page("マイページ")
 
 # ✅ ログイン機能（修正済み）
