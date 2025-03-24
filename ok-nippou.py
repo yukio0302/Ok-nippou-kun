@@ -246,13 +246,19 @@ def show_weekly_schedules():
             st.write(f"**投稿日時:** {schedule['投稿日時']}")
             
 
-# 🔽 既存コメントの表示
-            comments = json.loads(schedule.get("コメント", "[]"))
-            st.subheader("💬 コメント")
-            for c in comments:
-                st.write(f"🗨️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
+# 既存コメントの表示
+            st.subheader(" コメント")
+            try:
+                comments = json.loads(schedule.get("コメント", "[]"))
+                if comments:
+                    for c in sorted(comments, key=lambda x: x["日時"]):  # 日時でソート
+                        st.write(f"️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
+                else:
+                    st.write("まだコメントはありません。")
+            except json.JSONDecodeError:
+                st.write("コメントの形式が不正です。")
 
-            # 🔽 コメント入力フォーム
+            # コメント入力フォーム
             comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
             if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
                 if comment_text.strip():
