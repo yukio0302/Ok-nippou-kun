@@ -681,10 +681,7 @@ else:
     
     
     # 既存のページ表示ロジックは変更なし
-    if st.session_state["page"] == "タイムライン":
-        timeline()
-    elif st.session_state["page"] == "日報投稿":
-        post_report()
+    
     if st.session_state["page"] == "タイムライン":
         timeline()
     elif st.session_state["page"] == "日報投稿":
