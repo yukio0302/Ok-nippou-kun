@@ -659,37 +659,38 @@ def my_page():
         else:
             st.info("コメントした投稿はありません。")
 
-    # 🔹 週間予定の編集機能
-    with st.expander("週間予定の編集", expanded=False):  # 初期状態は折りたたまれている
+    # 🔹 週間予定の編集機能（修正箇所）
+    with st.expander("週間予定の編集", expanded=False):
         st.subheader("週間予定の編集")
         schedules = load_weekly_schedules()
         user_schedules = [s for s in schedules if s["投稿者"] == st.session_state["user"]["name"]]
 
         if user_schedules:
+            # コンテナを使用してネストを回避
             for schedule in user_schedules:
-                with st.expander(f"週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
-                    edit_weekly_schedule_form(schedule)
+                with st.container():  # expanderの代わりにcontainerを使用
+                    st.markdown(f"**期間: {schedule['開始日']} ～ {schedule['終了日']}**")
+                    
+                    # 編集フォーム
+                    new_monday = st.text_area("月曜日", schedule["月曜日"], key=f"mon_{schedule['id']}")
+                    new_tuesday = st.text_area("火曜日", schedule["火曜日"], key=f"tue_{schedule['id']}")
+                    new_wednesday = st.text_area("水曜日", schedule["水曜日"], key=f"wed_{schedule['id']}")
+                    new_thursday = st.text_area("木曜日", schedule["木曜日"], key=f"thu_{schedule['id']}")
+                    new_friday = st.text_area("金曜日", schedule["金曜日"], key=f"fri_{schedule['id']}")
+                    new_saturday = st.text_area("土曜日", schedule["土曜日"], key=f"sat_{schedule['id']}")
+                    new_sunday = st.text_area("日曜日", schedule["日曜日"], key=f"sun_{schedule['id']}")
+
+                    if st.button("💾 保存", key=f"save_{schedule['id']}"):
+                        update_weekly_schedule(
+                            schedule["id"], new_monday, new_tuesday, new_wednesday,
+                            new_thursday, new_friday, new_saturday, new_sunday
+                        )
+                        st.success("✅ 編集を保存しました")
+                        st.rerun()
+                    
+                    st.markdown("---")  # 区切り線
         else:
             st.info("週間予定はありません。")
-
-# ✅ 週間予定の編集フォーム
-def edit_weekly_schedule_form(schedule):
-    """週間予定の編集フォーム"""
-    new_monday = st.text_area("月曜日の予定", schedule["月曜日"])
-    new_tuesday = st.text_area("火曜日の予定", schedule["火曜日"])
-    new_wednesday = st.text_area("水曜日の予定", schedule["水曜日"])
-    new_thursday = st.text_area("木曜日の予定", schedule["木曜日"])
-    new_friday = st.text_area("金曜日の予定", schedule["金曜日"])
-    new_saturday = st.text_area("土曜日の予定", schedule["土曜日"])
-    new_sunday = st.text_area("日曜日の予定", schedule["日曜日"])
-
-    if st.button("💾 保存", key=f"save_{schedule['id']}"):
-        update_weekly_schedule(
-            schedule["id"], new_monday, new_tuesday, new_wednesday, 
-            new_thursday, new_friday, new_saturday, new_sunday
-        )
-        st.success("✅ 編集を保存しました")
-        st.rerun()
             
 # ✅ 投稿詳細（編集・削除機能付き）
 def show_report_details(report):
