@@ -254,41 +254,45 @@ def show_weekly_schedules():
         # 日付のフォーマット変換
         start_date = datetime.strptime(start_str, "%Y-%m-%d")
         end_date = datetime.strptime(end_str, "%Y-%m-%d")
-        group_title = f"{start_date.month}月{start_date.day}日～{end_date.month}月{end_date.day}日の予定 ▽"
+        group_title = f"{start_date.month}月{start_date.day}日～{end_date.month}月{end_date.day}日の予定"
         
-        # 週全体の折りたたみ
-        with st.expander(group_title):
-            for schedule in group_schedules:
-                # 各ユーザーの折りたたみ
-                with st.expander(f"{schedule['投稿者']} さんの週間予定 ({start_date.month}月{start_date.day}日～{end_date.month}月{end_date.day}日)"):
-                    st.write(f"**月曜日:** {schedule['月曜日']}")
-                    st.write(f"**火曜日:** {schedule['火曜日']}")
-                    st.write(f"**水曜日:** {schedule['水曜日']}")
-                    st.write(f"**木曜日:** {schedule['木曜日']}")
-                    st.write(f"**金曜日:** {schedule['金曜日']}")
-                    st.write(f"**土曜日:** {schedule['土曜日']}")
-                    st.write(f"**日曜日:** {schedule['日曜日']}")
-                    st.write(f"**投稿日時:** {schedule['投稿日時']}")
+        # 週全体を区切り線とタイトルで表示
+        st.markdown("---")
+        st.subheader(group_title)
+        
+        for schedule in group_schedules:
+            # ユーザー毎の折りたたみ（ネストなし）
+            with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
+                st.write(f"**期間:** {start_date.month}/{start_date.day}～{end_date.month}/{end_date.day}")
+                st.write(f"**月曜日:** {schedule['月曜日']}")
+                st.write(f"**火曜日:** {schedule['火曜日']}")
+                st.write(f"**水曜日:** {schedule['水曜日']}")
+                st.write(f"**木曜日:** {schedule['木曜日']}")
+                st.write(f"**金曜日:** {schedule['金曜日']}")
+                st.write(f"**土曜日:** {schedule['土曜日']}")
+                st.write(f"**日曜日:** {schedule['日曜日']}")
+                st.write(f"**投稿日時:** {schedule['投稿日時']}")
 
-                    # コメント表示
-                    st.subheader("コメント")
-                    if schedule["コメント"]:
-                        for comment in schedule["コメント"]:
-                            st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                # コメント表示
+                st.markdown("---")
+                st.subheader("コメント")
+                if schedule["コメント"]:
+                    for comment in schedule["コメント"]:
+                        st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                else:
+                    st.write("まだコメントはありません。")
+
+                # コメント入力
+                comment_text = st.text_area(
+                    f"コメントを入力 (ID: {schedule['id']})", 
+                    key=f"comment_{schedule['id']}"
+                )
+                if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
+                    if comment_text.strip():
+                        save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+                        st.rerun()
                     else:
-                        st.write("まだコメントはありません。")
-
-                    # コメント入力
-                    comment_text = st.text_area(
-                        f"コメントを入力 (ID: {schedule['id']})", 
-                        key=f"comment_{schedule['id']}"
-                    )
-                    if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-                        if comment_text.strip():
-                            save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                            st.rerun()
-                        else:
-                            st.warning("コメントを入力してください。")
+                        st.warning("コメントを入力してください。")
 
     # ダウンロードボタン（既存のコードを維持）
     if st.button("週間予定をExcelでダウンロード"):
