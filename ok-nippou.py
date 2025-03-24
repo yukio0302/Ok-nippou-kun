@@ -82,43 +82,51 @@ def sidebar_navigation():
         # ロゴ表示
         st.image("OK-Nippou5.png", use_container_width=True)
         
-        # 画像マッピング
-        menu_images = {
-            "タイムライン": "8.png",
-            "週間予定": "5.png",
-            "お知らせ": "7.png",
-            "週間予定投稿": "4.png",
-            "日報作成": "3.png",
-            "マイページ": "6.png"
-        }
+        # メニュー項目と画像の対応
+        menu_items = [
+            {"name": "タイムライン", "image": "8.png", "key": "timeline"},
+            {"name": "週間予定", "image": "5.png", "key": "weekly"},
+            {"name": "お知らせ", "image": "7.png", "key": "notice"},
+            {"name": "週間予定投稿", "image": "4.png", "key": "post_schedule"},
+            {"name": "日報作成", "image": "3.png", "key": "post_report"},
+            {"name": "マイページ", "image": "6.png", "key": "mypage"}
+        ]
 
-        # カスタムCSS
+        # 各メニュー項目の画像表示とクリック処理
+        for item in menu_items:
+            col1, col2, col3 = st.columns([0.1, 0.8, 0.1])
+            with col2:
+                clicked = st.image(
+                    item["image"],
+                    use_column_width=True,
+                    output_format="PNG",
+                    caption=item["name"],
+                    # クリック検知用の一意なキー
+                    key=f"menu_{item['key']}"  
+                )
+                
+                # 画像クリック時の処理
+                if clicked:
+                    st.session_state["page"] = item["name"]
+                    st.rerun()
+
+        # スタイル調整
         st.markdown("""
         <style>
-            .menu-image {
-                transition: transform 0.2s;
+            [data-testid="stImage"] {
                 cursor: pointer;
-                margin: 10px 0;
+                transition: transform 0.2s;
+                margin: 15px 0;
             }
-            .menu-image:hover {
+            [data-testid="stImage"]:hover {
                 transform: scale(1.05);
+            }
+            [data-testid="stImage"] img {
+                border-radius: 10px !important;
             }
         </style>
         """, unsafe_allow_html=True)
-
-        # 各メニュー項目
-        for menu, img in menu_images.items():
-            # 画像クリックでページ遷移
-            st.markdown(
-                f'<img src="{img}" class="menu-image" onclick="window.streamlitAPI.setComponentValue(\'{menu}\')">',
-                unsafe_allow_html=True
-            )
-
-        # ページ遷移処理
-        if st.session_state.get("component_value"):
-            st.session_state["page"] = st.session_state.component_value
-            st.session_state.component_value = None
-            st.rerun()
+        
 # ✅ ログイン機能（修正済み）
 def login():
     # ロゴ表示（中央揃え）
