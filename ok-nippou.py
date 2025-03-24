@@ -80,7 +80,7 @@ def top_navigation():
 def sidebar_navigation():
     with st.sidebar:
         # ロゴ表示
-        st.image("OK-Nippou.png", use_container_width=True)
+        st.image("OK-Nippou5.png", use_container_width=True)
         
         # 画像マッピング
         menu_images = {
