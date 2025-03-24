@@ -324,9 +324,7 @@ def timeline():
         return
 
     # タイトル表示（1箇所のみ）
-    if st.session_state.get("current_page") != "タイムライン":
         st.title(" タイムライン")
-        st.session_state.current_page = "タイムライン"
         
     # top_navigation()  # この行を削除（サイドバーに統合済み）
 
