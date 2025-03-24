@@ -350,24 +350,21 @@ def timeline():
         return
 
     st.title(" タイムライン")
-    
-    # サイドバーの期間選択（一意のキーを追加）
+    # top_navigation()  # この行を削除（サイドバーに統合済み）
+
+    # ✅ サイドバーに移動した週間予定ボタンは削除
+
+    reports = load_reports()
+
+    # ✅ 期間選択（キーを追加）
     st.sidebar.subheader("表示期間を選択")
     period_option = st.sidebar.radio(
         "表示する期間を選択",
         ["24時間以内の投稿", "1週間以内の投稿", "過去の投稿"],
         index=0,
-        key="timeline_period_selector"  # 一意のキーを設定
+        key="timeline_period_selector"  
     )
 
-    try:
-        # レポートの取得（例外処理追加）
-        reports = load_reports()
-        
-        if not reports:  # レポートがない場合の処理
-            st.info("表示する投稿がありません")
-            return
-            
     # ✅ デフォルトで24時間以内の投稿を表示
     if period_option == "24時間以内の投稿":
         start_datetime = datetime.now() + timedelta(hours=9) - timedelta(hours=24)  # 過去24時間（JST）
