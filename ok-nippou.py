@@ -75,33 +75,23 @@ def sidebar_navigation():
         """, unsafe_allow_html=True)
         
         # ナビゲーションボタン
-        if st.sidebar.markdown('<img src="81.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'タイムライン\'}, \'*\');">', unsafe_allow_html=True):
+        if st.button("⏳ タイムライン", key="sidebar_timeline"):
             switch_page("タイムライン")
-
-        if st.sidebar.markdown('<img src="51.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'週間予定\'}, \'*\');">', unsafe_allow_html=True):
+            
+        if st.button("📅 週間予定", key="sidebar_weekly"):
             switch_page("週間予定")
-
-        if st.sidebar.markdown('<img src="71.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'お知らせ\'}, \'*\');">', unsafe_allow_html=True):
+            
+        if st.button("🔔 お知らせ", key="sidebar_notice"):
             switch_page("お知らせ")
-
-        if st.sidebar.markdown('<img src="41.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'週間予定投稿\'}, \'*\');">', unsafe_allow_html=True):
+            
+        if st.button("✈️ 週間予定投稿", key="sidebar_post_schedule"):
             switch_page("週間予定投稿")
-
-        if st.sidebar.markdown('<img src="31.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'日報投稿\'}, \'*\');">', unsafe_allow_html=True):
+            
+        if st.button("📝 日報作成", key="sidebar_post_report"):
             switch_page("日報投稿")
-
-        if st.sidebar.markdown('<img src="61.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'マイページ\'}, \'*\');">', unsafe_allow_html=True):
+            
+        if st.button("👤 マイページ", key="sidebar_mypage"):
             switch_page("マイページ")
-
-        st.components.v1.html("""
-        <script>
-            window.addEventListener('message', function(event) {
-                if (event.data.type === 'switch_page') {
-                    Streamlit.setSessionState({page: event.data.page});
-                }
-            });
-        </script>
-        """, height=0)
 
 # ✅ ログイン機能（修正済み）
 def login():
