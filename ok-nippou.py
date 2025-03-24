@@ -323,10 +323,12 @@ def timeline():
         st.error("ログインしてください。")
         return
 
-    st.title(" タイムライン")
+    # タイトル表示（1箇所のみ）
+    if st.session_state.get("current_page") != "タイムライン":
+        st.title(" タイムライン")
+        st.session_state.current_page = "タイムライン"
+        
     # top_navigation()  # この行を削除（サイドバーに統合済み）
-
-    # ✅ サイドバーに移動した週間予定ボタンは削除
 
     reports = load_reports()
 
