@@ -273,11 +273,37 @@ def show_weekly_schedules():
         end_date = datetime.strptime(end_str, "%Y-%m-%d")
         weekday_ja = ["月", "火", "水", "木", "金", "土", "日"]
         
-        # 週のヘッダー（擬似折りたたみボタン）
-        group_title = (
-            f"{start_date.month}月{start_date.day}日（{weekday_ja[start_date.weekday()]}）"
-            f" ～ {end_date.month}月{end_date.day}日（{weekday_ja[end_date.weekday()]}）"
-        )
+        # ヘッダーとダウンロードボタンを横並びに
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            # 週のヘッダー（擬似折りたたみボタン）
+            group_title = (
+                f"{start_date.month}月{start_date.day}日（{weekday_ja[start_date.weekday()]}）"
+                f" ～ {end_date.month}月{end_date.day}日（{weekday_ja[end_date.weekday()]}）"
+            )
+            
+            clicked = st.button(
+                f"📅 {group_title} {'▼' if st.session_state[f'week_{idx}_expanded'] else '▶'}",
+                key=f'week_header_{idx}',
+                use_container_width=True
+            )
+
+        with col2:
+            # 週単位のダウンロードボタン
+            if st.button(
+                "📥 Excelで保存",
+                key=f"download_{idx}",
+                help=f"{group_title}の週間予定をダウンロード",
+                use_container_width=True
+            ):
+                excel_file = excel_utils.download_weekly_schedule_excel(start_str, end_str)
+                st.download_button(
+                    label="ダウンロード開始",
+                    data=excel_file,
+                    file_name=f"週間予定_{start_str}_to_{end_str}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key=f"real_download_{idx}"
+                )
         
         # セッションステートで開閉状態を管理
         if f'week_{idx}_expanded' not in st.session_state:
