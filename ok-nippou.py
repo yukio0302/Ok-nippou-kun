@@ -315,29 +315,29 @@ if st.session_state[f'week_{idx}_expanded']:
 
                         st.write(f"**投稿日時:** {schedule['投稿日時']}")
                         
-        # コメント表示（正しいインデント）
-        st.markdown("---")
-        st.subheader("コメント")
-        if schedule["コメント"]:
-            for comment in schedule["コメント"]:
-                st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
-        else:
-            st.write("まだコメントはありません。")
+                        # コメント表示をここに追加
+                st.markdown("---")
+                st.subheader("コメント")
+                if schedule["コメント"]:
+                    for comment in schedule["コメント"]:
+                        st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                else:
+                    st.write("まだコメントはありません。")
 
-        # コメント入力
-        comment_text = st.text_area(
-            f"コメントを入力 (ID: {schedule['id']})", 
-            key=f"comment_{schedule['id']}"
-        )
-        if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-            if comment_text.strip():
-                save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                st.rerun()
-            else:
-                st.warning("コメントを入力してください。")
+                # コメント入力フォーム
+                comment_text = st.text_area(
+                    f"コメントを入力 (ID: {schedule['id']})", 
+                    key=f"comment_{schedule['id']}"
+                )
+                if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
+                    if comment_text.strip():
+                        save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+                        st.rerun()
+                    else:
+                        st.warning("コメントを入力してください。")
 
-        st.markdown('</div>', unsafe_allow_html=True)
-        
+        st.markdown('</div>', unsafe_allow_html=True)  # ここでdivを閉じる
+
     # ダウンロードボタン（既存のコードを維持）
     if st.button("週間予定をExcelでダウンロード"):
         start_date = schedules[0]["開始日"]
