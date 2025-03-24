@@ -336,6 +336,8 @@ def show_weekly_schedules():
                     else:
                         st.warning("コメントを入力してください。")
 
+    st.markdown('</div>', unsafe_allow_html=True)
+
     # ダウンロードボタン（既存のコードを維持）
     if st.button("週間予定をExcelでダウンロード"):
         start_date = schedules[0]["開始日"]
@@ -357,8 +359,6 @@ def add_comments_column():
     conn.commit()
     conn.close()
     print("✅ コメントカラムを追加しました！")
-
-st.markdown('</div>', unsafe_allow_html=True)
 
 # ✅ 日報投稿
 def post_report():
