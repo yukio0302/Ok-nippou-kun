@@ -79,46 +79,53 @@ def top_navigation():
 # ✅ サイドバーナビゲーションの追加
 def sidebar_navigation():
     with st.sidebar:
-         # 画像表示（サイドバー上部）
+        # ロゴ表示
         st.image("OK-Nippou5.png", use_container_width=True)
         
-        # ナビゲーションボタン
-        st.markdown("""
-        <style>
-            /* 画像とボタンの間隔調整 */
-            .stImage {
-                margin-bottom: 30px !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-        st.markdown("""
-        <style>
-            .sidebar-menu {
-                color: white !important;
-                margin-bottom: 30px;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        # ナビゲーションボタン
-        if st.button("⏳ タイムライン", key="sidebar_timeline"):
-            switch_page("タイムライン")
-            
-        if st.button("📅 週間予定", key="sidebar_weekly"):
-            switch_page("週間予定")
-            
-        if st.button("🔔 お知らせ", key="sidebar_notice"):
-            switch_page("お知らせ")
-            
-        if st.button("✈️ 週間予定投稿", key="sidebar_post_schedule"):
-            switch_page("週間予定投稿")
-            
-        if st.button("📝 日報作成", key="sidebar_post_report"):
-            switch_page("日報投稿")
-            
-        if st.button("👤 マイページ", key="sidebar_mypage"):
-            switch_page("マイページ")
+        # メニュー項目と画像の対応
+        menu_items = [
+            {"name": "タイムライン", "image": "8.png", "key": "timeline"},
+            {"name": "週間予定", "image": "5.png", "key": "weekly"},
+            {"name": "お知らせ", "image": "7.png", "key": "notice"},
+            {"name": "週間予定投稿", "image": "4.png", "key": "post_schedule"},
+            {"name": "日報作成", "image": "3.png", "key": "post_report"},
+            {"name": "マイページ", "image": "6.png", "key": "mypage"}
+        ]
 
+        # 各メニュー項目の画像表示とクリック処理
+        for item in menu_items:
+            col1, col2, col3 = st.columns([0.1, 0.8, 0.1])
+            with col2:
+                clicked = st.image(
+                    item["image"],
+                    use_column_width=True,
+                    output_format="PNG",
+                    caption=item["name"],
+                    # クリック検知用の一意なキー
+                    key=f"menu_{item['key']}"  
+                )
+                
+                # 画像クリック時の処理
+                if clicked:
+                    st.session_state["page"] = item["name"]
+                    st.rerun()
+
+        # スタイル調整
+        st.markdown("""
+        <style>
+            [data-testid="stImage"] {
+                cursor: pointer;
+                transition: transform 0.2s;
+                margin: 15px 0;
+            }
+            [data-testid="stImage"]:hover {
+                transform: scale(1.05);
+            }
+            [data-testid="stImage"] img {
+                border-radius: 10px !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
 # ✅ ログイン機能（修正済み）
 def login():
     # ロゴ表示（中央揃え）
