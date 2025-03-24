@@ -315,12 +315,6 @@ def show_weekly_schedules():
 
                         st.write(f"**投稿日時:** {schedule['投稿日時']}")
                         
-                        # コメント表示（既存のコードを維持）
-
-                
-
-    # ダウンロードボタン（既存のコードを維持）
-
                 # コメント表示
                 st.markdown("---")
                 st.subheader("コメント")
