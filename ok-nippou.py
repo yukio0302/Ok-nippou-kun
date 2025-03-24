@@ -55,8 +55,7 @@ def sidebar_navigation():
     with st.sidebar:
          # 画像表示（サイドバー上部）
         st.image("OK-Nippou5.png", use_container_width=True)
-        # 画像表示（サイドバー上部）
-        st.image("5.png", use_container_width=True)
+        
         # ナビゲーションボタン
         st.markdown("""
         <style>
