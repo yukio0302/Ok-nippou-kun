@@ -360,6 +360,14 @@ def timeline():
         key="timeline_period_selector"  # 一意のキーを設定
     )
 
+    try:
+        # レポートの取得（例外処理追加）
+        reports = load_reports()
+        
+        if not reports:  # レポートがない場合の処理
+            st.info("表示する投稿がありません")
+            return
+            
     # ✅ デフォルトで24時間以内の投稿を表示
     if period_option == "24時間以内の投稿":
         start_datetime = datetime.now() + timedelta(hours=9) - timedelta(hours=24)  # 過去24時間（JST）
