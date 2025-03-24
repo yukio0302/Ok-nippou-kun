@@ -227,8 +227,20 @@ def show_weekly_schedules():
         st.error("ログインしてください。")
         return
 
-    st.title("週間予定")
-    # top_navigation()
+    with col1:
+        st.title("週間予定")
+
+    with col2:
+        if st.button("Excelでダウンロード"):
+            start_date = schedules[0]["開始日"]  # 例: 最初の週の開始日
+            end_date = schedules[0]["終了日"]  # 例: 最初の週の終了日
+            excel_file = excel_utils.download_weekly_schedule_excel(start_date, end_date)
+            st.download_button(
+                label="ダウンロード",
+                data=excel_file,
+                file_name="週間予定.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
     schedules = load_weekly_schedules()
 
@@ -265,17 +277,6 @@ def show_weekly_schedules():
                 else:
                     st.warning("コメントを入力してください。")
 
- # ダウンロードボタンを追加
-    if st.button("週間予定をExcelでダウンロード"):
-        start_date = schedules[0]["開始日"]  # 例: 最初の週の開始日
-        end_date = schedules[0]["終了日"]  # 例: 最初の週の終了日
-        excel_file = excel_utils.download_weekly_schedule_excel(start_date, end_date)
-        st.download_button(
-            label="ダウンロード",
-            data=excel_file,
-            file_name="週間予定.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
         
 def add_comments_column():
     """weekly_schedules テーブルにコメントカラムを追加"""
