@@ -75,22 +75,22 @@ def sidebar_navigation():
         """, unsafe_allow_html=True)
         
         # ナビゲーションボタン
-        if st.sidebar.markdown('<img src="images/81.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'タイムライン\'}, \'*\');">', unsafe_allow_html=True):
+        if st.sidebar.markdown('<img src="81.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'タイムライン\'}, \'*\');">', unsafe_allow_html=True):
             switch_page("タイムライン")
 
-        if st.sidebar.markdown('<img src="images/51.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'週間予定\'}, \'*\');">', unsafe_allow_html=True):
+        if st.sidebar.markdown('<img src="51.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'週間予定\'}, \'*\');">', unsafe_allow_html=True):
             switch_page("週間予定")
 
-        if st.sidebar.markdown('<img src="images/71.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'お知らせ\'}, \'*\');">', unsafe_allow_html=True):
+        if st.sidebar.markdown('<img src="71.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'お知らせ\'}, \'*\');">', unsafe_allow_html=True):
             switch_page("お知らせ")
 
-        if st.sidebar.markdown('<img src="images/41.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'週間予定投稿\'}, \'*\');">', unsafe_allow_html=True):
+        if st.sidebar.markdown('<img src="41.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'週間予定投稿\'}, \'*\');">', unsafe_allow_html=True):
             switch_page("週間予定投稿")
 
-        if st.sidebar.markdown('<img src="images/31.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'日報投稿\'}, \'*\');">', unsafe_allow_html=True):
+        if st.sidebar.markdown('<img src="31.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'日報投稿\'}, \'*\');">', unsafe_allow_html=True):
             switch_page("日報投稿")
 
-        if st.sidebar.markdown('<img src="images/61.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'マイページ\'}, \'*\');">', unsafe_allow_html=True):
+        if st.sidebar.markdown('<img src="61.png" onclick="window.parent.postMessage({type: \'switch_page\', page: \'マイページ\'}, \'*\');">', unsafe_allow_html=True):
             switch_page("マイページ")
 
         st.components.v1.html("""
