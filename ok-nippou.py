@@ -700,28 +700,17 @@ def show_report_details(report):
 
     # 🔹 編集 & 削除ボタン（キー生成方法変更）
     if report["投稿者"] == st.session_state["user"]["name"]:
-        # ユニークキー生成ロジックの改善
-        user = st.session_state["user"]
-        unique_suffix = f"{user['employee_code']}_{report['id']}"  # 社員コードを利用
+        user_hash = hash(st.session_state["user"]["name"])  # ユーザー名のハッシュ値を追加
+        unique_suffix = f"{report['id']}_{user_hash}"
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button(
-                "✏️ 編集する", 
-                key=f"edit_btn_{unique_suffix}",
-                help=f"レポートID: {report['id']} を編集"
-            ):
+            if st.button("✏️ 編集する", key=f"edit_btn_{unique_suffix}"):
                 st.session_state[f"edit_mode_{unique_suffix}"] = True
-                st.rerun()
 
         with col2:
-            if st.button(
-                "🗑️ 削除する", 
-                key=f"delete_btn_{unique_suffix}",
-                help=f"レポートID: {report['id']} を削除"
-            ):
+            if st.button("🗑️ 削除する", key=f"delete_btn_{unique_suffix}"):
                 st.session_state[f"confirm_delete_{unique_suffix}"] = True
-                st.rerun()
 
         # 🔹 削除確認（キー修正）
         if st.session_state.get(f"confirm_delete_{unique_suffix}", False):
@@ -729,21 +718,13 @@ def show_report_details(report):
 
             col_confirm, col_cancel = st.columns(2)
             with col_confirm:
-                if st.button(
-                    "✅ はい", 
-                    key=f"confirm_{unique_suffix}",
-                    type="primary"
-                ):
+                if st.button("✅ はい、削除する", key=f"confirm_{unique_suffix}"):
                     delete_report(report["id"])
                     st.success("✅ 削除しました")
-                    time.sleep(1)
                     st.rerun()
 
             with col_cancel:
-                if st.button(
-                    "❌ いいえ", 
-                    key=f"cancel_{unique_suffix}"
-                ):
+                if st.button("❌ キャンセル", key=f"cancel_{unique_suffix}"):
                     st.session_state[f"confirm_delete_{unique_suffix}"] = False
                     st.rerun()
 
@@ -754,47 +735,20 @@ def show_report_details(report):
 # ✅ 編集フォーム（キー修正版）
 def edit_report_form(report, unique_suffix):
     """投稿の編集フォーム"""
-    with st.form(key=f"form_{unique_suffix}"):
-        # 各フィールドにユニークなキーを割り当て
-        new_date = st.date_input(
-            "実施日", 
-            value=datetime.strptime(report['実行日'], "%Y-%m-%d"),
-            key=f"date_{unique_suffix}"
-        )
-        new_location = st.text_input(
-            "場所", 
-            report['場所'], 
-            key=f"loc_{unique_suffix}"
-        )
-        new_content = st.text_area(
-            "実施内容", 
-            report['実施内容'], 
-            key=f"content_{unique_suffix}"
-        )
-        new_remarks = st.text_area(
-            "所感", 
-            report['所感'], 
-            key=f"remarks_{unique_suffix}"
-        )
+    new_date = st.text_input("実施日", report["実行日"], key=f"date_{unique_suffix}")
+    new_location = st.text_input("場所", report["場所"], key=f"loc_{unique_suffix}")
+    new_content = st.text_area("実施内容", report["実施内容"], key=f"cont_{unique_suffix}")
+    new_remarks = st.text_area("所感", report["所感"], key=f"rem_{unique_suffix}")
 
-        # ボタン列
-        col_save, col_cancel = st.columns(2)
-        with col_save:
-            if st.form_submit_button("💾 保存"):
-                edit_report(
-                    report["id"],
-                    new_date.strftime("%Y-%m-%d"),
-                    new_location,
-                    new_content,
-                    new_remarks
-                )
-                st.session_state[f"edit_mode_{unique_suffix}"] = False
-                st.rerun()
-
-        with col_cancel:
-            if st.button("キャンセル", key=f"cancel_{unique_suffix}"):
-                st.session_state[f"edit_mode_{unique_suffix}"] = False
-                st.rerun()
+    if st.button("💾 保存", key=f"save_{unique_suffix}"):
+        edit_report(report["id"], new_date, new_location, new_content, new_remarks)
+        st.session_state[f"edit_mode_{unique_suffix}"] = False
+        st.success("✅ 編集を保存しました")
+        st.rerun()
+    
+    if st.button("キャンセル", key=f"cancel_{unique_suffix}"):
+        st.session_state[f"edit_mode_{unique_suffix}"] = False
+        st.rerun()
 
 # ✅ メニュー管理
 if st.session_state["user"] is None:
