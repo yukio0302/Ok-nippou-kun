@@ -74,23 +74,18 @@ def sidebar_navigation():
         </style>
         """, unsafe_allow_html=True)
         
-        # ナビゲーションボタン
-        if st.button("⏳ タイムライン", key="sidebar_timeline"):
+        # ナビゲーションボタン（画像リンク）
+        if st.sidebar.markdown('<img src="8.png" alt="タイムライン">', unsafe_allow_html=True):
             switch_page("タイムライン")
-            
-        if st.button("📅 週間予定", key="sidebar_weekly"):
+        if st.sidebar.markdown('<img src="5.png" alt="週間予定">', unsafe_allow_html=True):
             switch_page("週間予定")
-            
-        if st.button("🔔 お知らせ", key="sidebar_notice"):
+        if st.sidebar.markdown('<img src="7.png" alt="お知らせ">', unsafe_allow_html=True):
             switch_page("お知らせ")
-            
-        if st.button("✈️ 週間予定投稿", key="sidebar_post_schedule"):
+        if st.sidebar.markdown('<img src="4.png" alt="週間予定投稿">', unsafe_allow_html=True):
             switch_page("週間予定投稿")
-            
-        if st.button("📝 日報作成", key="sidebar_post_report"):
+        if st.sidebar.markdown('<img src="3.png" alt="日報作成">', unsafe_allow_html=True):
             switch_page("日報投稿")
-            
-        if st.button("👤 マイページ", key="sidebar_mypage"):
+        if st.sidebar.markdown('<img src="6.png" alt="マイページ">', unsafe_allow_html=True):
             switch_page("マイページ")
 
 # ✅ ログイン機能（修正済み）
