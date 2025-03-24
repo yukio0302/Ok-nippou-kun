@@ -87,4 +87,17 @@ div[data-testid="column"] img {
         margin: 0 auto 20px !important;
     }
 }
+/* 画像メニューのスタイリング */
+section[data-testid="stSidebar"] img.menu-image {
+    width: 100% !important;
+    padding: 5px !important;
+    background: transparent !important;
+    border-radius: 8px !important;
+}
+
+/* ホバーエフェクト */
+section[data-testid="stSidebar"] img.menu-image:hover {
+    background: rgba(255,255,255,0.1) !important;
+}
+
 }
