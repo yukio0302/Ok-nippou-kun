@@ -703,13 +703,6 @@ if st.session_state["user"] is None:
 else:
     sidebar_navigation()  # サイドバーナビゲーションを追加
     
-    # 表示期間選択のスタイリングを維持
-    st.sidebar.subheader("表示期間を選択")
-    period_option = st.sidebar.radio(
-        "表示する期間を選択",
-        ["24時間以内の投稿", "1週間以内の投稿", "過去の投稿"],
-        index=0
-    )
     
     # 既存のページ表示ロジックは変更なし
     if st.session_state["page"] == "タイムライン":
