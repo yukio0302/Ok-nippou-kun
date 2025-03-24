@@ -659,38 +659,75 @@ def my_page():
         else:
             st.info("コメントした投稿はありません。")
 
-    # 🔹 週間予定の編集機能（修正箇所）
-    with st.expander("週間予定の編集", expanded=False):
-        st.subheader("週間予定の編集")
+    # 週間予定の編集セクション
+    with st.expander("📅 週間予定の編集", expanded=False):
         schedules = load_weekly_schedules()
         user_schedules = [s for s in schedules if s["投稿者"] == st.session_state["user"]["name"]]
 
-        if user_schedules:
-            # コンテナを使用してネストを回避
-            for schedule in user_schedules:
-                with st.container():  # expanderの代わりにcontainerを使用
-                    st.markdown(f"**期間: {schedule['開始日']} ～ {schedule['終了日']}**")
-                    
-                    # 編集フォーム
-                    new_monday = st.text_area("月曜日", schedule["月曜日"], key=f"mon_{schedule['id']}")
-                    new_tuesday = st.text_area("火曜日", schedule["火曜日"], key=f"tue_{schedule['id']}")
-                    new_wednesday = st.text_area("水曜日", schedule["水曜日"], key=f"wed_{schedule['id']}")
-                    new_thursday = st.text_area("木曜日", schedule["木曜日"], key=f"thu_{schedule['id']}")
-                    new_friday = st.text_area("金曜日", schedule["金曜日"], key=f"fri_{schedule['id']}")
-                    new_saturday = st.text_area("土曜日", schedule["土曜日"], key=f"sat_{schedule['id']}")
-                    new_sunday = st.text_area("日曜日", schedule["日曜日"], key=f"sun_{schedule['id']}")
+        if not user_schedules:
+            st.info("投稿した週間予定はありません")
+            return
 
-                    if st.button("💾 保存", key=f"save_{schedule['id']}"):
-                        update_weekly_schedule(
-                            schedule["id"], new_monday, new_tuesday, new_wednesday,
-                            new_thursday, new_friday, new_saturday, new_sunday
-                        )
-                        st.success("✅ 編集を保存しました")
+        st.write("過去に投稿した週間予定を編集できます")
+
+        for schedule in user_schedules:
+            schedule_id = schedule["id"]
+            key_prefix = f"weekly_edit_{schedule_id}_"
+
+            # 編集状態を管理
+            edit_mode = st.session_state.get(f"{key_prefix}edit_mode", False)
+
+            # ヘッダー表示
+            col1, col2 = st.columns([5, 1])
+            with col1:
+                st.markdown(f"**{schedule['開始日']} ～ {schedule['終了日']}**")
+            with col2:
+                if not edit_mode:
+                    if st.button("✏️ 編集", key=f"{key_prefix}edit_btn"):
+                        st.session_state[f"{key_prefix}edit_mode"] = True
                         st.rerun()
-                    
-                    st.markdown("---")  # 区切り線
-        else:
-            st.info("週間予定はありません。")
+                else:
+                    if st.button("❌ キャンセル", key=f"{key_prefix}cancel_btn"):
+                        st.session_state[f"{key_prefix}edit_mode"] = False
+                        st.rerun()
+
+            # コンテンツ表示
+            if edit_mode:
+                # 編集フォーム
+                with st.form(key=f"{key_prefix}form"):
+                    new_monday = st.text_area("月曜日", schedule["月曜日"])
+                    new_tuesday = st.text_area("火曜日", schedule["火曜日"])
+                    new_wednesday = st.text_area("水曜日", schedule["水曜日"])
+                    new_thursday = st.text_area("木曜日", schedule["木曜日"])
+                    new_friday = st.text_area("金曜日", schedule["金曜日"])
+                    new_saturday = st.text_area("土曜日", schedule["土曜日"])
+                    new_sunday = st.text_area("日曜日", schedule["日曜日"])
+
+                    if st.form_submit_button("💾 保存変更"):
+                        update_weekly_schedule(
+                            schedule_id,
+                            new_monday,
+                            new_tuesday,
+                            new_wednesday,
+                            new_thursday,
+                            new_friday,
+                            new_saturday,
+                            new_sunday
+                        )
+                        st.session_state[f"{key_prefix}edit_mode"] = False
+                        st.rerun()
+
+            else:
+                # 閲覧モード表示
+                st.write(f"月曜日: {schedule['月曜日']}")
+                st.write(f"火曜日: {schedule['火曜日']}")
+                st.write(f"水曜日: {schedule['水曜日']}")
+                st.write(f"木曜日: {schedule['木曜日']}")
+                st.write(f"金曜日: {schedule['金曜日']}")
+                st.write(f"土曜日: {schedule['土曜日']}")
+                st.write(f"日曜日: {schedule['日曜日']}")
+
+            st.markdown("---")  # 区切り線
             
 # ✅ 投稿詳細（編集・削除機能付き）
 def show_report_details(report):
