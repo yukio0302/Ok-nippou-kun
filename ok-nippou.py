@@ -350,19 +350,14 @@ def timeline():
         return
 
     st.title(" タイムライン")
-    # top_navigation()  # この行を削除（サイドバーに統合済み）
-
-    # ✅ サイドバーに移動した週間予定ボタンは削除
-
-    reports = load_reports()
-
-    # ✅ 期間選択（キーを追加）
+    
+    # サイドバーの期間選択（一意のキーを追加）
     st.sidebar.subheader("表示期間を選択")
     period_option = st.sidebar.radio(
         "表示する期間を選択",
         ["24時間以内の投稿", "1週間以内の投稿", "過去の投稿"],
         index=0,
-        key="timeline_period_selector"  
+        key="timeline_period_selector"  # 一意のキーを設定
     )
 
     # ✅ デフォルトで24時間以内の投稿を表示
