@@ -293,63 +293,62 @@ def show_weekly_schedules():
         if clicked:
             st.session_state[f'week_{idx}_expanded'] = not st.session_state[f'week_{idx}_expanded']
 
-        # コンテンツ表示
+                # コンテンツ表示
         if st.session_state[f'week_{idx}_expanded']:
             with st.container():
                 st.markdown('<div class="nested-expander">', unsafe_allow_html=True)
                 
                 for schedule in group_schedules:
-    with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
-        # 各曜日の日付を計算
-        days = []
-        current_date = start_date
-        for i in range(7):
-            days.append(current_date)
-            current_date += timedelta(days=1)
+                    with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
+                        # 各曜日の日付を計算
+                        days = []
+                        current_date = start_date
+                        for i in range(7):
+                            days.append(current_date)
+                            current_date += timedelta(days=1)
 
-        # 予定表示
-        for i, weekday in enumerate(["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]):
-            target_date = days[i]
-            date_str = f"{target_date.month}月{target_date.day}日（{weekday_ja[target_date.weekday()]}）"
-            st.write(f"**{date_str}**: {schedule[weekday]}")
+                        # 予定表示
+                        for i, weekday in enumerate(["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]):
+                            target_date = days[i]
+                            date_str = f"{target_date.month}月{target_date.day}日（{weekday_ja[target_date.weekday()]}）"
+                            st.write(f"**{date_str}**: {schedule[weekday]}")
 
-        st.write(f"**投稿日時:** {schedule['投稿日時']}")
-        
-        # コメント表示
-                st.markdown("---")
-                st.subheader("コメント")
-                if schedule["コメント"]:
-                    for comment in schedule["コメント"]:
-                        st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
-                else:
-                    st.write("まだコメントはありません。")
+                        st.write(f"**投稿日時:** {schedule['投稿日時']}")
+                        
+                        # コメント表示
+                        st.markdown("---")
+                        st.subheader("コメント")
+                        if schedule["コメント"]:
+                            for comment in schedule["コメント"]:
+                                st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                        else:
+                            st.write("まだコメントはありません。")
 
-                # コメント入力
-                comment_text = st.text_area(
-                    f"コメントを入力 (ID: {schedule['id']})", 
-                    key=f"comment_{schedule['id']}"
-                )
-                if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-                    if comment_text.strip():
-                        save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                        st.rerun()
-                    else:
-                        st.warning("コメントを入力してください。")
-        
-        st.markdown('</div>', unsafe_allow_html=True)  # ここでdivを閉じる
+                        # コメント入力
+                        comment_text = st.text_area(
+                            f"コメントを入力 (ID: {schedule['id']})", 
+                            key=f"comment_{schedule['id']}"
+                        )
+                        if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
+                            if comment_text.strip():
+                                save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+                                st.rerun()
+                            else:
+                                st.warning("コメントを入力してください。")
+                
+                st.markdown('</div>', unsafe_allow_html=True)  # ここでdivを閉じる
 
-# ダウンロードボタン（ループの外に移動）★★★
-if st.button("週間予定をExcelでダウンロード"):
-    start_date = schedules[0]["開始日"]
-    end_date = schedules[0]["終了日"]
-    excel_file = excel_utils.download_weekly_schedule_excel(start_date, end_date)
-    st.download_button(
-        label="ダウンロード",
-        data=excel_file,
-        file_name="週間予定.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-        
+    # ダウンロードボタン（ループの外に移動）
+    if st.button("週間予定をExcelでダウンロード"):
+        start_date = schedules[0]["開始日"]
+        end_date = schedules[0]["終了日"]
+        excel_file = excel_utils.download_weekly_schedule_excel(start_date, end_date)
+        st.download_button(
+            label="ダウンロード",
+            data=excel_file,
+            file_name="週間予定.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
 def add_comments_column():
     """weekly_schedules テーブルにコメントカラムを追加"""
