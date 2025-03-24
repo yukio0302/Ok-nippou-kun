@@ -3,6 +3,9 @@ from io import BytesIO
 from datetime import datetime, timedelta
 import db_utils
 
+# ✅ データベースのパス
+DB_PATH = "/mount/src/ok-nippou-kun/Ok-nippou-kun/data/reports.db"
+
 def download_weekly_schedule_excel(start_date, end_date):
     """
     週間予定をExcelファイルとしてダウンロードする
