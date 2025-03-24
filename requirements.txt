@@ -5,3 +5,4 @@ pandas
 firebase_admin
 timedelta
 gdown
+openpyxl
