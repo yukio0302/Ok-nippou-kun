@@ -451,3 +451,32 @@ def save_weekly_schedule_comment(schedule_id, commenter, comment):
 
     finally:
         conn.close()
+        
+def get_weekly_schedule_for_all_users(start_date, end_date):
+    """
+    指定期間の全ユーザーの週間予定データを取得する
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT user_id, schedule_date, schedule_content, comment
+        FROM weekly_schedule
+        WHERE schedule_date BETWEEN ? AND ?
+    """, (start_date, end_date))
+
+    results = cursor.fetchall()
+    conn.close()
+
+    # ユーザーごとにデータを整理
+    user_schedules = {}
+    for user_id, schedule_date, schedule_content, comment in results:
+        if user_id not in user_schedules:
+            user_schedules[user_id] = []
+        user_schedules[user_id].append({
+            "date": schedule_date,
+            "content": schedule_content,
+            "comment": comment
+        })
+
+    return user_schedules
