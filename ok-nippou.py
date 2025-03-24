@@ -294,12 +294,12 @@ def show_weekly_schedules():
             st.session_state[f'week_{idx}_expanded'] = not st.session_state[f'week_{idx}_expanded']
 
         # コンテンツ表示
-if st.session_state[f'week_{idx}_expanded']:
-    with st.container():
-        st.markdown('<div class="nested-expander">', unsafe_allow_html=True)
-        
-        for schedule in group_schedules:
-            with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
+        if st.session_state[f'week_{idx}_expanded']:
+            with st.container():
+                st.markdown('<div class="nested-expander">', unsafe_allow_html=True)
+                
+                for schedule in group_schedules:
+                    with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
                         # 各曜日の日付を計算
                         days = []
                         current_date = start_date
@@ -315,7 +315,13 @@ if st.session_state[f'week_{idx}_expanded']:
 
                         st.write(f"**投稿日時:** {schedule['投稿日時']}")
                         
-                        # コメント表示をここに追加
+                        # コメント表示（既存のコードを維持）
+
+                
+
+    # ダウンロードボタン（既存のコードを維持）
+
+                # コメント表示
                 st.markdown("---")
                 st.subheader("コメント")
                 if schedule["コメント"]:
@@ -324,7 +330,7 @@ if st.session_state[f'week_{idx}_expanded']:
                 else:
                     st.write("まだコメントはありません。")
 
-                # コメント入力フォーム
+                # コメント入力
                 comment_text = st.text_area(
                     f"コメントを入力 (ID: {schedule['id']})", 
                     key=f"comment_{schedule['id']}"
@@ -335,8 +341,6 @@ if st.session_state[f'week_{idx}_expanded']:
                         st.rerun()
                     else:
                         st.warning("コメントを入力してください。")
-
-        st.markdown('</div>', unsafe_allow_html=True)  # ここでdivを閉じる
 
     # ダウンロードボタン（既存のコードを維持）
     if st.button("週間予定をExcelでダウンロード"):
@@ -360,6 +364,7 @@ def add_comments_column():
     conn.close()
     print("✅ コメントカラムを追加しました！")
 
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ✅ 日報投稿
 def post_report():
