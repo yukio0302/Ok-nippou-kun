@@ -315,7 +315,7 @@ if st.session_state[f'week_{idx}_expanded']:
 
                         st.write(f"**投稿日時:** {schedule['投稿日時']}")
                         
-                        # コメント表示をここに追加
+                       # コメント表示をここに追加
                 st.markdown("---")
                 st.subheader("コメント")
                 if schedule["コメント"]:
@@ -337,7 +337,7 @@ if st.session_state[f'week_{idx}_expanded']:
                         st.warning("コメントを入力してください。")
 
         st.markdown('</div>', unsafe_allow_html=True)
-
+        
     # ダウンロードボタン（既存のコードを維持）
     if st.button("週間予定をExcelでダウンロード"):
         start_date = schedules[0]["開始日"]
