@@ -231,6 +231,7 @@ def show_weekly_schedules():
         return
 
     st.title("週間予定")
+    # top_navigation()
 
     schedules = load_weekly_schedules()
 
@@ -238,46 +239,36 @@ def show_weekly_schedules():
         st.info("週間予定はありません。")
         return
 
-    # 週ごとの折りたたみ
-    weekly_schedules = {}
     for schedule in schedules:
-        week_key = f"{schedule['開始日']} ～ {schedule['終了日']}"
-        if week_key not in weekly_schedules:
-            weekly_schedules[week_key] = []
-        weekly_schedules[week_key].append(schedule)
+        with st.expander(f"{schedule['投稿者']} さんの週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
+            st.write(f"**月曜日:** {schedule['月曜日']}")
+            st.write(f"**火曜日:** {schedule['火曜日']}")
+            st.write(f"**水曜日:** {schedule['水曜日']}")
+            st.write(f"**木曜日:** {schedule['木曜日']}")
+            st.write(f"**金曜日:** {schedule['金曜日']}")
+            st.write(f"**土曜日:** {schedule['土曜日']}")
+            st.write(f"**日曜日:** {schedule['日曜日']}")
+            st.write(f"**投稿日時:** {schedule['投稿日時']}")
+            
 
-    for week, user_schedules in weekly_schedules.items():
-        with st.expander(f"{week} の予定"):
-            # ユーザーごとの折りたたみ
-            for schedule in user_schedules:
-                with st.expander(f"{schedule['投稿者']} さんの週間予定"):
-                    st.write(f"**月曜日:** {schedule['月曜日']}")
-                    st.write(f"**火曜日:** {schedule['火曜日']}")
-                    st.write(f"**水曜日:** {schedule['水曜日']}")
-                    st.write(f"**木曜日:** {schedule['木曜日']}")
-                    st.write(f"**金曜日:** {schedule['金曜日']}")
-                    st.write(f"**土曜日:** {schedule['土曜日']}")
-                    st.write(f"**日曜日:** {schedule['日曜日']}")
-                    st.write(f"**投稿日時:** {schedule['投稿日時']}")
+# 既存コメントの表示
+            st.subheader("コメント")
+            if schedule["コメント"]:
+                for comment in schedule["コメント"]:
+                    st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+            else:
+                st.write("まだコメントはありません。")
 
-                    # 既存コメントの表示
-                    st.subheader("コメント")
-                    if schedule["コメント"]:
-                        for comment in schedule["コメント"]:
-                            st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
-                    else:
-                        st.write("まだコメントはありません。")
+            # コメント入力フォーム
+            comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
+            if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
+                if comment_text.strip():
+                    save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+                    st.rerun()
+                else:
+                    st.warning("コメントを入力してください。")
 
-                    # コメント入力フォーム
-                    comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
-                    if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-                        if comment_text.strip():
-                            save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                            st.rerun()
-                        else:
-                            st.warning("コメントを入力してください。")
-
-    # ダウンロードボタンを追加
+ # ダウンロードボタンを追加
     if st.button("週間予定をExcelでダウンロード"):
         start_date = schedules[0]["開始日"]  # 例: 最初の週の開始日
         end_date = schedules[0]["終了日"]  # 例: 最初の週の終了日
@@ -288,7 +279,6 @@ def show_weekly_schedules():
             file_name="週間予定.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
         
 def add_comments_column():
     """weekly_schedules テーブルにコメントカラムを追加"""
