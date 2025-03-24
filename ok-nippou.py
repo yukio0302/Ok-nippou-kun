@@ -249,11 +249,17 @@ def show_weekly_schedules():
     sorted_groups = sorted(grouped.items(), 
                          key=lambda x: datetime.strptime(x[0][0], "%Y-%m-%d"), 
                          reverse=True)
-
-    for (start_str, end_str), group_schedules in sorted_groups:
+for (start_str, end_str), group_schedules in sorted_groups:
         start_date = datetime.strptime(start_str, "%Y-%m-%d")
         end_date = datetime.strptime(end_str, "%Y-%m-%d")
-        group_title = f"{start_date.month}月{start_date.day}日（{start_date.strftime('%a')}）～{end_date.month}月{end_date.day}日（{end_date.strftime('%a')}）の予定"
+        
+        # 日本語の曜日リスト
+        weekday_ja = ["月", "火", "水", "木", "金", "土", "日"]
+        
+        # グループタイトルの日本語表記
+        start_weekday = weekday_ja[start_date.weekday()]
+        end_weekday = weekday_ja[end_date.weekday()]
+        group_title = f"{start_date.month}月{start_date.day}日（{start_weekday}）～{end_date.month}月{end_date.day}日（{end_weekday}）の予定"
         
         st.markdown("---")
         st.subheader(group_title)
@@ -267,24 +273,14 @@ def show_weekly_schedules():
                     days.append(current_date)
                     current_date += timedelta(days=1)
 
-                # 曜日と日付の対応表
-                weekday_labels = {
-                    "月曜日": days[0],
-                    "火曜日": days[1],
-                    "水曜日": days[2],
-                    "木曜日": days[3],
-                    "金曜日": days[4],
-                    "土曜日": days[5],
-                    "日曜日": days[6],
-                }
-
                 # 予定表示
-                for weekday, date in weekday_labels.items():
-                    date_str = f"{date.month}月{date.day}日（{date.strftime('%a')}）"
+                st.write("**期間:** " + group_title.split("の予定")[0])
+                for i, weekday in enumerate(["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]):
+                    target_date = days[i]
+                    date_str = f"{target_date.month}月{target_date.day}日（{weekday_ja[target_date.weekday()]}）"
                     st.write(f"**{date_str}**: {schedule[weekday]}")
 
                 st.write(f"**投稿日時:** {schedule['投稿日時']}")
-
 
                 # コメント表示
                 st.markdown("---")
