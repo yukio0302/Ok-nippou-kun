@@ -232,8 +232,26 @@ def show_weekly_schedules():
 
     st.title("週間予定")
 
-    schedules = load_weekly_schedules()
+    # カスタムCSSでネスト表現を実現
+    st.markdown("""
+    <style>
+        .nested-expander {
+            border-left: 3px solid #f0f2f6;
+            margin-left: 1rem;
+            padding-left: 1rem;
+        }
+        .week-header {
+            cursor: pointer;
+            padding: 0.5rem;
+            background-color: #f0f2f6;
+            border-radius: 0.5rem;
+            margin: 0.5rem 0;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
+    schedules = load_weekly_schedules()
+    
     if not schedules:
         st.info("週間予定はありません。")
         return
@@ -250,39 +268,58 @@ def show_weekly_schedules():
                          key=lambda x: datetime.strptime(x[0][0], "%Y-%m-%d"), 
                          reverse=True)
 
-    for (start_str, end_str), group_schedules in sorted_groups:
+    for idx, ((start_str, end_str), group_schedules) in enumerate(sorted_groups):
         start_date = datetime.strptime(start_str, "%Y-%m-%d")
         end_date = datetime.strptime(end_str, "%Y-%m-%d")
-        
-        # 日本語の曜日リスト
         weekday_ja = ["月", "火", "水", "木", "金", "土", "日"]
         
-        # グループタイトルの日本語表記
-        start_weekday = weekday_ja[start_date.weekday()]
-        end_weekday = weekday_ja[end_date.weekday()]
-        group_title = f"{start_date.month}月{start_date.day}日（{start_weekday}）～{end_date.month}月{end_date.day}日（{end_weekday}）の予定"
+        # 週のヘッダー（擬似折りたたみボタン）
+        group_title = (
+            f"{start_date.month}月{start_date.day}日（{weekday_ja[start_date.weekday()]}）"
+            f" ～ {end_date.month}月{end_date.day}日（{weekday_ja[end_date.weekday()]}）"
+        )
         
-        st.markdown("---")
-        st.subheader(group_title)
+        # セッションステートで開閉状態を管理
+        if f'week_{idx}_expanded' not in st.session_state:
+            st.session_state[f'week_{idx}_expanded'] = False
+            
+        # ヘッダークリックで状態切り替え
+        clicked = st.button(
+            f"📅 {group_title} {'▼' if st.session_state[f'week_{idx}_expanded'] else '▶'}",
+            key=f'week_header_{idx}',
+            use_container_width=True
+        )
         
-        for schedule in group_schedules:
-            with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
-                # 各曜日の日付を計算
-                days = []
-                current_date = start_date
-                for i in range(7):
-                    days.append(current_date)
-                    current_date += timedelta(days=1)
+        if clicked:
+            st.session_state[f'week_{idx}_expanded'] = not st.session_state[f'week_{idx}_expanded']
 
-                # 予定表示
-                st.write("**期間:** " + group_title.split("の予定")[0])
-                for i, weekday in enumerate(["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]):
-                    target_date = days[i]
-                    date_str = f"{target_date.month}月{target_date.day}日（{weekday_ja[target_date.weekday()]}）"
-                    st.write(f"**{date_str}**: {schedule[weekday]}")
+        # コンテンツ表示
+        if st.session_state[f'week_{idx}_expanded']:
+            with st.container():
+                st.markdown('<div class="nested-expander">', unsafe_allow_html=True)
+                
+                for schedule in group_schedules:
+                    with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
+                        # 各曜日の日付を計算
+                        days = []
+                        current_date = start_date
+                        for i in range(7):
+                            days.append(current_date)
+                            current_date += timedelta(days=1)
 
-                st.write(f"**投稿日時:** {schedule['投稿日時']}")
+                        # 予定表示
+                        for i, weekday in enumerate(["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]):
+                            target_date = days[i]
+                            date_str = f"{target_date.month}月{target_date.day}日（{weekday_ja[target_date.weekday()]}）"
+                            st.write(f"**{date_str}**: {schedule[weekday]}")
 
+                        st.write(f"**投稿日時:** {schedule['投稿日時']}")
+                        
+                        # コメント表示（既存のコードを維持）
+
+                
+
+    # ダウンロードボタン（既存のコードを維持）
 
                 # コメント表示
                 st.markdown("---")
@@ -317,6 +354,8 @@ def show_weekly_schedules():
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
         
+        st.markdown('</div>', unsafe_allow_html=True)
+
 def add_comments_column():
     """weekly_schedules テーブルにコメントカラムを追加"""
     conn = sqlite3.connect(DB_PATH)
