@@ -322,8 +322,6 @@ def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
-
-    # タイトル表示（1箇所のみ）
         st.title(" タイムライン")
         
     # top_navigation()  # この行を削除（サイドバーに統合済み）
