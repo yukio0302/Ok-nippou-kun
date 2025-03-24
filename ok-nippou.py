@@ -336,7 +336,7 @@ if st.session_state[f'week_{idx}_expanded']:
                     else:
                         st.warning("コメントを入力してください。")
 
-        st.markdown('</div>', unsafe_allow_html=True)  # ここでdivを閉じる
+        st.markdown('</div>', unsafe_allow_html=True)
 
     # ダウンロードボタン（既存のコードを維持）
     if st.button("週間予定をExcelでダウンロード"):
