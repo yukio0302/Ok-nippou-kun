@@ -79,46 +79,46 @@ def top_navigation():
 # ✅ サイドバーナビゲーションの追加
 def sidebar_navigation():
     with st.sidebar:
-         # 画像表示（サイドバー上部）
-        st.image("OK-Nippou5.png", use_container_width=True)
+        # ロゴ表示
+        st.image("OK-Nippou.png", use_container_width=True)
         
-        # ナビゲーションボタン
-        st.markdown("""
-        <style>
-            /* 画像とボタンの間隔調整 */
-            .stImage {
-                margin-bottom: 30px !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-        st.markdown("""
-        <style>
-            .sidebar-menu {
-                color: white !important;
-                margin-bottom: 30px;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        # ナビゲーションボタン
-        if st.button("⏳ タイムライン", key="sidebar_timeline"):
-            switch_page("タイムライン")
-            
-        if st.button("📅 週間予定", key="sidebar_weekly"):
-            switch_page("週間予定")
-            
-        if st.button("🔔 お知らせ", key="sidebar_notice"):
-            switch_page("お知らせ")
-            
-        if st.button("✈️ 週間予定投稿", key="sidebar_post_schedule"):
-            switch_page("週間予定投稿")
-            
-        if st.button("📝 日報作成", key="sidebar_post_report"):
-            switch_page("日報投稿")
-            
-        if st.button("👤 マイページ", key="sidebar_mypage"):
-            switch_page("マイページ")
+        # 画像マッピング
+        menu_images = {
+            "タイムライン": "8.png",
+            "週間予定": "5.png",
+            "お知らせ": "7.png",
+            "週間予定投稿": "4.png",
+            "日報作成": "3.png",
+            "マイページ": "6.png"
+        }
 
+        # カスタムCSS
+        st.markdown("""
+        <style>
+            .menu-image {
+                transition: transform 0.2s;
+                cursor: pointer;
+                margin: 10px 0;
+            }
+            .menu-image:hover {
+                transform: scale(1.05);
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
+        # 各メニュー項目
+        for menu, img in menu_images.items():
+            # 画像クリックでページ遷移
+            st.markdown(
+                f'<img src="{img}" class="menu-image" onclick="window.streamlitAPI.setComponentValue(\'{menu}\')">',
+                unsafe_allow_html=True
+            )
+
+        # ページ遷移処理
+        if st.session_state.get("component_value"):
+            st.session_state["page"] = st.session_state.component_value
+            st.session_state.component_value = None
+            st.rerun()
 # ✅ ログイン機能（修正済み）
 def login():
     # ロゴ表示（中央揃え）
