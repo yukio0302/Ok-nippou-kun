@@ -299,23 +299,23 @@ def show_weekly_schedules():
                 st.markdown('<div class="nested-expander">', unsafe_allow_html=True)
                 
                 for schedule in group_schedules:
-                    with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
-                        # 各曜日の日付を計算
-                        days = []
-                        current_date = start_date
-                        for i in range(7):
-                            days.append(current_date)
-                            current_date += timedelta(days=1)
+    with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
+        # 各曜日の日付を計算
+        days = []
+        current_date = start_date
+        for i in range(7):
+            days.append(current_date)
+            current_date += timedelta(days=1)
 
-                        # 予定表示
-                        for i, weekday in enumerate(["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]):
-                            target_date = days[i]
-                            date_str = f"{target_date.month}月{target_date.day}日（{weekday_ja[target_date.weekday()]}）"
-                            st.write(f"**{date_str}**: {schedule[weekday]}")
+        # 予定表示
+        for i, weekday in enumerate(["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]):
+            target_date = days[i]
+            date_str = f"{target_date.month}月{target_date.day}日（{weekday_ja[target_date.weekday()]}）"
+            st.write(f"**{date_str}**: {schedule[weekday]}")
 
-                        st.write(f"**投稿日時:** {schedule['投稿日時']}")
-                        
-                # コメント表示
+        st.write(f"**投稿日時:** {schedule['投稿日時']}")
+        
+        # コメント表示
                 st.markdown("---")
                 st.subheader("コメント")
                 if schedule["コメント"]:
@@ -335,20 +335,20 @@ def show_weekly_schedules():
                         st.rerun()
                     else:
                         st.warning("コメントを入力してください。")
+        
+        st.markdown('</div>', unsafe_allow_html=True)  # ここでdivを閉じる
 
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # ダウンロードボタン（既存のコードを維持）
-    if st.button("週間予定をExcelでダウンロード"):
-        start_date = schedules[0]["開始日"]
-        end_date = schedules[0]["終了日"]
-        excel_file = excel_utils.download_weekly_schedule_excel(start_date, end_date)
-        st.download_button(
-            label="ダウンロード",
-            data=excel_file,
-            file_name="週間予定.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+# ダウンロードボタン（ループの外に移動）★★★
+if st.button("週間予定をExcelでダウンロード"):
+    start_date = schedules[0]["開始日"]
+    end_date = schedules[0]["終了日"]
+    excel_file = excel_utils.download_weekly_schedule_excel(start_date, end_date)
+    st.download_button(
+        label="ダウンロード",
+        data=excel_file,
+        file_name="週間予定.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
         
 
 def add_comments_column():
