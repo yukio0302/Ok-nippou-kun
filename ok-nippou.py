@@ -231,7 +231,6 @@ def show_weekly_schedules():
         return
 
     st.title("週間予定")
-    # top_navigation()
 
     schedules = load_weekly_schedules()
 
@@ -239,39 +238,62 @@ def show_weekly_schedules():
         st.info("週間予定はありません。")
         return
 
-    for schedule in schedules:
-        with st.expander(f"{schedule['投稿者']} さんの週間予定 ({schedule['開始日']} ～ {schedule['終了日']})"):
-            st.write(f"**月曜日:** {schedule['月曜日']}")
-            st.write(f"**火曜日:** {schedule['火曜日']}")
-            st.write(f"**水曜日:** {schedule['水曜日']}")
-            st.write(f"**木曜日:** {schedule['木曜日']}")
-            st.write(f"**金曜日:** {schedule['金曜日']}")
-            st.write(f"**土曜日:** {schedule['土曜日']}")
-            st.write(f"**日曜日:** {schedule['日曜日']}")
-            st.write(f"**投稿日時:** {schedule['投稿日時']}")
-            
+    # 週ごとにグループ化
+    from collections import defaultdict
+    grouped = defaultdict(list)
+    for s in schedules:
+        key = (s['開始日'], s['終了日'])
+        grouped[key].append(s)
 
-# 既存コメントの表示
-            st.subheader("コメント")
-            if schedule["コメント"]:
-                for comment in schedule["コメント"]:
-                    st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
-            else:
-                st.write("まだコメントはありません。")
+    # 開始日で降順ソート
+    sorted_groups = sorted(grouped.items(), 
+                         key=lambda x: datetime.strptime(x[0][0], "%Y-%m-%d"), 
+                         reverse=True)
 
-            # コメント入力フォーム
-            comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
-            if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-                if comment_text.strip():
-                    save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                    st.rerun()
-                else:
-                    st.warning("コメントを入力してください。")
+    for (start_str, end_str), group_schedules in sorted_groups:
+        # 日付のフォーマット変換
+        start_date = datetime.strptime(start_str, "%Y-%m-%d")
+        end_date = datetime.strptime(end_str, "%Y-%m-%d")
+        group_title = f"{start_date.month}月{start_date.day}日～{end_date.month}月{end_date.day}日の予定 ▽"
+        
+        # 週全体の折りたたみ
+        with st.expander(group_title):
+            for schedule in group_schedules:
+                # 各ユーザーの折りたたみ
+                with st.expander(f"{schedule['投稿者']} さんの週間予定 ({start_date.month}月{start_date.day}日～{end_date.month}月{end_date.day}日)"):
+                    st.write(f"**月曜日:** {schedule['月曜日']}")
+                    st.write(f"**火曜日:** {schedule['火曜日']}")
+                    st.write(f"**水曜日:** {schedule['水曜日']}")
+                    st.write(f"**木曜日:** {schedule['木曜日']}")
+                    st.write(f"**金曜日:** {schedule['金曜日']}")
+                    st.write(f"**土曜日:** {schedule['土曜日']}")
+                    st.write(f"**日曜日:** {schedule['日曜日']}")
+                    st.write(f"**投稿日時:** {schedule['投稿日時']}")
 
- # ダウンロードボタンを追加
+                    # コメント表示
+                    st.subheader("コメント")
+                    if schedule["コメント"]:
+                        for comment in schedule["コメント"]:
+                            st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                    else:
+                        st.write("まだコメントはありません。")
+
+                    # コメント入力
+                    comment_text = st.text_area(
+                        f"コメントを入力 (ID: {schedule['id']})", 
+                        key=f"comment_{schedule['id']}"
+                    )
+                    if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
+                        if comment_text.strip():
+                            save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+                            st.rerun()
+                        else:
+                            st.warning("コメントを入力してください。")
+
+    # ダウンロードボタン（既存のコードを維持）
     if st.button("週間予定をExcelでダウンロード"):
-        start_date = schedules[0]["開始日"]  # 例: 最初の週の開始日
-        end_date = schedules[0]["終了日"]  # 例: 最初の週の終了日
+        start_date = schedules[0]["開始日"]
+        end_date = schedules[0]["終了日"]
         excel_file = excel_utils.download_weekly_schedule_excel(start_date, end_date)
         st.download_button(
             label="ダウンロード",
