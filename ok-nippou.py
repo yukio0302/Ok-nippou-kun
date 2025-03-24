@@ -146,7 +146,7 @@ def load_weekly_schedules():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM weekly_schedules ORDER BY 投稿日時 DESC")
+    cur.execute("SELECT *, コメント FROM weekly_schedules ORDER BY 投稿日時 DESC") # コメントカラムも取得
     rows = cur.fetchall()
     conn.close()
 
@@ -157,9 +157,11 @@ def load_weekly_schedules():
             "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3], 
             "月曜日": row[4], "火曜日": row[5], "水曜日": row[6], 
             "木曜日": row[7], "金曜日": row[8], "土曜日": row[9], 
-            "日曜日": row[10], "投稿日時": row[11]
+            "日曜日": row[10], "投稿日時": row[11],
+            "コメント": json.loads(row[12]) if row[12] else [] # コメントをJSONデコード
         })
     return schedules
+
 def post_weekly_schedule():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
@@ -247,16 +249,12 @@ def show_weekly_schedules():
             
 
 # 既存コメントの表示
-            st.subheader(" コメント")
-            try:
-                comments = json.loads(schedule.get("コメント", "[]"))
-                if comments:
-                    for c in sorted(comments, key=lambda x: x["日時"]):  # 日時でソート
-                        st.write(f"️ {c['投稿者']} ({c['日時']}): {c['コメント']}")
-                else:
-                    st.write("まだコメントはありません。")
-            except json.JSONDecodeError:
-                st.write("コメントの形式が不正です。")
+            st.subheader("コメント")
+            if schedule["コメント"]:
+                for comment in schedule["コメント"]:
+                    st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+            else:
+                st.write("まだコメントはありません。")
 
             # コメント入力フォーム
             comment_text = st.text_area(f"コメントを入力 (ID: {schedule['id']})", key=f"comment_{schedule['id']}")
