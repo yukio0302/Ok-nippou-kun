@@ -49,33 +49,7 @@ def switch_page(page_name):
     st.session_state["page"] = page_name
 
 # ✅ ナビゲーションバー（CSSを削除）
-def top_navigation():
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("⏳ タイムライン"):
-            st.session_state.page = "タイムライン"
-            st.rerun()
-        if st.button("📅 週間予定投稿"):  # 週間予定投稿ボタンを追加
-            st.session_state.page = "週間予定投稿"
-            st.rerun()
-    with col2:
-        if st.button("🔔 お知らせ"):  # お知らせボタンはそのまま
-            st.session_state.page = "お知らせ"
-            st.rerun()
-        if st.button("✏️ 日報投稿"):
-            st.session_state.page = "日報投稿"
-            st.rerun()
-
-    # マイページボタンを追加
-    if st.button("🚹 マイページ"):
-        st.session_state.page = "マイページ"
-        st.rerun()
-
-    if "page" not in st.session_state:
-        st.session_state.page = "タイムライン"
-
 # ...（以下、元のコードと同じ。その他の関数やメインロジックは変更なし）...
-        
 # ✅ サイドバーナビゲーションの追加
 def sidebar_navigation():
     with st.sidebar:
@@ -192,7 +166,7 @@ def post_weekly_schedule():
         return
 
     st.title("週間予定投稿")
-    top_navigation()
+    # top_navigation()
 
     # 週選択用のヘルパー関数
     def generate_week_options():
@@ -252,7 +226,7 @@ def show_weekly_schedules():
         return
 
     st.title("週間予定")
-    top_navigation()
+    # top_navigation()
 
     schedules = load_weekly_schedules()
 
@@ -304,7 +278,7 @@ def post_report():
         return
 
     st.title("日報投稿")
-    top_navigation()
+    # top_navigation()
 
      # 選択可能な日付リスト（1週間前～本日）
     today = datetime.today().date()
@@ -502,7 +476,7 @@ def show_notices():
         return
 
     st.title(" お知らせ")
-    top_navigation()
+    # top_navigation()
 
     # ✅ 現在のユーザー名を取得
     user_name = st.session_state["user"]["name"]
@@ -557,7 +531,7 @@ def my_page():
         return
 
     st.title("マイページ")
-    top_navigation()
+    # top_navigation()
 
     reports = load_reports()
     my_reports = [r for r in reports if r["投稿者"] == st.session_state["user"]["name"]]
