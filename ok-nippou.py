@@ -354,7 +354,6 @@ def show_weekly_schedules():
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
         
-        st.markdown('</div>', unsafe_allow_html=True)
 
 def add_comments_column():
     """weekly_schedules テーブルにコメントカラムを追加"""
@@ -365,6 +364,7 @@ def add_comments_column():
     conn.close()
     print("✅ コメントカラムを追加しました！")
 
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ✅ 日報投稿
 def post_report():
