@@ -7,6 +7,8 @@ import base64
 from datetime import datetime, timedelta
 import json
 import sqlite3
+import openpyxl
+from io import BytesIO
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
@@ -274,6 +276,47 @@ def add_comments_column():
     conn.close()
     print("✅ コメントカラムを追加しました！")
 
+
+def download_weekly_schedule_excel(start_date, end_date):
+    """
+    週間予定をExcelファイルとしてダウンロードする
+    """
+    user_schedules = db_utils.get_weekly_schedule_for_all_users(start_date, end_date)
+
+    wb = openpyxl.Workbook()
+    for user_id, schedules in user_schedules.items():
+        ws = wb.create_sheet(title=f"ユーザー{user_id}")
+
+        # ヘッダー行
+        headers = ["日付", "予定内容", "コメント"]
+        for col_num, header in enumerate(headers, 1):
+            ws.cell(row=1, column=col_num, value=header)
+
+        # データ行
+        for row_num, schedule in enumerate(schedules, 2):
+            ws.cell(row=row_num, column=1, value=schedule["date"])
+            ws.cell(row=row_num, column=2, value=schedule["content"])
+            ws.cell(row=row_num, column=3, value=schedule["comment"])
+
+    # ファイルをバイト列として保存
+    excel_file = BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
+
+    return excel_file
+
+# ... (StreamlitのUI)
+
+if st.button("週間予定をExcelでダウンロード"):
+    start_date = datetime.today().strftime("%Y-%m-%d")  # 例: 今週の開始日
+    end_date = (datetime.today() + timedelta(days=6)).strftime("%Y-%m-%d") # 例: 今週の終了日
+    excel_file = download_weekly_schedule_excel(start_date, end_date)
+    st.download_button(
+        label="ダウンロード",
+        data=excel_file,
+        file_name="週間予定.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 # ✅ 日報投稿
 def post_report():
