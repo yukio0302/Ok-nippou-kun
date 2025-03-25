@@ -155,7 +155,7 @@ def load_reports():
             "所感": row[6], "いいね": row[7], "ナイスファイト": row[8],
             "コメント": json.loads(row[9]) if row[9] else [],
             "image": row[10], "投稿日時": row[11],
-            "予定": row[12]  # 予定を文字列として取得
+            "予定": row[12] if len(row) > 12 else None  # 予定カラムが存在するか確認
         })
     return reports
 
