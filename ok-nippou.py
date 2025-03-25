@@ -710,7 +710,7 @@ def show_report_details(report):
     if report["投稿者"] == st.session_state["user"]["name"]:
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("✏️ 編集する", key=f"edit_btn_{report['id']}_{st.session_state['user']['name']}"):
+            if st.button("✏️ 編集する", key=f"mypage_edit_{report['id']}"):
                 st.session_state[f"edit_mode_{report['id']}"] = True  # 編集モードをON
 
         with col2:
