@@ -520,7 +520,8 @@ def timeline():
         """
         <style>
             .stRadio > label > div,
-            .stDateInput > label > div {
+            .stDateInput > label > div,
+            .stRadio > label { /* ラジオボタンの選択肢のテキストを白くする */
                 color: white;
             }
             .st-bb.st-at {
