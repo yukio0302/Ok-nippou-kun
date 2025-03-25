@@ -512,18 +512,17 @@ def timeline():
         "表示する期間を選択",
         ["24時間以内の投稿", "1週間以内の投稿", "過去の投稿"],
         index=0,
-        key="timeline_period_selector"  
+        key="timeline_period_selector"
     )
 
     # カスタムCSSでテキストの色を白に変更
     st.markdown(
         """
         <style>
-            div[data-baseweb="radio"] > label > span {
-                color: white !important;
-            }
+            div[data-baseweb="radio"] > label > span,
             .stDateInput > label > div,
-            .st-bb.st-at {
+            .st-bb.st-at,
+            .stRadio > label > div {
                 color: white !important;
             }
         </style>
