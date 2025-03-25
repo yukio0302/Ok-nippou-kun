@@ -619,47 +619,47 @@ def my_page():
     reports = load_reports()
     my_reports = [r for r in reports if r["投稿者"] == st.session_state["user"]["name"]]
 
-    # 🔹 今週の投稿
+    #  今週の投稿
     with st.expander("今週の投稿", expanded=False):  # 初期状態は折りたたまれている
         now = datetime.utcnow()
         start_of_week = now - timedelta(days=now.weekday())
         end_of_week = start_of_week + timedelta(days=4)
-        
+
         weekly_reports = [
             r for r in my_reports
             if start_of_week.date() <= datetime.strptime(r["実行日"], "%Y-%m-%d").date() <= end_of_week.date()
         ]
 
         if weekly_reports:
-            for report in weekly_reports:
+            for index, report in enumerate(weekly_reports): # indexを追加
                 st.markdown(f"**{report['実行日']} / {report['場所']}**")
-                show_report_details(report)  # 詳細を直接表示
+                show_report_details(report, index)  # indexを渡す
         else:
             st.info("今週の投稿はありません。")
 
-    # 🔹 過去の投稿
+    #  過去の投稿
     with st.expander("過去の投稿", expanded=False):  # 初期状態は折りたたまれている
         past_reports = [r for r in my_reports if r not in weekly_reports]
 
         if past_reports:
-            for report in past_reports:
+            for index, report in enumerate(past_reports): # indexを追加
                 st.markdown(f"**{report['実行日']} / {report['場所']}**")
-                show_report_details(report)  # 詳細を直接表示
+                show_report_details(report, index)  # indexを渡す
         else:
             st.info("過去の投稿はありません。")
 
-    # 🔹 コメントした投稿
+    #  コメントした投稿
     with st.expander("コメントした投稿", expanded=False):  # 初期状態は折りたたまれている
         commented_reports = load_commented_reports(st.session_state["user"]["name"])
 
         if commented_reports:
-            for report in commented_reports:
+            for index, report in enumerate(commented_reports): # indexを追加
                 st.markdown(f"**{report['投稿者']} さんの日報 ({report['実行日']})**")
-                show_report_details(report)  # 詳細を直接表示
+                show_report_details(report, index)  # indexを渡す
         else:
             st.info("コメントした投稿はありません。")
 
-    # 🔹 週間予定の編集機能（キー完全一意化）
+    #  週間予定の編集機能（キー完全一意化）
     with st.expander("週間予定の編集", expanded=False):
         st.subheader("週間予定の編集")
         schedules = load_weekly_schedules()
@@ -669,9 +669,9 @@ def my_page():
             for idx, schedule in enumerate(user_schedules):
                 unique_key = f"weekly_{schedule['id']}_{idx}"
                 with st.container():
-                    st.markdown(f"**📅 期間: {schedule['開始日']} ～ {schedule['終了日']}**")
+                    st.markdown(f"** 期間: {schedule['開始日']} ～ {schedule['終了日']}**")
                     st.caption(f"最終更新日時: {schedule['投稿日時']}")
-                    
+
                     # 各曜日の入力フィールド
                     days = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]
                     new_values = {}
@@ -685,7 +685,7 @@ def my_page():
 
                     # 保存ボタン
                     if st.button(
-                        "💾 保存変更",
+                        " 保存変更",
                         key=f"save_{unique_key}",
                         help="この週間予定の変更を保存します"
                     ):
@@ -705,13 +705,13 @@ def my_page():
                             st.rerun()
                         except Exception as e:
                             st.error(f"⚠️ 更新に失敗しました: {str(e)}")
-                    
+
                     st.markdown("---")
         else:
             st.info("投稿した週間予定はありません。")
             
 # ✅ 投稿詳細（編集・削除機能付き）
-def show_report_details(report):
+def show_report_details(report, report_index):
     """投稿の詳細を表示し、編集・削除機能を提供"""
     st.write(f"**実施日:** {report['実行日']}")
     st.write(f"**場所:** {report['場所']}")
@@ -720,32 +720,32 @@ def show_report_details(report):
 
     # コメント一覧表示
     if report.get("コメント"):
-        st.subheader("🗨️ コメント一覧")
+        st.subheader("️ コメント一覧")
         for c_idx, comment in enumerate(report["コメント"]):
             st.write(
                 f"{comment['投稿者']} ({comment['日時']}): {comment['コメント']}",
-                key=f"comment_{report['id']}_{c_idx}"
+                key=f"comment_{report['id']}_{report_index}_{c_idx}"  # キーにreport_indexを追加
             )
 
     # 編集 & 削除ボタン（完全に一意なキーを生成）
     if report["投稿者"] == st.session_state["user"]["name"]:
         # ユニークキー生成用の要素
         user_info = st.session_state["user"]
-        unique_key_suffix = f"{report['id']}_{user_info.get('employee_code', 'unknown')}"
+        unique_key_suffix = f"{report['id']}_{report_index}_{user_info.get('employee_code', 'unknown')}"  # キーにreport_indexを追加
 
         col1, col2 = st.columns(2)
         with col1:
             if st.button(
                 "✏️ 編集する",
-                key=f"daily_edit_{unique_key_suffix}",
+                key=f"daily_edit_{unique_key_suffix}",  # キーを修正
                 help="この日報を編集します"
             ):
                 st.session_state[f"edit_mode_{unique_key_suffix}"] = True
 
         with col2:
             if st.button(
-                "🗑️ 削除する",
-                key=f"daily_delete_{unique_key_suffix}",
+                "️ 削除する",
+                key=f"daily_delete_{unique_key_suffix}",  # キーを修正
                 help="この日報を完全に削除します"
             ):
                 st.session_state[f"confirm_delete_{unique_key_suffix}"] = True
@@ -753,12 +753,12 @@ def show_report_details(report):
         # 削除確認ダイアログ
         if st.session_state.get(f"confirm_delete_{unique_key_suffix}", False):
             st.warning("⚠️ 本当に削除しますか？")
-            
+
             col_confirm, col_cancel = st.columns(2)
             with col_confirm:
                 if st.button(
                     "✅ はい、削除する",
-                    key=f"confirm_delete_{unique_key_suffix}"
+                    key=f"confirm_delete_{unique_key_suffix}" # キーを修正
                 ):
                     delete_report(report["id"])
                     st.success("✅ 削除しました")
@@ -767,7 +767,7 @@ def show_report_details(report):
             with col_cancel:
                 if st.button(
                     "❌ キャンセル",
-                    key=f"cancel_delete_{unique_key_suffix}"
+                    key=f"cancel_delete_{unique_key_suffix}" # キーを修正
                 ):
                     st.session_state[f"confirm_delete_{unique_key_suffix}"] = False
                     st.rerun()
