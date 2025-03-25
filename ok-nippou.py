@@ -519,13 +519,12 @@ def timeline():
     st.markdown(
         """
         <style>
-            .stRadio > label > div,
-            .stDateInput > label > div,
-            .stRadio > label { /* ラジオボタンの選択肢のテキストを白くする */
-                color: white;
+            div[data-baseweb="radio"] > label > span {
+                color: white !important;
             }
+            .stDateInput > label > div,
             .st-bb.st-at {
-                color: white;
+                color: white !important;
             }
         </style>
         """,
