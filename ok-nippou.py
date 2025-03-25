@@ -533,6 +533,22 @@ def timeline():
         start_datetime = datetime(start_date.year, start_date.month, start_date.day)
         end_datetime = datetime(end_date.year, end_date.month, end_date.day) + timedelta(days=1)
 
+    # カスタムCSSでテキストの色を白に変更
+    st.markdown(
+        """
+        <style>
+            .stRadio > label > div,
+            .stDateInput > label > div {
+                color: white;
+            }
+            .st-bb.st-at {
+                color: white;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
     # ✅ 選択された期間に該当する投稿をフィルタリング
     filtered_reports = []
     for report in reports:
