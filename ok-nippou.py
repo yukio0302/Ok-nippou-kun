@@ -249,13 +249,12 @@ def show_weekly_schedules():
         margin: 0.5rem 0;
         transition: background-color 0.3s ease, max-height 0.3s ease; /* アニメーションを追加 */
         overflow: hidden; /* コンテンツを非表示 */
-        max-height: none; /* 初期状態では高さを制限しない */
     }
     .week-header:hover {
         background-color: #e0e0e0; /* ホバー時の色を変更 */
     }
-    .week-header.collapsed {
-        max-height: 50px; /* 折りたたみ時は高さを制限 */
+    .week-header.expanded {
+        max-height: none; /* 展開時は高さを自動調整 */
     }
     .week-content {
         overflow: hidden; /* アニメーションのために追加 */
@@ -317,91 +316,75 @@ def show_weekly_schedules():
             )
 
 def display_schedules(schedules_to_display):
-        for idx, ((start_str, end_str), group_schedules) in enumerate(schedules_to_display):
-            start_date = datetime.datetime.strptime(start_str, "%Y-%m-%d")
-            end_date = datetime.datetime.strptime(end_str, "%Y-%m-%d")
-            weekday_ja = ["月", "火", "水", "木", "金", "土", "日"]
+    for idx, ((start_str, end_str), group_schedules) in enumerate(schedules_to_display):
+        start_date = datetime.strptime(start_str, "%Y-%m-%d")
+        end_date = datetime.strptime(end_str, "%Y-%m-%d")
+        weekday_ja = ["月", "火", "水", "木", "金", "土", "日"]
 
-            # 週のヘッダー（擬似折りたたみボタン）
-            group_title = (
-                f"{start_date.month}月{start_date.day}日（{weekday_ja[start_date.weekday()]}）"
-                f" ～ {end_date.month}月{end_date.day}日（{weekday_ja[end_date.weekday()]}）"
-            )
+        # 週のヘッダー（擬似折りたたみボタン）
+        group_title = (
+            f"{start_date.month}月{start_date.day}日（{weekday_ja[start_date.weekday()]}）"
+            f" ～ {end_date.month}月{end_date.day}日（{weekday_ja[end_date.weekday()]}）"
+        )
 
-            # セッションステートで開閉状態を管理
-            if f'week_{idx}_expanded' not in st.session_state:
-                st.session_state[f'week_{idx}_expanded'] = False
+        # セッションステートで開閉状態を管理
+        if f'week_{idx}_expanded' not in st.session_state:
+            st.session_state[f'week_{idx}_expanded'] = False
 
-            # ヘッダーを表示
-            header_id = f'week_header_{idx}'
-            st.markdown(f'<div class="week-header {"expanded" if st.session_state[f"week_{idx}_expanded"] else "collapsed"}" id="{header_id}"> {group_title} {'▲' if st.session_state[f'week_{idx}_expanded'] else '▼'} </div>', unsafe_allow_html=True)
+        # ヘッダークリックで状態切り替え
+        clicked = st.button(
+            f" {group_title} {'▼' if st.session_state[f'week_{idx}_expanded'] else '▶'}",
+            key=f'week_header_{idx}',
+            use_container_width=True
+        )
 
-            # JavaScriptでクリックイベントを処理
-            st.markdown(
-                f"""
-                <script>
-                    document.getElementById('{header_id}').addEventListener('click', function() {{
-                        this.classList.toggle('expanded');
-                        this.classList.toggle('collapsed');
-                        let expanded = this.classList.contains('expanded');
-                        Streamlit.setComponentValue({{key: 'week_{idx}_expanded', value: expanded}});
-                    }});
-                </script>
-                """,
-                unsafe_allow_html=True,
-            )
+        if clicked:
+            st.session_state[f'week_{idx}_expanded'] = not st.session_state[f'week_{idx}_expanded']
 
-            # コンポーネントの状態を監視
-            component_value = st.session_state[f'week_{idx}_expanded']
+        # コンテンツ表示
+        if st.session_state[f'week_{idx}_expanded']:
+            with st.container():
+                st.markdown('<div class="nested-expander">', unsafe_allow_html=True)
 
-            # コンポーネントの状態が変更されたときにセッションの状態を更新
-            if component_value != st.session_state[f'week_{idx}_expanded']:
-                st.session_state[f'week_{idx}_expanded'] = component_value
+                for schedule in group_schedules:
+                    with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
+                        # 各曜日の日付を計算
+                        days = []
+                        current_date = start_date
+                        for i in range(7):
+                            days.append(current_date)
+                            current_date += timedelta(days=1)
 
-            # コンテンツ表示
-            if st.session_state[f'week_{idx}_expanded']:
-                with st.container():
-                    st.markdown('<div class="nested-expander">', unsafe_allow_html=True)
+                        # 予定表示
+                        for i, weekday in enumerate(["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]):
+                            target_date = days[i]
+                            date_str = f"{target_date.month}月{target_date.day}日（{weekday_ja[target_date.weekday()]}）"
+                            st.write(f"**{date_str}**: {schedule[weekday]}")
 
-                    for schedule in group_schedules:
-                        with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
-                            # 各曜日の日付を計算
-                            days = []
-                            current_date = start_date
-                            for i in range(7):
-                                days.append(current_date)
-                                current_date += datetime.timedelta(days=1)
+                        st.write(f"**投稿日時:** {schedule['投稿日時']}")
 
-                            # 予定表示
-                            for i, weekday in enumerate(["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]):
-                                target_date = days[i]
-                                date_str = f"{target_date.month}月{target_date.day}日（{weekday_ja[target_date.weekday()]}）"
-                                st.write(f"**{date_str}**: {schedule[weekday]}")
+                        # コメント表示
+                        st.markdown("---")
+                        st.subheader("コメント")
+                        if schedule["コメント"]:
+                            for comment in schedule["コメント"]:
+                                st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                        else:
+                            st.write("まだコメントはありません。")
 
-                            st.write(f"**投稿日時:** {schedule['投稿日時']}")
-
-                            # コメント表示
-                            st.markdown("---")
-                            st.subheader("コメント")
-                            if schedule["コメント"]:
-                                for comment in schedule["コメント"]:
-                                    st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                        # コメント入力
+                        comment_text = st.text_area(
+                            f"コメントを入力 (ID: {schedule['id']})",
+                            key=f"comment_{schedule['id']}"
+                        )
+                        if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
+                            if comment_text.strip():
+                                save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+                                st.rerun()
                             else:
-                                st.write("まだコメントはありません。")
+                                st.warning("コメントを入力してください。")
 
-                            # コメント入力
-                            comment_text = st.text_area(
-                                f"コメントを入力 (ID: {schedule['id']})",
-                                key=f"comment_{schedule['id']}"
-                            )
-                            if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-                                if comment_text.strip():
-                                    save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                                    st.rerun()
-                                else:
-                                    st.warning("コメントを入力してください。")
-
-                    st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)  # ここでdivを閉じる
 
 def display_past_schedules(past_schedules):
     # 月ごとにグループ化
