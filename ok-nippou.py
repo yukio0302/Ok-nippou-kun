@@ -248,8 +248,7 @@ def show_weekly_schedules():
         border-radius: 0.5rem;
         margin: 0.5rem 0;
         transition: background-color 0.3s ease, max-height 0.3s ease; /* アニメーションを追加 */
-        max-height: 50px; /* 初期の高さを設定 */
-        overflow: hidden; /* 初期状態ではコンテンツを非表示 */
+        overflow: hidden; /* コンテンツを非表示 */
     }
     .week-header:hover {
         background-color: #e0e0e0; /* ホバー時の色を変更 */
