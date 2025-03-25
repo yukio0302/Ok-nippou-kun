@@ -515,6 +515,22 @@ def timeline():
         key="timeline_period_selector"  
     )
 
+    # カスタムCSSでテキストの色を白に変更
+    st.markdown(
+        """
+        <style>
+            .stRadio > label > div,
+            .stDateInput > label > div {
+                color: white;
+            }
+            .st-bb.st-at {
+                color: white;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
     # ✅ デフォルトで24時間以内の投稿を表示
     if period_option == "24時間以内の投稿":
         start_datetime = datetime.now() + timedelta(hours=9) - timedelta(hours=24)  # 過去24時間（JST）
@@ -532,22 +548,6 @@ def timeline():
             end_date = st.date_input("終了日", datetime.now().date() - timedelta(days=1), min_value=start_date, max_value=datetime.now().date() - timedelta(days=1))
         start_datetime = datetime(start_date.year, start_date.month, start_date.day)
         end_datetime = datetime(end_date.year, end_date.month, end_date.day) + timedelta(days=1)
-
-    # カスタムCSSでテキストの色を白に変更
-    st.markdown(
-        """
-        <style>
-            .stRadio > label > div,
-            .stDateInput > label > div {
-                color: white;
-            }
-            .st-bb.st-at {
-                color: white;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
     
     # ✅ 選択された期間に該当する投稿をフィルタリング
     filtered_reports = []
