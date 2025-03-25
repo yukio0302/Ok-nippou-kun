@@ -701,7 +701,7 @@ def show_report_details(report, report_index):
     if report["投稿者"] == st.session_state["user"]["name"]:
         # ユニークキー生成用の要素
         user_info = st.session_state["user"]
-        unique_key_suffix = f"{report['id']}_{report_index}_{user_info.get('employee_code', 'unknown')}"  # キーにreport_indexを追加
+        unique_key_suffix = f"{report['id']}_{report_index}_{user_info.get('employee_code', 'unknown')}_{user_info.get('name', 'unknown')}"  # キーにユーザー情報も追加
 
         col1, col2 = st.columns(2)
         with col1:
