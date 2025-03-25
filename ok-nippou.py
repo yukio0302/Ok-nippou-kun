@@ -389,8 +389,8 @@ def display_past_schedules(past_schedules):
                 start_date = datetime.strptime(start_str, "%Y-%m-%d")
                 end_date = datetime.strptime(end_str, "%Y-%m-%d")
                 weekday_ja = ["月", "火", "水", "木", "金", "土", "日"]
-                st.markdown(f"│  │  ├─f" {start_date.month}/{start_date.day}（{weekday_ja[start_date.weekday()]}）～{end_date.month}/{end_date.day}（{weekday_ja[end_date.weekday()]}）")
-                st.markdown('│  │  │  <div class="nested-expander">', unsafe_allow_html=True)
+                st.markdown(f"│ │ ├─ {start_date.month}/{start_date.day} ({weekday_ja[start_date.weekday()]})～{end_date.month}/{end_date.day} ({weekday_ja[end_date.weekday()]})")
+                st.markdown('│ │ │ <div class="nested-expander">', unsafe_allow_html=True)
                 for schedule in group_schedules:
                     with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
                         # 各曜日の日付を計算
