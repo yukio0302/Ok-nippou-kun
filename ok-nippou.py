@@ -7,6 +7,7 @@ import base64
 from datetime import datetime, timedelta
 import json
 import sqlite3
+from collections import defaultdict
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
