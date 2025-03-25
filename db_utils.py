@@ -128,11 +128,10 @@ def save_report(report):
         """, (
             report["投稿者"], report["実行日"], report["カテゴリ"], report["場所"],
             report["実施内容"], report["所感"], 0, 0, json.dumps([]),
-            report.get("image", None), report["投稿日時"], report.get("予定", None)  # 予定を保存
+            report.get("image", None), report["投稿日時"], report.get("予定", None)  # 予定を文字列として保存
         ))
 
         conn.commit()
-        conn.execute("VACUUM")  # ← これで強制的にデータベースを更新
         conn.close()
         print("✅ データベースに日報を保存しました！")  # デバッグログ
     except Exception as e:
@@ -156,7 +155,7 @@ def load_reports():
             "所感": row[6], "いいね": row[7], "ナイスファイト": row[8],
             "コメント": json.loads(row[9]) if row[9] else [],
             "image": row[10], "投稿日時": row[11],
-            "予定": row[12]  # 予定を取得
+            "予定": row[12]  # 予定を文字列として取得
         })
     return reports
 
