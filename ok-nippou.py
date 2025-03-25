@@ -282,7 +282,7 @@ def show_weekly_schedules():
             past_schedules.append((start_end, group_schedules))
 
     # 最新の投稿を表示
-    st.subheader("最新の投稿")
+    st.subheader("直近5週分の予定")
     display_schedules(recent_schedules)
 
     # 過去の投稿を表示
