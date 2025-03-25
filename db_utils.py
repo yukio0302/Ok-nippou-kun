@@ -84,10 +84,7 @@ def init_db(keep_existing=True):
         土曜日 TEXT,
         日曜日 TEXT,
         投稿日時 TEXT,
-        コメント TEXT DEFAULT '[]',
-        user_id TEXT,  -- ユーザーIDが文字列の場合
-        schedule_date DATE,  -- 日付型を使用
-        schedule_content TEXT  -- 予定内容
+    コメント TEXT DEFAULT '[]'
     )
     """)
 
@@ -123,12 +120,12 @@ def save_report(report):
         report["実行日"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d")  # 実行日もJSTで保存
 
         cur.execute("""
-            INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント, 画像, 投稿日時, 予定)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント, 画像, 投稿日時)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            report["投稿者"], report["実行日"], report["カテゴリ"], report["場所"],
-            report["実施内容"], report["所感"], 0, 0, json.dumps([]),
-            report.get("image", None), report["投稿日時"], report.get("予定", None)  # 予定を保存
+            report["投稿者"], report["実行日"], report["カテゴリ"], report["場所"], 
+            report["実施内容"], report["所感"], 0, 0, json.dumps([]), 
+            report.get("image", None), report["投稿日時"]
         ))
 
         conn.commit()
@@ -143,7 +140,7 @@ def load_reports():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT *, コメント FROM reports ORDER BY 投稿日時 DESC")  # コメントカラムも取得
+    cur.execute("SELECT * FROM reports ORDER BY 投稿日時 DESC")
     rows = cur.fetchall()
     conn.close()
 
@@ -151,12 +148,10 @@ def load_reports():
     reports = []
     for row in rows:
         reports.append({
-            "id": row[0], "投稿者": row[1], "実行日": row[2],
-            "カテゴリ": row[3], "場所": row[4], "実施内容": row[5],
-            "所感": row[6], "いいね": row[7], "ナイスファイト": row[8],
-            "コメント": json.loads(row[9]) if row[9] else [],
-            "image": row[10], "投稿日時": row[11],
-            "予定": row[12]  # 予定を取得
+            "id": row[0], "投稿者": row[1], "実行日": row[2], "カテゴリ": row[3], 
+            "場所": row[4], "実施内容": row[5], "所感": row[6], "いいね": row[7], 
+            "ナイスファイト": row[8], "コメント": json.loads(row[9]), "image": row[10], 
+            "投稿日時": row[11]
         })
     return reports
 
