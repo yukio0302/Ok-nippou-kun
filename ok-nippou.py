@@ -659,38 +659,76 @@ def my_page():
         else:
             st.info("コメントした投稿はありません。")
 
-    # 🔹 週間予定の編集機能（修正箇所）
+    # 🔹 週間予定の編集機能（完全修正版）
     with st.expander("週間予定の編集", expanded=False):
         st.subheader("週間予定の編集")
         schedules = load_weekly_schedules()
         user_schedules = [s for s in schedules if s["投稿者"] == st.session_state["user"]["name"]]
 
         if user_schedules:
-            # コンテナを使用してネストを回避
-            for schedule in user_schedules:
-                with st.container():  # expanderの代わりにcontainerを使用
-                    st.markdown(f"**期間: {schedule['開始日']} ～ {schedule['終了日']}**")
+            for idx, schedule in enumerate(user_schedules):
+                with st.container():
+                    # ヘッダー表示
+                    st.markdown(f"**📅 期間: {schedule['開始日']} ～ {schedule['終了日']}**")
+                    st.caption(f"最終更新日時: {schedule['投稿日時']}")
                     
-                    # 編集フォーム
-                    new_monday = st.text_area("月曜日", schedule["月曜日"], key=f"mon_{schedule['id']}")
-                    new_tuesday = st.text_area("火曜日", schedule["火曜日"], key=f"tue_{schedule['id']}")
-                    new_wednesday = st.text_area("水曜日", schedule["水曜日"], key=f"wed_{schedule['id']}")
-                    new_thursday = st.text_area("木曜日", schedule["木曜日"], key=f"thu_{schedule['id']}")
-                    new_friday = st.text_area("金曜日", schedule["金曜日"], key=f"fri_{schedule['id']}")
-                    new_saturday = st.text_area("土曜日", schedule["土曜日"], key=f"sat_{schedule['id']}")
-                    new_sunday = st.text_area("日曜日", schedule["日曜日"], key=f"sun_{schedule['id']}")
-
-                    if st.button("💾 保存", key=f"save_{schedule['id']}"):
-                        update_weekly_schedule(
-                            schedule["id"], new_monday, new_tuesday, new_wednesday,
-                            new_thursday, new_friday, new_saturday, new_sunday
+                    # 各曜日の入力フィールド（一意なキーを生成）
+                    days = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]
+                    new_values = {}
+                    for i, day in enumerate(days):
+                        new_values[day] = st.text_area(
+                            label=day,
+                            value=schedule[day],
+                            key=f"mypage_weekly_{day}_{schedule['id']}_{idx}",
+                            height=100
                         )
-                        st.success("✅ 編集を保存しました")
-                        st.rerun()
-                    
-                    st.markdown("---")  # 区切り線
+
+                    # 保存ボタン（一意なキー）
+                    col1, col2 = st.columns([1, 4])
+                    with col1:
+                        if st.button(
+                            "💾 保存",
+                            key=f"mypage_weekly_save_{schedule['id']}_{idx}",
+                            help="変更内容を保存します"
+                        ):
+                            try:
+                                # 週間予定更新処理
+                                conn = sqlite3.connect(DB_PATH)
+                                cur = conn.cursor()
+                                cur.execute("""
+                                    UPDATE weekly_schedules SET
+                                        月曜日 = ?,
+                                        火曜日 = ?,
+                                        水曜日 = ?,
+                                        木曜日 = ?,
+                                        金曜日 = ?,
+                                        土曜日 = ?,
+                                        日曜日 = ?,
+                                        投稿日時 = ?
+                                    WHERE id = ?
+                                """, (
+                                    new_values["月曜日"],
+                                    new_values["火曜日"],
+                                    new_values["水曜日"],
+                                    new_values["木曜日"],
+                                    new_values["金曜日"],
+                                    new_values["土曜日"],
+                                    new_values["日曜日"],
+                                    (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),  # 更新日時
+                                    schedule["id"]
+                                ))
+                                conn.commit()
+                                conn.close()
+                                st.success("✅ 更新が完了しました！")
+                                time.sleep(1)
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"⚠️ 更新に失敗しました: {str(e)}")
+
+                    # 区切り線
+                    st.markdown("---")
         else:
-            st.info("週間予定はありません。")
+            st.info("投稿した週間予定はありません。")
             
 # ✅ 投稿詳細（編集・削除機能付き）
 def show_report_details(report):
