@@ -515,17 +515,21 @@ def timeline():
         key="timeline_period_selector"
     )
 
-    # カスタムCSSでテキストの色を白に変更
+    # JavaScriptでテキストの色を白に変更
     st.markdown(
         """
-        <style>
-            div[data-baseweb="radio"] > label > span,
-            .stDateInput > label > div,
-            .st-bb.st-at,
-            .stRadio > label > div {
-                color: white !important;
-            }
-        </style>
+        <script>
+            window.addEventListener('load', function() {
+                let labels = document.querySelectorAll('div[data-baseweb="radio"] > label > span');
+                labels.forEach(function(label) {
+                    label.style.color = 'white';
+                });
+                let subheader = document.querySelector('.stSidebar > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div');
+                if (subheader) {
+                    subheader.style.color = 'white';
+                }
+            });
+        </script>
         """,
         unsafe_allow_html=True,
     )
