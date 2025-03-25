@@ -236,19 +236,32 @@ def show_weekly_schedules():
     # カスタムCSSでネスト表現を実現
     st.markdown("""
     <style>
-        .nested-expander {
-            border-left: 3px solid #f0f2f6;
-            margin-left: 1rem;
-            padding-left: 1rem;
-        }
-        .week-header {
-            cursor: pointer;
-            padding: 0.5rem;
-            background-color: #f0f2f6;
-            border-radius: 0.5rem;
-            margin: 0.5rem 0;
-        }
-    </style>
+    .nested-expander {
+        border-left: 3px solid #f0f2f6;
+        margin-left: 1rem;
+        padding-left: 1rem;
+    }
+    .week-header {
+        cursor: pointer;
+        padding: 0.5rem;
+        background-color: #f0f2f6;
+        border-radius: 0.5rem;
+        margin: 0.5rem 0;
+        transition: background-color 0.3s ease, max-height 0.3s ease; /* アニメーションを追加 */
+        max-height: 50px; /* 初期の高さを設定 */
+        overflow: hidden; /* 初期状態ではコンテンツを非表示 */
+    }
+    .week-header:hover {
+        background-color: #e0e0e0; /* ホバー時の色を変更 */
+    }
+    .week-header.expanded {
+        max-height: none; /* 展開時は高さを自動調整 */
+    }
+    .week-content {
+        overflow: hidden; /* アニメーションのために追加 */
+        transition: max-height 0.3s ease; /* アニメーションを追加 */
+    }
+</style>
     """, unsafe_allow_html=True)
 
     schedules = load_weekly_schedules()
