@@ -366,9 +366,8 @@ def post_report():
         return
 
     st.title("日報投稿")
-    # top_navigation()
 
-     # 選択可能な日付リスト（1週間前～本日）
+    # 選択可能な日付リスト（1週間前～本日）
     today = datetime.today().date()
     date_options = [(today + timedelta(days=1) - timedelta(days=i)) for i in range(9)]
     date_options_formatted = [f"{d.strftime('%Y年%m月%d日 (%a)')}" for d in date_options]
@@ -379,6 +378,16 @@ def post_report():
     category = st.text_input("カテゴリ（商談やイベント提案など）")
     content = st.text_area("実施内容")
     remarks = st.text_area("所感")
+
+    # 選択された日付の週間予定を取得
+    selected_date_obj = datetime.strptime(selected_date, "%Y年%m月%d日 (%a)").date()
+    weekly_schedule = get_weekly_schedule_for_date(selected_date_obj)
+
+    # 予定欄の表示
+    if weekly_schedule:
+        st.write(f"**予定:** {weekly_schedule}")
+    else:
+        st.write("予定はありません")
 
     uploaded_file = st.file_uploader("写真を選択", type=["png", "jpg", "jpeg"])
     image_base64 = None
@@ -420,7 +429,7 @@ def timeline():
         "表示する期間を選択",
         ["24時間以内の投稿", "1週間以内の投稿", "過去の投稿"],
         index=0,
-        key="timeline_period_selector"  
+        key="timeline_period_selector"
     )
 
     # ✅ デフォルトで24時間以内の投稿を表示
@@ -458,12 +467,12 @@ def timeline():
     # ✅ 部署フィルタボタン
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🌍 すべての投稿を見る"):
+        if st.button(" すべての投稿を見る"):
             st.session_state["filter_department"] = "すべて"
             st.rerun()
-    
+
     with col2:
-        if st.button("🏢 自分の部署のメンバーの投稿を見る"):
+        if st.button(" 自分の部署のメンバーの投稿を見る"):
             st.session_state["filter_department"] = "自分の部署"
             st.rerun()
 
@@ -481,7 +490,7 @@ def timeline():
 
             # ✅ メンバーの投稿のみフィルタリング
             filtered_reports = [report for report in filtered_reports if report["投稿者"] in department_members]
-        
+
         except Exception as e:
             st.error(f"⚠️ 部署情報の読み込みエラー: {e}")
             return
