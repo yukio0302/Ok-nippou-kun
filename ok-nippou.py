@@ -507,8 +507,6 @@ def timeline():
         st.write(f" **場所:** {report['場所']}")
         st.write(f" **実施内容:** {report['実施内容']}")
         st.write(f" **所感:** {report['所感']}")
-        if report.get("予定"):  # 予定が存在する場合のみ表示
-            st.write(f" **予定:** {report['予定']}")
 
         # ✅ 画像が存在する場合、表示する
         if report.get("image"):
