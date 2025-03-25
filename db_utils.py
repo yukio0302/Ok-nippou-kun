@@ -484,3 +484,26 @@ def get_weekly_schedule_for_all_users(start_date, end_date):
         })
 
     return user_schedules
+
+def get_weekly_schedule_for_date(target_date):
+    """指定された日付の週間予定を取得"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    # 週の開始日と終了日を計算
+    start_date = target_date - timedelta(days=target_date.weekday())
+    end_date = start_date + timedelta(days=6)
+
+    cur.execute("""
+        SELECT * FROM weekly_schedules
+        WHERE 開始日 = ? AND 終了日 = ?
+    """, (start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")))
+    row = cur.fetchone()
+    conn.close()
+
+    if row:
+        # 曜日を取得
+        weekday_jp = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"][target_date.weekday()]
+        return row[3 + target_date.weekday()]  # 該当曜日の予定を返す
+    else:
+        return None
