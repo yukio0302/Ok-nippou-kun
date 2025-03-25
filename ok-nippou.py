@@ -398,8 +398,7 @@ def post_report():
             "場所": location,
             "実施内容": content,
             "所感": remarks,
-            "image": image_base64,
-            "予定": weekly_schedule  # 週間予定を保存
+            "image": image_base64
         })
         st.success("✅ 日報を投稿しました！")
         time.sleep(1)
