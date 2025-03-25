@@ -394,11 +394,12 @@ def post_report():
         save_report({
             "投稿者": st.session_state["user"]["name"],
             "実行日": formatted_date,  # YYYY-MM-DD 形式で保存
-            "カテゴリ": category, 
+            "カテゴリ": category,
             "場所": location,
             "実施内容": content,
             "所感": remarks,
-            "image": image_base64
+            "image": image_base64,
+            "予定": weekly_schedule  # 週間予定を保存
         })
         st.success("✅ 日報を投稿しました！")
         time.sleep(1)
@@ -507,6 +508,8 @@ def timeline():
         st.write(f" **場所:** {report['場所']}")
         st.write(f" **実施内容:** {report['実施内容']}")
         st.write(f" **所感:** {report['所感']}")
+        if report.get("予定"):  # 予定が存在する場合のみ表示
+            st.write(f" **予定:** {report['予定']}")
 
         # ✅ 画像が存在する場合、表示する
         if report.get("image"):
