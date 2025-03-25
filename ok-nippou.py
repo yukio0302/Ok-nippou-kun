@@ -659,52 +659,22 @@ def my_page():
         else:
             st.info("コメントした投稿はありません。")
 
-    #  週間予定の編集機能（キー完全一意化）
-    with st.expander("週間予定の編集", expanded=False):
-        st.subheader("週間予定の編集")
+    #  週間予定の表示機能（編集機能削除）
+    with st.expander("週間予定", expanded=False):
+        st.subheader("週間予定")
         schedules = load_weekly_schedules()
         user_schedules = [s for s in schedules if s["投稿者"] == st.session_state["user"]["name"]]
 
         if user_schedules:
-            for idx, schedule in enumerate(user_schedules):
-                unique_key = f"weekly_{schedule['id']}_{idx}"
+            for schedule in user_schedules:
                 with st.container():
                     st.markdown(f"** 期間: {schedule['開始日']} ～ {schedule['終了日']}**")
                     st.caption(f"最終更新日時: {schedule['投稿日時']}")
 
-                    # 各曜日の入力フィールド
+                    # 各曜日の予定を表示
                     days = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]
-                    new_values = {}
                     for day in days:
-                        new_values[day] = st.text_area(
-                            label=day,
-                            value=schedule[day],
-                            key=f"{unique_key}_{day}",
-                            height=100
-                        )
-
-                    # 保存ボタン
-                    if st.button(
-                        " 保存変更",
-                        key=f"save_{unique_key}",
-                        help="この週間予定の変更を保存します"
-                    ):
-                        try:
-                            update_weekly_schedule(
-                                schedule["id"],
-                                new_values["月曜日"],
-                                new_values["火曜日"],
-                                new_values["水曜日"],
-                                new_values["木曜日"],
-                                new_values["金曜日"],
-                                new_values["土曜日"],
-                                new_values["日曜日"]
-                            )
-                            st.success("✅ 更新が完了しました！")
-                            time.sleep(1)
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"⚠️ 更新に失敗しました: {str(e)}")
+                        st.write(f"**{day}**: {schedule[day]}")
 
                     st.markdown("---")
         else:
