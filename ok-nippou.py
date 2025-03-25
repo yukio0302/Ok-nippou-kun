@@ -659,7 +659,7 @@ def my_page():
         else:
             st.info("コメントした投稿はありません。")
 
-    # 🔹 週間予定の編集機能（完全修正版）
+    # 🔹 週間予定の編集機能（キー完全一意化）
     with st.expander("週間予定の編集", expanded=False):
         st.subheader("週間予定の編集")
         schedules = load_weekly_schedules()
@@ -667,65 +667,45 @@ def my_page():
 
         if user_schedules:
             for idx, schedule in enumerate(user_schedules):
+                unique_key = f"weekly_{schedule['id']}_{idx}"
                 with st.container():
-                    # ヘッダー表示
                     st.markdown(f"**📅 期間: {schedule['開始日']} ～ {schedule['終了日']}**")
                     st.caption(f"最終更新日時: {schedule['投稿日時']}")
                     
-                    # 各曜日の入力フィールド（一意なキーを生成）
+                    # 各曜日の入力フィールド
                     days = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]
                     new_values = {}
-                    for i, day in enumerate(days):
+                    for day in days:
                         new_values[day] = st.text_area(
                             label=day,
                             value=schedule[day],
-                            key=f"mypage_weekly_{day}_{schedule['id']}_{idx}",
+                            key=f"{unique_key}_{day}",
                             height=100
                         )
 
-                    # 保存ボタン（一意なキー）
-                    col1, col2 = st.columns([1, 4])
-                    with col1:
-                        if st.button(
-                            "💾 保存",
-                            key=f"mypage_weekly_save_{schedule['id']}_{idx}",
-                            help="変更内容を保存します"
-                        ):
-                            try:
-                                # 週間予定更新処理
-                                conn = sqlite3.connect(DB_PATH)
-                                cur = conn.cursor()
-                                cur.execute("""
-                                    UPDATE weekly_schedules SET
-                                        月曜日 = ?,
-                                        火曜日 = ?,
-                                        水曜日 = ?,
-                                        木曜日 = ?,
-                                        金曜日 = ?,
-                                        土曜日 = ?,
-                                        日曜日 = ?,
-                                        投稿日時 = ?
-                                    WHERE id = ?
-                                """, (
-                                    new_values["月曜日"],
-                                    new_values["火曜日"],
-                                    new_values["水曜日"],
-                                    new_values["木曜日"],
-                                    new_values["金曜日"],
-                                    new_values["土曜日"],
-                                    new_values["日曜日"],
-                                    (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),  # 更新日時
-                                    schedule["id"]
-                                ))
-                                conn.commit()
-                                conn.close()
-                                st.success("✅ 更新が完了しました！")
-                                time.sleep(1)
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"⚠️ 更新に失敗しました: {str(e)}")
-
-                    # 区切り線
+                    # 保存ボタン
+                    if st.button(
+                        "💾 保存変更",
+                        key=f"save_{unique_key}",
+                        help="この週間予定の変更を保存します"
+                    ):
+                        try:
+                            update_weekly_schedule(
+                                schedule["id"],
+                                new_values["月曜日"],
+                                new_values["火曜日"],
+                                new_values["水曜日"],
+                                new_values["木曜日"],
+                                new_values["金曜日"],
+                                new_values["土曜日"],
+                                new_values["日曜日"]
+                            )
+                            st.success("✅ 更新が完了しました！")
+                            time.sleep(1)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"⚠️ 更新に失敗しました: {str(e)}")
+                    
                     st.markdown("---")
         else:
             st.info("投稿した週間予定はありません。")
@@ -738,61 +718,114 @@ def show_report_details(report):
     st.write(f"**実施内容:** {report['実施内容']}")
     st.write(f"**所感:** {report['所感']}")
 
-    # 🔹 コメント一覧
+    # コメント一覧表示
     if report.get("コメント"):
         st.subheader("🗨️ コメント一覧")
-        for c in report["コメント"]:
-            st.write(f"{c['投稿者']} ({c['日時']}): {c['コメント']}")
+        for c_idx, comment in enumerate(report["コメント"]):
+            st.write(
+                f"{comment['投稿者']} ({comment['日時']}): {comment['コメント']}",
+                key=f"comment_{report['id']}_{c_idx}"
+            )
 
-    # 🔹 編集 & 削除ボタン（自分の投稿の場合のみ表示）
+    # 編集 & 削除ボタン（完全に一意なキーを生成）
     if report["投稿者"] == st.session_state["user"]["name"]:
+        # ユニークキー生成用の要素
+        user_info = st.session_state["user"]
+        unique_key_suffix = f"{report['id']}_{user_info.get('employee_code', 'unknown')}"
+
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("✏️ 編集する", key=f"mypage_edit_{report['id']}"):
-                st.session_state[f"edit_mode_{report['id']}"] = True  # 編集モードをON
+            if st.button(
+                "✏️ 編集する",
+                key=f"daily_edit_{unique_key_suffix}",
+                help="この日報を編集します"
+            ):
+                st.session_state[f"edit_mode_{unique_key_suffix}"] = True
 
         with col2:
-            if st.button("🗑️ 削除する", key=f"delete_btn_{report['id']}_{st.session_state['user']['name']}"):
-                st.session_state[f"confirm_delete_{report['id']}"] = True  # 削除確認モードをON
+            if st.button(
+                "🗑️ 削除する",
+                key=f"daily_delete_{unique_key_suffix}",
+                help="この日報を完全に削除します"
+            ):
+                st.session_state[f"confirm_delete_{unique_key_suffix}"] = True
 
-        # 🔹 削除確認
-        if st.session_state.get(f"confirm_delete_{report['id']}", False):
+        # 削除確認ダイアログ
+        if st.session_state.get(f"confirm_delete_{unique_key_suffix}", False):
             st.warning("⚠️ 本当に削除しますか？")
-
+            
             col_confirm, col_cancel = st.columns(2)
             with col_confirm:
-                if st.button("✅ はい、削除する", key=f"confirm_delete_btn_{report['id']}_{st.session_state['user']['name']}"):
+                if st.button(
+                    "✅ はい、削除する",
+                    key=f"confirm_delete_{unique_key_suffix}"
+                ):
                     delete_report(report["id"])
                     st.success("✅ 削除しました")
-                    st.rerun()  # 画面を更新
-
+                    time.sleep(1)
+                    st.rerun()
             with col_cancel:
-                if st.button("❌ キャンセル", key=f"cancel_delete_btn_{report['id']}_{st.session_state['user']['name']}"):
-                    st.session_state[f"confirm_delete_{report['id']}"] = False  # 削除確認モードをOFF
+                if st.button(
+                    "❌ キャンセル",
+                    key=f"cancel_delete_{unique_key_suffix}"
+                ):
+                    st.session_state[f"confirm_delete_{unique_key_suffix}"] = False
+                    st.rerun()
 
-        # 🔹 編集モード
-        if st.session_state.get(f"edit_mode_{report['id']}", False):
-            edit_report_form(report)
+        # 編集フォーム表示
+        if st.session_state.get(f"edit_mode_{unique_key_suffix}", False):
+            edit_report_form(report, unique_key_suffix)
 
+# ✅ 編集フォームの修正版
+def edit_report_form(report, unique_key_suffix):
+    """投稿の編集フォーム（キーを完全に一意化）"""
+    new_date = st.text_input(
+        "実施日",
+        report["実行日"],
+        key=f"date_{unique_key_suffix}"
+    )
+    new_location = st.text_input(
+        "場所",
+        report["場所"],
+        key=f"location_{unique_key_suffix}"
+    )
+    new_content = st.text_area(
+        "実施内容",
+        report["実施内容"],
+        key=f"content_{unique_key_suffix}"
+    )
+    new_remarks = st.text_area(
+        "所感",
+        report["所感"],
+        key=f"remarks_{unique_key_suffix}"
+    )
 
-# ✅ 編集フォーム
-def edit_report_form(report):
-    """投稿の編集フォーム"""
-    new_date = st.text_input("実施日", report["実行日"])
-    new_location = st.text_input("場所", report["場所"])
-    new_content = st.text_area("実施内容", report["実施内容"])
-    new_remarks = st.text_area("所感", report["所感"])
+    col_save, col_cancel = st.columns([1, 3])
+    with col_save:
+        if st.button(
+            "💾 保存",
+            key=f"save_{unique_key_suffix}",
+            type="primary"
+        ):
+            edit_report(
+                report["id"],
+                new_date,
+                new_location,
+                new_content,
+                new_remarks
+            )
+            st.session_state[f"edit_mode_{unique_key_suffix}"] = False
+            st.success("✅ 編集を保存しました")
+            time.sleep(1)
+            st.rerun()
 
-    if st.button("💾 保存", key=f"save_{report['id']}"):
-        edit_report(report["id"], new_date, new_location, new_content, new_remarks)
-        st.session_state[f"edit_mode_{report['id']}"] = False  # 編集モード終了
-        st.success("✅ 編集を保存しました")
-        st.rerun()
-    
-    if st.button("キャンセル", key=f"cancel_{report['id']}"):
-        st.session_state[f"edit_mode_{report['id']}"] = False  # 編集モード終了
-        st.rerun()
-
+    with col_cancel:
+        if st.button(
+            "キャンセル",
+            key=f"cancel_{unique_key_suffix}"
+        ):
+            st.session_state[f"edit_mode_{unique_key_suffix}"] = False
+            st.rerun()
 # ✅ メニュー管理
 if st.session_state["user"] is None:
     login()
