@@ -92,17 +92,23 @@ def init_db(keep_existing=True):
     conn.close()
 
 def update_db_schema():
-    """既存のデータベーススキーマを更新する"""
+    """既存のデータベーススキーマを安全に更新する"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # ✅ notices テーブルに 対象ユーザー カラムを追加
-    try:
-        cur.execute("ALTER TABLE notices ADD COLUMN 対象ユーザー TEXT")
-        conn.commit()
-        print("✅ データベーススキーマを更新しました！")
-    except sqlite3.OperationalError as e:
-        print(f"⚠️ スキーマ更新エラー: {e} (既にカラムが存在する可能性があります)")
+    # ✅ カラム存在チェック
+    cur.execute("PRAGMA table_info(notices)")
+    columns = [col[1] for col in cur.fetchall()]  # カラム名のリスト取得
+
+    if "対象ユーザー" not in columns:
+        try:
+            cur.execute("ALTER TABLE notices ADD COLUMN 対象ユーザー TEXT")
+            conn.commit()
+            print("✅ 対象ユーザーカラムを追加しました！")
+        except Exception as e:
+            print(f"⚠️ スキーマ更新エラー: {e}")
+    else:
+        print("✅ 対象ユーザーカラムは既に存在します")
 
     conn.close()
 
