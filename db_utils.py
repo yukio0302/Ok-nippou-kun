@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import streamlit as st
 
 # ✅ データベースのパス
-DB_PATH = "/mount/src/ok-nippou-kun/Ok-nippou-kun/data/reports.db"
+DB_PATH = "/mount/src/ok-nippou-kun/data/reports.db"
 
 # ✅ ユーザー認証（先に定義！）
 def authenticate_user(employee_code, password):
