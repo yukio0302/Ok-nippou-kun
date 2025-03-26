@@ -531,24 +531,6 @@ def timeline():
         key="timeline_period_selector"
     )
 
-    # JavaScriptでテキストの色を白に変更
-    st.markdown(
-        """
-        <script>
-            window.addEventListener('load', function() {
-                let labels = document.querySelectorAll('div[data-baseweb="radio"] > label > span');
-                labels.forEach(function(label) {
-                    label.style.color = 'white';
-                });
-                let subheader = document.querySelector('.stSidebar > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div > div');
-                if (subheader) {
-                    subheader.style.color = 'white';
-                }
-            });
-        </script>
-        """,
-        unsafe_allow_html=True,
-    )
     
     # ✅ デフォルトで24時間以内の投稿を表示
     if period_option == "24時間以内の投稿":
