@@ -786,6 +786,15 @@ def my_page():
                     for day in days:
                         st.write(f"**{day}**: {schedule[day]}")
 
+                     # コメント表示を追加
+                    st.markdown("---")
+                    st.subheader("コメント")
+                    if schedule["コメント"]:
+                        for comment in schedule["コメント"]:
+                            st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                    else:
+                        st.write("まだコメントはありません。")
+
                     st.markdown("---")
         else:
             st.info("投稿した週間予定はありません。")
