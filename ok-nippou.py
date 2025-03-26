@@ -508,6 +508,22 @@ def timeline():
 
     # ✅ 期間選択（キーを追加）
     st.sidebar.subheader("表示期間を選択")
+    
+     # カスタムCSSを適用
+    st.markdown(
+        """
+        <style>
+            div[data-baseweb="radio"] label {
+                color: white !important;
+            }
+            .stSidebar .stSubheader {
+                color: white !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
     period_option = st.sidebar.radio(
         "表示する期間を選択",
         ["24時間以内の投稿", "1週間以内の投稿", "過去の投稿"],
