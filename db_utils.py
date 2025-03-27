@@ -2,6 +2,34 @@ import psycopg2
 import os
 from datetime import datetime, timezone, timedelta
 
+# ユーザーデータ管理関数群
+def load_users():
+    """JSONファイルからユーザーデータを読み込む"""
+    try:
+        with open('data/users_data.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+def hash_password(password):
+    """パスワードをSHA-256でハッシュ化"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def authenticate_user(employee_code, password):
+    """JSONファイルからユーザーを認証"""
+    users = load_users()
+    hashed_pw = hash_password(password)
+    
+    for user in users:
+        if user['社員コード'] == employee_code and user['パスワード'] == hashed_pw:
+            return {
+                "id": user['id'],
+                "employee_code": user['社員コード'],
+                "name": user['名前'],
+                "depart": user['部署'].split(',') if user.get('部署') else []
+            }
+    return None
+    
 # 環境変数から取得
 DB_HOST = os.getenv("DB_HOST", "ep-dawn-credit-a16vhe5b-pooler.ap-southeast-1.aws.neon.tech")
 DB_NAME = os.getenv("DB_NAME", "neondb")
@@ -23,13 +51,6 @@ def init_db():
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id SERIAL PRIMARY KEY,
-                    社員コード VARCHAR(255) UNIQUE,
-                    パスワード VARCHAR(255),
-                    名前 VARCHAR(255),
-                    部署 VARCHAR(255)
-                );
 
                 CREATE TABLE IF NOT EXISTS posts (
                     id SERIAL PRIMARY KEY,
