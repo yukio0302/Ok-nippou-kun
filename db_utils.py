@@ -1,38 +1,39 @@
+import json
+import hashlib
 import psycopg2
 import os
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
-# ユーザーデータ管理関数群
+# ユーザーデータ設定
+USER_DATA_PATH = Path(__file__).parent / "data" / "users_data.json"
+
+# ユーザー認証関連関数
 def load_users():
-    """JSONファイルからユーザーデータを読み込む"""
-    current_dir = Path(__file__).parent  # スクリプトのディレクトリを取得
-    file_path = current_dir / "data" / "users_data.json"
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(USER_DATA_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"ユーザーデータの読み込みに失敗しました: {e}")
+        print(f"ユーザーデータ読み込みエラー: {e}")
         return []
 
 def authenticate_user(employee_code, password):
-    """JSONファイルからユーザーを認証"""
     users = load_users()
-    
-    # パスワードのハッシュ化（実際の運用ではより強力な方式を推奨）
     hashed_pw = hashlib.sha256(password.encode()).hexdigest()
     
     for user in users:
-        if str(user["code"]) == str(employee_code) and user["password"] == password:
+        if (str(user["code"]) == str(employee_code) and 
+            user["password"] == hashed_pw):
             return {
-                "id": user["code"],  # コードをIDとして使用
+                "id": user["code"],
                 "employee_code": user["code"],
                 "name": user["name"],
                 "depart": user["depart"],
                 "admin": user.get("admin", False)
             }
     return None
-    
-# 環境変数から取得
+
+# データベース接続設定
 DB_HOST = os.getenv("DB_HOST", "ep-dawn-credit-a16vhe5b-pooler.ap-southeast-1.aws.neon.tech")
 DB_NAME = os.getenv("DB_NAME", "neondb")
 DB_USER = os.getenv("DB_USER", "neondb_owner")
@@ -53,16 +54,9 @@ def init_db():
     try:
         with conn.cursor() as cur:
             cur.execute("""
-
-                CREATE TABLE IF NOT EXISTS posts (
-                    id SERIAL PRIMARY KEY,
-                    投稿者ID INTEGER REFERENCES users(id),
-                    投稿日時 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-
                 CREATE TABLE IF NOT EXISTS reports (
                     id SERIAL PRIMARY KEY,
-                    投稿者ID INTEGER REFERENCES users(id),
+                    投稿者ID VARCHAR(255),
                     実行日 DATE,
                     カテゴリ VARCHAR(255),
                     場所 VARCHAR(255),
@@ -76,8 +70,8 @@ def init_db():
 
                 CREATE TABLE IF NOT EXISTS comments (
                     id SERIAL PRIMARY KEY,
-                    report_id INTEGER REFERENCES reports(id),
-                    投稿者ID INTEGER REFERENCES users(id),
+                    report_id INTEGER,
+                    投稿者ID VARCHAR(255),
                     コメント内容 TEXT,
                     投稿日時 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
@@ -87,13 +81,13 @@ def init_db():
                     タイトル VARCHAR(255),
                     内容 TEXT,
                     日付 DATE,
-                    対象ユーザーID INTEGER REFERENCES users(id),
+                    対象ユーザーID VARCHAR(255),
                     既読 INTEGER DEFAULT 0
                 );
 
                 CREATE TABLE IF NOT EXISTS weekly_schedules (
                     id SERIAL PRIMARY KEY,
-                    postId INTEGER REFERENCES posts(id),
+                    投稿者ID VARCHAR(255),
                     開始日 DATE,
                     終了日 DATE,
                     月曜日 TEXT,
@@ -102,13 +96,14 @@ def init_db():
                     木曜日 TEXT,
                     金曜日 TEXT,
                     土曜日 TEXT,
-                    日曜日 TEXT
+                    日曜日 TEXT,
+                    投稿日時 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
 
                 CREATE TABLE IF NOT EXISTS weekly_schedule_comments (
                     id SERIAL PRIMARY KEY,
-                    weekly_schedule_id INTEGER REFERENCES weekly_schedules(id),
-                    投稿者ID INTEGER REFERENCES users(id),
+                    weekly_schedule_id INTEGER,
+                    投稿者ID VARCHAR(255),
                     コメント内容 TEXT,
                     投稿日時 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
@@ -120,33 +115,23 @@ def init_db():
     finally:
         conn.close()
 
-def authenticate_user(employee_code, password):
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM users WHERE 社員コード = %s AND パスワード = %s", (employee_code, password))
-            user = cur.fetchone()
-            if user:
-                return {
-                    "id": user[0],
-                    "employee_code": user[1],
-                    "name": user[3],
-                    "depart": user[4].split(",") if user[4] else []
-                }
-            return None
-    finally:
-        conn.close()
-
+# 日報関連関数
 def save_report(report):
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO reports (投稿者ID, 実行日, カテゴリ, 場所, 実施内容, 所感, 画像パス)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO reports (
+                    投稿者ID, 実行日, カテゴリ, 場所, 
+                    実施内容, 所感, 画像パス
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
-                report["投稿者ID"], report["実行日"], report["カテゴリ"],
-                report["場所"], report["実施内容"], report["所感"],
+                report["投稿者ID"],
+                report["実行日"],
+                report["カテゴリ"],
+                report["場所"],
+                report["実施内容"],
+                report["所感"],
                 report.get("image_path")
             ))
         conn.commit()
@@ -161,25 +146,24 @@ def load_reports():
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT reports.*, users.名前, comments.コメント内容,
-                       comments.投稿日時 AS コメント投稿日時,
-                       comments.投稿者ID AS コメント投稿者ID,
-                       comment_users.名前 AS コメント投稿者名
-                FROM reports
-                JOIN users ON reports.投稿者ID = users.id
-                LEFT JOIN comments ON reports.id = comments.report_id
-                LEFT JOIN users AS comment_users ON comments.投稿者ID = comment_users.id
-                ORDER BY reports.投稿日時 DESC
+                SELECT r.*, c.id AS comment_id, c.コメント内容, 
+                       c.投稿日時 AS comment_date, c.投稿者ID AS comment_author
+                FROM reports r
+                LEFT JOIN comments c ON r.id = c.report_id
+                ORDER BY r.投稿日時 DESC
             """)
             rows = cur.fetchall()
             
             reports = {}
+            users = {user["code"]: user["name"] for user in load_users()}
+            
             for row in rows:
                 report_id = row[0]
                 if report_id not in reports:
                     reports[report_id] = {
                         "id": report_id,
                         "投稿者ID": row[1],
+                        "投稿者名": users.get(row[1], "不明"),
                         "実行日": str(row[2]),
                         "カテゴリ": row[3],
                         "場所": row[4],
@@ -189,45 +173,18 @@ def load_reports():
                         "投稿日時": row[8].astimezone(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M:%S'),
                         "いいね": row[9],
                         "ナイスファイト": row[10],
-                        "投稿者": row[11],
                         "コメント": []
                     }
-                if row[12]:
+                
+                if row[11]:  # コメントがある場合
                     reports[report_id]["コメント"].append({
-                        "コメント内容": row[12],
+                        "id": row[11],
+                        "内容": row[12],
                         "投稿日時": row[13].astimezone(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M:%S'),
-                        "投稿者": row[15]
+                        "投稿者名": users.get(row[14], "不明")
                     })
+            
             return list(reports.values())
-    finally:
-        conn.close()
-
-def load_notices(user_id):
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM notices WHERE 対象ユーザーID = %s ORDER BY 日付 DESC", (user_id,))
-            rows = cur.fetchall()
-            return [{
-                "id": row[0],
-                "タイトル": row[1],
-                "内容": row[2],
-                "日付": str(row[3]),
-                "対象ユーザーID": row[4],
-                "既読": row[5]
-            } for row in rows]
-    finally:
-        conn.close()
-
-def mark_notice_as_read(notice_id):
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("UPDATE notices SET 既読 = 1 WHERE id = %s", (notice_id,))
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        raise e
     finally:
         conn.close()
 
@@ -244,8 +201,12 @@ def edit_report(report):
                     所感 = %s
                 WHERE id = %s
             """, (
-                report["実行日"], report["場所"], report["カテゴリ"],
-                report["実施内容"], report["所感"], report["id"]
+                report["実行日"],
+                report["場所"],
+                report["カテゴリ"],
+                report["実施内容"],
+                report["所感"],
+                report["id"]
             ))
         conn.commit()
     except Exception as e:
@@ -281,13 +242,15 @@ def update_reaction(report_id, reaction_type):
     finally:
         conn.close()
 
+# コメント関連関数
 def save_comment(report_id, user_id, comment_content):
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO comments (report_id, 投稿者ID, コメント内容, 投稿日時)
-                VALUES (%s, %s, %s, NOW())
+                INSERT INTO comments (
+                    report_id, 投稿者ID, コメント内容
+                ) VALUES (%s, %s, %s)
             """, (report_id, user_id, comment_content))
         conn.commit()
     except Exception as e:
@@ -301,50 +264,50 @@ def load_commented_reports(user_id):
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT DISTINCT reports.*, users.名前
-                FROM reports
-                JOIN comments ON reports.id = comments.report_id
-                JOIN users ON reports.投稿者ID = users.id
-                WHERE comments.投稿者ID = %s
-                ORDER BY reports.投稿日時 DESC
+                SELECT DISTINCT r.* 
+                FROM reports r
+                JOIN comments c ON r.id = c.report_id
+                WHERE c.投稿者ID = %s
+                ORDER BY r.投稿日時 DESC
             """, (user_id,))
-            rows = cur.fetchall()
+            
+            users = {user["code"]: user["name"] for user in load_users()}
             return [{
                 "id": row[0],
                 "投稿者ID": row[1],
+                "投稿者名": users.get(row[1], "不明"),
                 "実行日": str(row[2]),
                 "カテゴリ": row[3],
                 "場所": row[4],
                 "実施内容": row[5],
                 "所感": row[6],
-                "画像パス": row[7],
-                "投稿日時": row[8].astimezone(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M:%S'),
-                "いいね": row[9],
-                "ナイスファイト": row[10],
-                "投稿者": row[11]
-            } for row in rows]
+                "投稿日時": row[8].astimezone(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M:%S')
+            } for row in cur.fetchall()]
     finally:
         conn.close()
 
+# 週間予定関連関数
 def save_weekly_schedule(schedule):
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO posts (投稿者ID) VALUES (%s) RETURNING id
-            """, (schedule["投稿者ID"],))
-            post_id = cur.fetchone()[0]
-            
-            cur.execute("""
                 INSERT INTO weekly_schedules (
-                    postId, 開始日, 終了日,
-                    月曜日, 火曜日, 水曜日,
+                    投稿者ID, 開始日, 終了日, 
+                    月曜日, 火曜日, 水曜日, 
                     木曜日, 金曜日, 土曜日, 日曜日
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
-                post_id, schedule["開始日"], schedule["終了日"],
-                schedule["月曜日"], schedule["火曜日"], schedule["水曜日"],
-                schedule["木曜日"], schedule["金曜日"], schedule["土曜日"], schedule["日曜日"]
+                schedule["投稿者ID"],
+                schedule["開始日"],
+                schedule["終了日"],
+                schedule["月曜日"],
+                schedule["火曜日"],
+                schedule["水曜日"],
+                schedule["木曜日"],
+                schedule["金曜日"],
+                schedule["土曜日"],
+                schedule["日曜日"]
             ))
         conn.commit()
     except Exception as e:
@@ -358,18 +321,15 @@ def load_weekly_schedules():
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT 
-                    ws.*, p.投稿者ID, p.投稿日時,
-                    u.名前
-                FROM weekly_schedules ws
-                JOIN posts p ON ws.postId = p.id
-                JOIN users u ON p.投稿者ID = u.id
-                ORDER BY p.投稿日時 DESC
+                SELECT * FROM weekly_schedules
+                ORDER BY 投稿日時 DESC
             """)
-            rows = cur.fetchall()
+            
+            users = {user["code"]: user["name"] for user in load_users()}
             return [{
                 "id": row[0],
-                "postId": row[1],
+                "投稿者ID": row[1],
+                "投稿者名": users.get(row[1], "不明"),
                 "開始日": str(row[2]),
                 "終了日": str(row[3]),
                 "月曜日": row[4],
@@ -379,10 +339,8 @@ def load_weekly_schedules():
                 "金曜日": row[8],
                 "土曜日": row[9],
                 "日曜日": row[10],
-                "投稿者ID": row[11],
-                "投稿日時": row[12].astimezone(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M:%S'),
-                "投稿者": row[13]
-            } for row in rows]
+                "投稿日時": row[11].astimezone(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M:%S')
+            } for row in cur.fetchall()]
     finally:
         conn.close()
 
@@ -392,8 +350,8 @@ def save_weekly_schedule_comment(weekly_schedule_id, user_id, comment_content):
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO weekly_schedule_comments (
-                    weekly_schedule_id, 投稿者ID, コメント内容, 投稿日時
-                ) VALUES (%s, %s, %s, NOW())
+                    weekly_schedule_id, 投稿者ID, コメント内容
+                ) VALUES (%s, %s, %s)
             """, (weekly_schedule_id, user_id, comment_content))
         conn.commit()
     except Exception as e:
@@ -402,23 +360,38 @@ def save_weekly_schedule_comment(weekly_schedule_id, user_id, comment_content):
     finally:
         conn.close()
 
-def load_comments(report_id):
+# お知らせ関連関数
+def load_notices(user_id):
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT c.*, u.名前
-                FROM comments c
-                JOIN users u ON c.投稿者ID = u.id
-                WHERE c.report_id = %s
-                ORDER BY c.投稿日時 ASC
-            """, (report_id,))
-            rows = cur.fetchall()
+                SELECT * FROM notices
+                WHERE 対象ユーザーID = %s
+                ORDER BY 日付 DESC
+            """, (user_id,))
             return [{
                 "id": row[0],
-                "投稿者": row[5],
-                "投稿日時": row[4].astimezone(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M:%S'),
-                "コメント内容": row[3]
-            } for row in rows]
+                "タイトル": row[1],
+                "内容": row[2],
+                "日付": str(row[3]),
+                "対象ユーザーID": row[4],
+                "既読": row[5]
+            } for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+def mark_notice_as_read(notice_id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE notices SET 既読 = 1
+                WHERE id = %s
+            """, (notice_id,))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
     finally:
         conn.close()
