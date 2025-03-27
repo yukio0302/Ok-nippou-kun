@@ -486,3 +486,36 @@ def get_weekly_schedule_for_all_users(start_date, end_date):
         })
 
     return user_schedules
+def get_daily_schedule(user_name: str, target_date: str) -> str:
+    """指定日の週間予定を取得"""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    
+    try:
+        # 最新の週間予定から該当曜日の予定を取得
+        cur.execute("""
+            SELECT 開始日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日
+            FROM weekly_schedules
+            WHERE 投稿者 = ? AND ? BETWEEN 開始日 AND 終了日
+            ORDER BY 投稿日時 DESC
+            LIMIT 1
+        """, (user_name, target_date))
+        
+        result = cur.fetchone()
+        if not result:
+            return ""
+
+        start_date = datetime.strptime(result[0], "%Y-%m-%d").date()
+        target = datetime.strptime(target_date, "%Y-%m-%d").date()
+        day_diff = (target - start_date).days
+
+        if 0 <= day_diff <= 6:
+            return result[day_diff + 1]  # 月曜日=1 index
+        
+        return ""
+    
+    except sqlite3.Error as e:
+        print(f"週間予定取得エラー: {e}")
+        return ""
+    finally:
+        conn.close()
