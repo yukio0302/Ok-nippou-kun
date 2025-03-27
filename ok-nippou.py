@@ -279,7 +279,7 @@ def notice():
     st.title("お知らせ")
     notices = load_notices(st.session_state["user"]["id"])
 
-    fornotice in notices:
+    for notice in notices:
         st.subheader(notice["タイトル"])
         st.write(f"日付: {notice['日付']}")
         st.write(notice["内容"])
