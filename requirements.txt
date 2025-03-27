@@ -6,4 +6,3 @@ firebase_admin
 timedelta
 gdown
 openpyxl
-psycopg2-binary
