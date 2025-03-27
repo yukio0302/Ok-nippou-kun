@@ -114,7 +114,8 @@ def login():
             st.error("社員コードまたはパスワードが間違っています。")
 
 def save_weekly_schedule(schedule):
-    """週間予定をデータベースに保存"""conn = get_db_connection()
+    """週間予定をデータベースに保存"""
+    conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO posts (投稿者ID) VALUES (%s) RETURNING id
