@@ -5,28 +5,29 @@ from datetime import datetime, timezone, timedelta
 # ユーザーデータ管理関数群
 def load_users():
     """JSONファイルからユーザーデータを読み込む"""
+    file_path = Path("data") / "users_data.json"
     try:
-        with open('data/users_data.json', 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"ユーザーデータの読み込みに失敗しました: {e}")
         return []
-
-def hash_password(password):
-    """パスワードをSHA-256でハッシュ化"""
-    return hashlib.sha256(password.encode()).hexdigest()
 
 def authenticate_user(employee_code, password):
     """JSONファイルからユーザーを認証"""
     users = load_users()
-    hashed_pw = hash_password(password)
+    
+    # パスワードのハッシュ化（実際の運用ではより強力な方式を推奨）
+    hashed_pw = hashlib.sha256(password.encode()).hexdigest()
     
     for user in users:
-        if user['社員コード'] == employee_code and user['パスワード'] == hashed_pw:
+        if str(user["code"]) == str(employee_code) and user["password"] == password:
             return {
-                "id": user['id'],
-                "employee_code": user['社員コード'],
-                "name": user['名前'],
-                "depart": user['部署'].split(',') if user.get('部署') else []
+                "id": user["code"],  # コードをIDとして使用
+                "employee_code": user["code"],
+                "name": user["name"],
+                "depart": user["depart"],
+                "admin": user.get("admin", False)
             }
     return None
     
