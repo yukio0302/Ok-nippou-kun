@@ -227,25 +227,6 @@ def save_comment(report_id, user_id, comment_content):
     conn.commit()
     conn.close()
 
-# 特定の日の週間予定を取得する関数
-def load_weekly_schedule_by_date(user_id, target_date):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT * FROM weekly_schedules
-        JOIN posts ON weekly_schedules.postId = posts.id
-        WHERE posts.投稿者ID = %s AND %s BETWEEN 開始日 AND 終了日
-    """, (user_id, target_date))
-    schedule = cur.fetchone()
-    conn.close()
-    if schedule:
-        weekdays = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]
-        days = [schedule[4], schedule[5], schedule[6], schedule[7], schedule[8], schedule[9], schedule[10]]
-        day_index = (target_date - schedule[2]).days
-        if 0 <= day_index <= 6:
-            return days[day_index]
-    return None
-
 # コメント投稿された日報読み込み関数
 def load_commented_reports(user_id):
     conn = get_db_connection()
