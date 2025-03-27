@@ -7,6 +7,10 @@ import streamlit as st
 # ✅ データベースのパス
 DB_PATH = "data/reports.db"
 
+# db_utils.pyに追加
+def get_db_connection():
+    return sqlite3.connect(DB_PATH)
+
 # ✅ ユーザー認証（先に定義！）
 def authenticate_user(employee_code, password):
     """ユーザー認証（users_data.jsonを使用）"""
@@ -116,31 +120,105 @@ def update_db_schema():
 update_db_schema()
 
 def save_report(report):
-    """日報をデータベースに保存"""
+    """日報をデータベースに保存（完全版）
+    
+    Args:
+        report (dict): 保存する日報データ。以下のキーを含む:
+            - 投稿者 (str)
+            - カテゴリ (str)
+            - 場所 (str)
+            - 実施内容 (str)
+            - 所感 (str)
+            - image (str, optional): Base64エンコードされた画像データ
+    
+    Returns:
+        bool: 保存が成功した場合はTrue、失敗した場合はFalse
+        
+    Raises:
+        ValueError: 必須フィールドが不足している場合
+        sqlite3.Error: データベース操作に失敗した場合
+    """
+    # 必須フィールドの検証
+    required_fields = ['投稿者', 'カテゴリ', '場所', '実施内容', '所感']
+    for field in required_fields:
+        if field not in report:
+            raise ValueError(f"必須フィールド '{field}' が不足しています")
+
+    conn = None
     try:
+        # データベース接続
         conn = sqlite3.connect(DB_PATH)
+        conn.execute("PRAGMA journal_mode=WAL")  # 書き込みパフォーマンス向上
         cur = conn.cursor()
 
-        # ✅ 投稿日時を JST で保存
-        report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-        report["実行日"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d")  # 実行日もJSTで保存
+        # 日付情報をJSTで設定
+        jst_now = datetime.now() + timedelta(hours=9)
+        report["投稿日時"] = jst_now.strftime("%Y-%m-%d %H:%M:%S")
+        
+        # 実行日が指定されていない場合は今日の日付を使用
+        if '実行日' not in report or not report['実行日']:
+            report['実行日'] = jst_now.strftime("%Y-%m-%d")
 
-        cur.execute("""
-        INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント, 画像, 投稿日時)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            report["投稿者"], report["実行日"], report["カテゴリ"], report["場所"], 
-            report["実施内容"], report["所感"], 0, 0, json.dumps([]), 
-            report.get("image", None), report["投稿日時"]
-        ))
+        # NULL許容フィールドの処理
+        image_data = report.get("image")
+        if image_data and len(image_data) > 10 * 1024 * 1024:  # 10MB制限
+            raise ValueError("画像サイズが大きすぎます（最大10MB）")
 
-        conn.commit()
-        conn.execute("VACUUM")  # ← これで強制的にデータベースを更新
-        conn.close()
-        print("✅ データベースに日報を保存しました！")  # デバッグログ
+        # トランザクション開始
+        with conn:
+            cur.execute("""
+            INSERT INTO reports (
+                投稿者, 実行日, カテゴリ, 場所, 
+                実施内容, 所感, いいね, ナイスファイト, 
+                コメント, 画像, 投稿日時
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                report["投稿者"], 
+                report["実行日"], 
+                report["カテゴリ"], 
+                report["場所"],
+                report["実施内容"], 
+                report["所感"], 
+                0,  # いいね初期値
+                0,  # ナイスファイト初期値
+                json.dumps([]),  # 空のコメント配列
+                image_data, 
+                report["投稿日時"]
+            ))
+
+            # 挿入されたIDを取得（オプション）
+            report_id = cur.lastrowid
+            print(f"✅ 日報を保存しました (ID: {report_id})")
+
+        return True
+
+    except sqlite3.Error as e:
+        # データベースエラーの場合
+        print(f"⚠️ データベースエラー: {e}")
+        if conn:
+            conn.rollback()
+        raise  # 呼び出し元で処理させる
+        
+    except json.JSONEncodeError as e:
+        # JSONシリアライズエラーの場合
+        print(f"⚠️ JSONシリアライズエラー: {e}")
+        if conn:
+            conn.rollback()
+        raise ValueError("コメントデータの処理に失敗しました")
+        
     except Exception as e:
-        print(f"⚠️ データベース保存エラー: {e}")  # エラー内容を表示
-
+        # その他の予期せぬエラー
+        print(f"⚠️ 予期せぬエラー: {e}")
+        if conn:
+            conn.rollback()
+        raise
+        
+    finally:
+        # 接続の確実なクローズ
+        if conn:
+            conn.close()
+            # VACUUMは定期的に別途実行することを推奨
+            # conn.execute("VACUUM")  # パフォーマンスに影響するためコメントアウト
 def load_reports():
     """日報データを取得（最新の投稿順にソート）"""
     conn = sqlite3.connect(DB_PATH)
