@@ -18,7 +18,7 @@ from db_utils import (
     init_db, authenticate_user, save_report, load_reports, 
     load_notices, mark_notice_as_read, edit_report, delete_report, 
     update_reaction, save_comment, load_commented_reports,
-    save_weekly_schedule_comment, add_comments_column  # 追加
+    save_weekly_schedule_comment, # add_comments_column を削除
 )
 
 # excel_utils.py をインポート
@@ -38,8 +38,6 @@ DB_PATH = "/mount/src/ok-nippou-kun/data/reports.db"
 
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
-# メインコードの最初の方（データベース初期化後）に追加
-add_comments_column()  # 週間予定テーブルにコメントカラムが存在することを保証
 
 # ✅ ログイン状態を管理
 if "user" not in st.session_state:
@@ -52,8 +50,6 @@ def switch_page(page_name):
     """ページを切り替える（即時リロードはなし！）"""
     st.session_state["page"] = page_name
 
-# ✅ ナビゲーションバー（CSSを削除）
-# ...（以下、元のコードと同じ。その他の関数やメインロジックは変更なし）...
 # ✅ サイドバーナビゲーションの追加
 def sidebar_navigation():
     with st.sidebar:
@@ -82,19 +78,19 @@ def sidebar_navigation():
         if st.button("⏳ タイムライン", key="sidebar_timeline"):
             switch_page("タイムライン")
             
-        if st.button("📅 週間予定", key="sidebar_weekly"):
+        if st.button(" 週間予定", key="sidebar_weekly"):
             switch_page("週間予定")
             
-        if st.button("🔔 お知らせ", key="sidebar_notice"):
+        if st.button(" お知らせ", key="sidebar_notice"):
             switch_page("お知らせ")
             
         if st.button("✈️ 週間予定投稿", key="sidebar_post_schedule"):
             switch_page("週間予定投稿")
             
-        if st.button("📝 日報作成", key="sidebar_post_report"):
+        if st.button(" 日報作成", key="sidebar_post_report"):
             switch_page("日報投稿")
             
-        if st.button("👤 マイページ", key="sidebar_mypage"):
+        if st.button(" マイページ", key="sidebar_mypage"):
             switch_page("マイページ")
 
 # ✅ ログイン機能（修正済み）
@@ -126,17 +122,19 @@ def save_weekly_schedule(schedule):
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
 
-        # ✅ 投稿日時を JST で保存
-        schedule["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+        # posts テーブルに投稿情報を追加
+        cur.execute("INSERT INTO posts (投稿者ID, 投稿日時) VALUES (?, ?)",
+                    (st.session_state["user"]["id"], (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")))
+        postId = cur.lastrowid
 
         cur.execute("""
-        INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO weekly_schedules (postId, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            schedule["投稿者"], schedule["開始日"], schedule["終了日"], 
+            postId, schedule["開始日"], schedule["終了日"], 
             schedule["月曜日"], schedule["火曜日"], schedule["水曜日"], 
             schedule["木曜日"], schedule["金曜日"], schedule["土曜日"], 
-            schedule["日曜日"], schedule["投稿日時"]
+            schedule["日曜日"]
         ))
 
         conn.commit()
@@ -150,7 +148,13 @@ def load_weekly_schedules():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT *, コメント FROM weekly_schedules ORDER BY 投稿日時 DESC") # コメントカラムも取得
+    cur.execute("""
+        SELECT weekly_schedules.*, posts.投稿者ID, posts.投稿日時, users.名前
+        FROM weekly_schedules
+        JOIN posts ON weekly_schedules.postId = posts.id
+        JOIN users ON posts.投稿者ID = users.id
+        ORDER BY posts.投稿日時 DESC
+    """)
     rows = cur.fetchall()
     conn.close()
 
@@ -158,11 +162,11 @@ def load_weekly_schedules():
     schedules = []
     for row in rows:
         schedules.append({
-            "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3], 
+            "id": row[0], "postId": row[1], "開始日": row[2], "終了日": row[3], 
             "月曜日": row[4], "火曜日": row[5], "水曜日": row[6], 
             "木曜日": row[7], "金曜日": row[8], "土曜日": row[9], 
-            "日曜日": row[10], "投稿日時": row[11],
-            "コメント": json.loads(row[12]) if row[12] else [] # コメントをJSONデコード
+            "日曜日": row[10], "投稿者ID": row[11], "投稿日時": row[12], "投稿者": row[13],
+            "コメント": load_comments(row[0])  # コメントも取得
         })
     return schedules
 
@@ -210,7 +214,7 @@ def post_weekly_schedule():
 
     if st.button("投稿する"):
         schedule = {
-            "投稿者": st.session_state["user"]["name"],
+            "投稿者ID": st.session_state["user"]["id"],
             "開始日": start_date.strftime("%Y-%m-%d"),
             "終了日": end_date.strftime("%Y-%m-%d"),
             "月曜日": weekly_plan[(start_date + timedelta(days=0)).strftime("%Y-%m-%d")],
@@ -261,70 +265,7 @@ def show_weekly_schedules():
         transition: max-height 0.3s ease; /* アニメーションを追加 */
     }
 </style>
-    """, unsafe_allow_html=True)
-
-    schedules = load_weekly_schedules()
-
-    if not schedules:
-        st.info("週間予定はありません。")
-        return
-
-    # 週ごとにグループ化
-    grouped = defaultdict(list)
-    for s in schedules:
-        key = (s['開始日'], s['終了日'])
-        grouped[key].append(s)
-
-    # 開始日で降順ソート
-    sorted_groups = sorted(grouped.items(),
-                           key=lambda x: datetime.strptime(x[0][0], "%Y-%m-%d"),
-                           reverse=True)
-
-    # 現在の日付から6週間前の日付を計算
-    six_weeks_ago = datetime.now() - timedelta(weeks=6)
-
-    # 最新の投稿（5週分）と過去の投稿（6週前以前）に分割
-    recent_schedules = []
-    past_schedules = []
-    for start_end, group_schedules in sorted_groups:
-        start_date = datetime.strptime(start_end[0], "%Y-%m-%d")
-        if start_date >= six_weeks_ago:
-            recent_schedules.append((start_end, group_schedules))
-        else:
-            past_schedules.append((start_end, group_schedules))
-
-    # 最新の投稿を表示
-    st.subheader("直近5週分の予定")
-    display_schedules(recent_schedules)
-
-    # 過去の投稿を表示
-    if past_schedules:
-        st.subheader("過去の予定を見る（6週間以前）")
-        display_past_schedules(past_schedules)
-
-    # ダウンロードボタン（ループの外に移動）
-    if schedules:
-        if st.button("週間予定をExcelでダウンロード"):
-            start_date = schedules[0]["開始日"]
-            end_date = schedules[0]["終了日"]
-            excel_file = excel_utils.download_weekly_schedule_excel(start_date, end_date)
-            st.download_button(
-                label="ダウンロード",
-                data=excel_file,
-                file_name="週間予定.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-def display_schedules(schedules_to_display):
-    for idx, ((start_str, end_str), group_schedules) in enumerate(schedules_to_display):
-        start_date = datetime.strptime(start_str, "%Y-%m-%d")
-        end_date = datetime.strptime(end_str, "%Y-%m-%d")
-        weekday_ja = ["月", "火", "水", "木", "金", "土", "日"]
-
-        # 週のヘッダー（擬似折りたたみボタン）
-        group_title = (
-            f"{start_date.month}月{start_date.day}日（{weekday_ja[start_date.weekday()]}）"
-            f" ～ {end_date.month}月{end_date.day}日（{weekday_ja[end_date.weekday()]}）"
+    """, unsafe_allow_html=True)])
         )
 
         # セッションステートで開閉状態を管理
@@ -368,7 +309,7 @@ def display_schedules(schedules_to_display):
                         st.subheader("コメント")
                         if schedule["コメント"]:
                             for comment in schedule["コメント"]:
-                                st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                                st.write(f"- {comment['投稿者']} ({comment['投稿日時']}): {comment['コメント内容']}")
                         else:
                             st.write("まだコメントはありません。")
 
@@ -379,7 +320,7 @@ def display_schedules(schedules_to_display):
                         )
                         if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
                             if comment_text.strip():
-                                save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+                                save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["id"], comment_text)
                                 st.rerun()
                             else:
                                 st.warning("コメントを入力してください。")
@@ -426,7 +367,7 @@ def display_past_schedules(past_schedules):
                         st.subheader("コメント")
                         if schedule["コメント"]:
                             for comment in schedule["コメント"]:
-                                st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                                st.write(f"- {comment['投稿者']} ({comment['投稿日時']}): {comment['コメント内容']}")
                         else:
                             st.write("まだコメントはありません。")
 
@@ -437,20 +378,24 @@ def display_past_schedules(past_schedules):
                         )
                         if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
                             if comment_text.strip():
-                                save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
+                                save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["id"], comment_text)
                                 st.rerun()
                             else:
                                 st.warning("コメントを入力してください。")
-                st.markdown('│  │  </div>', unsafe_allow_html=True)
-                
-def add_comments_column():
-    """weekly_schedules テーブルにコメントカラムを追加"""
+                st.markdown('│  │  </div>', unsafe_allow_html=True)def add_comments_column():
+    """weekly_schedules テーブルにコメントカラムを追加 (既存のテーブルにカラムを追加する場合は ALTER TABLE を使用)"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("ALTER TABLE weekly_schedules ADD COLUMN コメント TEXT DEFAULT '[]'")
-    conn.commit()
-    conn.close()
-    print("✅ コメントカラムを追加しました！")
+    try:
+        cur.execute("ALTER TABLE weekly_schedules ADD COLUMN コメント TEXT DEFAULT '[]'")
+        conn.commit()
+        print("コメントカラムを追加しました！")
+    except sqlite3.OperationalError:
+        print("コメントカラムは既に追加されています。") # テーブルが存在しない場合のエラーをキャッチ
+    except Exception as e:
+        print(f"コメントカラム追加エラー: {e}")
+    finally:
+        conn.close()
 
 # ✅ 日報投稿
 def post_report():
@@ -464,7 +409,7 @@ def post_report():
      # 選択可能な日付リスト（1週間前～本日）
     today = datetime.today().date()
     date_options = [(today + timedelta(days=1) - timedelta(days=i)) for i in range(9)]
-    date_options_formatted = [f"{d.strftime('%Y年%m月%d日 (%a)')}" for d in date_options]
+    date_options_formatted = [f"{d.strftime('%Y年%m%d日 (%a)')}" for d in date_options]
 
     # 実施日の選択（リストから選ぶ）
     selected_date = st.selectbox("実施日", date_options_formatted)
@@ -481,11 +426,11 @@ def post_report():
 
     submit_button = st.button("投稿する")
     if submit_button:
-        date_mapping = {d.strftime('%Y年%m月%d日 (%a)'): d.strftime('%Y-%m-%d') for d in date_options}
+        date_mapping = {d.strftime('%Y年%m%d日 (%a)'): d.strftime('%Y-%m-%d') for d in date_options}
         formatted_date = date_mapping[selected_date]
 
         save_report({
-            "投稿者": st.session_state["user"]["name"],
+            "投稿者ID": st.session_state["user"]["id"],
             "実行日": formatted_date,  # YYYY-MM-DD 形式で保存
             "カテゴリ": category,
             "場所": location,
@@ -567,12 +512,12 @@ def timeline():
     # ✅ 部署フィルタボタン
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🌍 すべての投稿を見る"):
+        if st.button("  すべての投稿を見る"):
             st.session_state["filter_department"] = "すべて"
             st.rerun()
     
     with col2:
-        if st.button("🏢 自分の部署のメンバーの投稿を見る"):
+        if st.button("  自分の部署のメンバーの投稿を見る"):
             st.session_state["filter_department"] = "自分の部署"
             st.rerun()
 
@@ -615,25 +560,24 @@ def timeline():
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
         st.write(f" **実施日:** {report['実行日']}")
         st.write(f" **場所:** {report['場所']}")
-        st.write(f" **実施内容:** {report['実施内容']}")
+        st.write(f"**実施内容:** {report['実施内容']}")
         st.write(f" **所感:** {report['所感']}")
 
         # ✅ 画像が存在する場合、表示する
-        if report.get("image"):
+        if report.get("画像パス"):
             try:
-                # Base64データをデコードして画像を表示
-                image_data = base64.b64decode(report["image"])
-                st.image(image_data, caption="投稿画像", use_container_width=True)
+                # 画像ファイルを読み込んで表示
+                st.image(report["画像パス"], caption="投稿画像", use_container_width=True)
             except Exception as e:
                 st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
 
         col1, col2 = st.columns(2)
         with col1:
-            if st.button(f"❤️ {report['いいね']} いいね！", key=f"like_{report['id']}"):
+            if st.button(f" {report['いいね']} いいね！", key=f"like_{report['id']}"):
                 update_reaction(report["id"], "いいね")
                 st.rerun()
         with col2:
-            if st.button(f"💪 {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
+            if st.button(f" {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
                 update_reaction(report["id"], "ナイスファイト")
                 st.rerun()
 
@@ -642,7 +586,7 @@ def timeline():
         with st.expander(f" ({comment_count}件)のコメントを見る・追加する "):  # 件数を表示
             if report["コメント"]:
                 for c in report["コメント"]:
-                    st.write(f" {c['投稿者']} ({c['日時']}): {c['コメント']}")
+                    st.write(f" {c['投稿者']} ({c['投稿日時']}): {c['コメント内容']}")
 
             if report.get("id") is None:
                 st.error("⚠️ 投稿の ID が見つかりません。")
@@ -654,7 +598,7 @@ def timeline():
             if st.button(" コメントを投稿", key=f"submit_comment_{report['id']}"):
                 if new_comment and new_comment.strip():
                     print(f"️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
-                    save_comment(report["id"], commenter_name, new_comment)
+                    save_comment(report["id"], st.session_state["user"]["id"], new_comment)
                     st.success("✅ コメントを投稿しました！")
                     st.rerun()
                 else:
@@ -672,10 +616,10 @@ def show_notices():
     # top_navigation()
 
     # ✅ 現在のユーザー名を取得
-    user_name = st.session_state["user"]["name"]
+    user_id = st.session_state["user"]["id"]
 
     # ✅ 対象ユーザーに紐づくお知らせを取得
-    notices = load_notices(user_name)
+    notices = load_notices(user_id)
 
     if not notices:
         st.info(" お知らせはありません。")
@@ -727,7 +671,7 @@ def my_page():
     # top_navigation()
 
     reports = load_reports()
-    my_reports = [r for r in reports if r["投稿者"] == st.session_state["user"]["name"]]
+    my_reports = [r for r in reports if r["投稿者ID"] == st.session_state["user"]["id"]]
 
     #  今週の投稿
     with st.expander("今週の投稿", expanded=False):  # 初期状態は折りたたまれている
@@ -760,7 +704,7 @@ def my_page():
 
     #  コメントした投稿
     with st.expander("コメントした投稿", expanded=False):  # 初期状態は折りたたまれている
-        commented_reports = load_commented_reports(st.session_state["user"]["name"])
+        commented_reports = load_commented_reports(st.session_state["user"]["id"])
 
         if commented_reports:
             for index, report in enumerate(commented_reports): # indexを追加
@@ -773,7 +717,7 @@ def my_page():
     with st.expander("週間予定", expanded=False):
         st.subheader("週間予定")
         schedules = load_weekly_schedules()
-        user_schedules = [s for s in schedules if s["投稿者"] == st.session_state["user"]["name"]]
+        user_schedules = [s for s in schedules if s["投稿者ID"] == st.session_state["user"]["id"]]
 
         if user_schedules:
             for schedule in user_schedules:
@@ -791,7 +735,7 @@ def my_page():
                     st.subheader("コメント")
                     if schedule["コメント"]:
                         for comment in schedule["コメント"]:
-                            st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                            st.writef"- {comment['投稿者']} ({comment['投稿日時']}): {comment['コメント内容']}")
                     else:
                         st.write("まだコメントはありません。")
 
@@ -812,12 +756,12 @@ def show_report_details(report, report_index):
         st.subheader("️ コメント一覧")
         for c_idx, comment in enumerate(report["コメント"]):
             st.write(
-                f"{comment['投稿者']} ({comment['日時']}): {comment['コメント']}",
+                f"{comment['投稿者']} ({comment['投稿日時']}): {comment['コメント内容']}",
                 key=f"comment_{report['id']}_{report_index}_{c_idx}"  # キーにreport_indexを追加
             )
 
     # 編集 & 削除ボタン（完全に一意なキーを生成）
-    if report["投稿者"] == st.session_state["user"]["name"]:
+    if report["投稿者ID"] == st.session_state["user"]["id"]:
         # ユニークキー生成用の要素
         user_info = st.session_state["user"]
         unique_key_suffix = f"{report['id']}_{report_index}_{user_info.get('employee_code', 'unknown')}_{user_info.get('name', 'unknown')}"  # キーにユーザー情報も追加
@@ -878,6 +822,11 @@ def edit_report_form(report, unique_key_suffix):
         report["場所"],
         key=f"location_{unique_key_suffix}"
     )
+    new_category = st.text_input(
+        "カテゴリ",
+        report["カテゴリ"],
+        key=f"category_{unique_key_suffix}"
+    )
     new_content = st.text_area(
         "実施内容",
         report["実施内容"],
@@ -889,50 +838,36 @@ def edit_report_form(report, unique_key_suffix):
         key=f"remarks_{unique_key_suffix}"
     )
 
-    col_save, col_cancel = st.columns([1, 3])
-    with col_save:
-        if st.button(
-            "💾 保存",
-            key=f"save_{unique_key_suffix}",
-            type="primary"
-        ):
-            edit_report(
-                report["id"],
-                new_date,
-                new_location,
-                new_content,
-                new_remarks
-            )
-            st.session_state[f"edit_mode_{unique_key_suffix}"] = False
-            st.success("✅ 編集を保存しました")
-            time.sleep(1)
-            st.rerun()
+    if st.button(" 変更を保存", key=f"save_{unique_key_suffix}"):
+        edit_report({
+            "id": report["id"],
+            "実行日": new_date,
+            "場所": new_location,
+            "カテゴリ": new_category,
+            "実施内容": new_content,
+            "所感": new_remarks
+        })
+        st.success("✅ 変更を保存しました！")
+        time.sleep(1)
+        st.session_state[f"edit_mode_{unique_key_suffix}"] = False
+        st.rerun()
 
-    with col_cancel:
-        if st.button(
-            "キャンセル",
-            key=f"cancel_{unique_key_suffix}"
-        ):
-            st.session_state[f"edit_mode_{unique_key_suffix}"] = False
-            st.rerun()
-# ✅ メニュー管理
-if st.session_state["user"] is None:
+# ✅ ページ表示の振り分け
+if st.session_state["page"] == "ログイン":
     login()
-else:
-    sidebar_navigation()  # サイドバーナビゲーションを追加
-    
-    
-    # 既存のページ表示ロジックは変更なし
-    
-    if st.session_state["page"] == "タイムライン":
-        timeline()
-    elif st.session_state["page"] == "日報投稿":
-        post_report()
-    elif st.session_state["page"] == "お知らせ":
-        show_notices()
-    elif st.session_state["page"] == "マイページ":
-        my_page()
-    elif st.session_state["page"] == "週間予定投稿":  # 週間予定投稿ページを追加
-        post_weekly_schedule()
-    elif st.session_state["page"] == "週間予定":  # 週間予定表示ページを追加
-        show_weekly_schedules()
+elif st.session_state["page"] == "日報投稿":
+    post_report()
+elif st.session_state["page"] == "タイムライン":
+    timeline()
+elif st.session_state["page"] == "お知らせ":
+    show_notices()
+elif st.session_state["page"] == "マイページ":
+    my_page()
+elif st.session_state["page"] == "週間予定投稿":
+    post_weekly_schedule()
+elif st.session_state["page"] == "週間予定":
+    show_weekly_schedules()
+
+# ✅ サイドバー
+if st.session_state["user"]:
+    sidebar_navigation()
