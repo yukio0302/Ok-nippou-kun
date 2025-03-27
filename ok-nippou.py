@@ -641,6 +641,26 @@ def timeline():
     # ✅ 投稿を表示
     for report in filtered_reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
+        
+    # 予定表示セクション（追加）
+    if report.get("予定"):
+        st.markdown(f"""
+        <div style='
+            background: #e8f4fc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #3498db;
+        '>
+            <div style='color: #2c3e50; font-weight: bold; margin-bottom: 0.5rem;'>
+                📅 予定
+            </div>
+            <div style='color: #34495e;'>
+                {report['予定']}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.write(f" **実施日:** {report['実行日']}")
         st.write(f" **場所:** {report['場所']}")
         st.write(f" **実施内容:** {report['実施内容']}")
