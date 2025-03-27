@@ -5,7 +5,8 @@ from datetime import datetime, timezone, timedelta
 # ユーザーデータ管理関数群
 def load_users():
     """JSONファイルからユーザーデータを読み込む"""
-    file_path = Path("data") / "users_data.json"
+    current_dir = Path(__file__).parent  # スクリプトのディレクトリを取得
+    file_path = current_dir / "data" / "users_data.json"
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
