@@ -114,7 +114,8 @@ def login():
             st.error("社員コードまたはパスワードが間違っています。")
 
 def save_weekly_schedule(schedule):
-    """週間予定をデータベースに保存"""conn = get_db_connection()
+    """週間予定をデータベースに保存"""
+    conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO posts (投稿者ID) VALUES (%s) RETURNING id
@@ -289,7 +290,7 @@ def notice():
     st.title("お知らせ")
     notices = load_notices(st.session_state["user"]["id"])
 
-    fornotice in notices:
+    for notice in notices:
         st.subheader(notice["タイトル"])
         st.write(f"日付: {notice['日付']}")
         st.write(notice["内容"])
