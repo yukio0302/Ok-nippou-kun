@@ -13,13 +13,12 @@ from collections import defaultdict
 def get_current_time():
     return datetime.now() + timedelta(hours=9)  # JSTで現在時刻を取得
 
-# メインコードの冒頭（インポート部分）
+# サブコーディングから必要な関数をインポート
 from db_utils import (
-    init_db, authenticate_user, save_report, load_reports,
-    load_notices, mark_notice_as_read, edit_report, delete_report,
+    init_db, authenticate_user, save_report, load_reports, 
+    load_notices, mark_notice_as_read, edit_report, delete_report, 
     update_reaction, save_comment, load_commented_reports,
-    save_weekly_schedule_comment, add_comments_column,
-    get_daily_schedule  # ← この行を追加
+    save_weekly_schedule_comment, add_comments_column  # 追加
 )
 
 # excel_utils.py をインポート
@@ -460,49 +459,19 @@ def post_report():
         return
 
     st.title("日報投稿")
-    
-    # 選択可能な日付リスト（1週間前～本日）
+    # top_navigation()
+
+     # 選択可能な日付リスト（1週間前～本日）
     today = datetime.today().date()
-    date_options = [today + timedelta(days=1) - timedelta(days=i) for i in range(9)] 
+    date_options = [(today + timedelta(days=1) - timedelta(days=i)) for i in range(9)]
     date_options_formatted = [f"{d.strftime('%Y年%m月%d日 (%a)')}" for d in date_options]
 
     # 実施日の選択（リストから選ぶ）
     selected_date = st.selectbox("実施日", date_options_formatted)
-    
-    # 選択日をYYYY-MM-DD形式に変換
-    date_mapping = {d.strftime('%Y年%m月%d日 (%a)'): d.strftime('%Y-%m-%d') for d in date_options}
-    formatted_date = date_mapping[selected_date]
-    
-    # 週間予定の取得と表示
-    user_name = st.session_state["user"]["name"]
-    planned_schedule = get_daily_schedule(user_name, formatted_date)
-    
-    st.subheader("📅 当日の予定")
-    if planned_schedule:
-        st.markdown(f"""
-        <div style='
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        '>
-            <div style='font-size: 1.1rem; color: #2c3e50; margin-bottom: 0.5rem;'>
-                🗓️ 予定内容
-            </div>
-            <div style='font-size: 1rem; color: #34495e;'>
-                {planned_schedule}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.info("週間予定が登録されていません")
-    
-    # 入力フィールド
     location = st.text_input("場所")
     category = st.text_input("カテゴリ（商談やイベント提案など）")
-    content = st.text_area("実施内容", help="予定に対して実際に行った内容を記入してください")
-    remarks = st.text_area("所感", help="予定との差異や追加で行ったことなどを記入してください")
+    content = st.text_area("実施内容")
+    remarks = st.text_area("所感")
 
     uploaded_file = st.file_uploader("写真を選択", type=["png", "jpg", "jpeg"])
     image_base64 = None
@@ -512,9 +481,12 @@ def post_report():
 
     submit_button = st.button("投稿する")
     if submit_button:
+        date_mapping = {d.strftime('%Y年%m月%d日 (%a)'): d.strftime('%Y-%m-%d') for d in date_options}
+        formatted_date = date_mapping[selected_date]
+
         save_report({
-            "投稿者": user_name,
-            "実行日": formatted_date,
+            "投稿者": st.session_state["user"]["name"],
+            "実行日": formatted_date,  # YYYY-MM-DD 形式で保存
             "カテゴリ": category,
             "場所": location,
             "実施内容": content,
@@ -641,26 +613,6 @@ def timeline():
     # ✅ 投稿を表示
     for report in filtered_reports:
         st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
-        
-    # 予定表示セクション（追加）
-    if report.get("予定"):
-        st.markdown(f"""
-        <div style='
-            background: #e8f4fc;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            border-left: 4px solid #3498db;
-        '>
-            <div style='color: #2c3e50; font-weight: bold; margin-bottom: 0.5rem;'>
-                📅 予定
-            </div>
-            <div style='color: #34495e;'>
-                {report['予定']}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
         st.write(f" **実施日:** {report['実行日']}")
         st.write(f" **場所:** {report['場所']}")
         st.write(f" **実施内容:** {report['実施内容']}")
@@ -694,7 +646,7 @@ def timeline():
 
             if report.get("id") is None:
                 st.error("⚠️ 投稿の ID が見つかりません。")
-                return
+                continue
 
             commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
             new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
