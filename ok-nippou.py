@@ -13,12 +13,12 @@ from collections import defaultdict
 def get_current_time():
     return datetime.now() + timedelta(hours=9)  # JSTで現在時刻を取得
 
+# サブコーディングから必要な関数をインポート
 from db_utils import (
     init_db, authenticate_user, save_report, load_reports, 
     load_notices, mark_notice_as_read, edit_report, delete_report, 
     update_reaction, save_comment, load_commented_reports,
-    save_weekly_schedule_comment, load_weekly_schedules, load_comments,
-    load_weekly_schedule_by_date  # 追加
+    save_weekly_schedule_comment, load_weekly_schedules, load_comments
 )
 
 # excel_utils.py をインポート
@@ -114,8 +114,7 @@ def login():
             st.error("社員コードまたはパスワードが間違っています。")
 
 def save_weekly_schedule(schedule):
-    """週間予定をデータベースに保存"""
-    conn = get_db_connection()
+    """週間予定をデータベースに保存"""conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO posts (投稿者ID) VALUES (%s) RETURNING id
@@ -176,21 +175,10 @@ def weekly_schedule():
 # ✅ 日報投稿ページ（修正済み）
 def post_report():
     st.title("日報作成")
-    report_date = st.date_input("実行日")
-
-    # 週間予定を取得
-    weekly_schedule = load_weekly_schedule_by_date(st.session_state["user"]["id"], report_date)
-
-    # 予定を表示
-    if weekly_schedule:
-        st.write(f"**予定**: {weekly_schedule}")
-    else:
-        st.write("この日の予定はありません")
-
     report = {
         "投稿者ID": st.session_state["user"]["id"],
-        "実行日": report_date,
-        "カテゴリ": st.selectbox("カテゴリ", ["訪問/商談", "事務作業", "その他"]),
+        "実行日": st.date_input("実行日"),
+        "カテゴリ": st.selectbox("カテゴリ", ["営業", "開発", "その他"]),
         "場所": st.text_input("場所"),
         "実施内容": st.text_area("実施内容"),
         "所感": st.text_area("所感")
@@ -202,7 +190,7 @@ def post_report():
 
     if st.button("投稿"):
         save_report(report)
-        st.success("✅　日報を投稿しました！")
+        st.success("日報を投稿しました！")
 
 # ✅ タイムライン（コメント機能修正）
 def timeline():
@@ -290,7 +278,7 @@ def notice():
     st.title("お知らせ")
     notices = load_notices(st.session_state["user"]["id"])
 
-    for notice in notices:
+    fornotice in notices:
         st.subheader(notice["タイトル"])
         st.write(f"日付: {notice['日付']}")
         st.write(notice["内容"])
