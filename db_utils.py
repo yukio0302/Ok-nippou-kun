@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import streamlit as st
 
 # ✅ データベースのパス
-DB_PATH = "data/reports.db"
+DB_PATH = "/mount/src/ok-nippou-kun/Ok-nippou-kun/data/reports.db"
 
 # db_utils.pyに追加
 def get_db_connection():
