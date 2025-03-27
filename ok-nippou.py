@@ -265,7 +265,7 @@ def show_weekly_schedules():
         transition: max-height 0.3s ease; /* アニメーションを追加 */
     }
 </style>
-    """, unsafe_allow_html=True)])
+    """, unsafe_allow_html=True)
         )
 
         # セッションステートで開閉状態を管理
