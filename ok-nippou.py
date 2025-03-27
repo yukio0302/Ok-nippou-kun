@@ -266,7 +266,6 @@ def show_weekly_schedules():
     }
 </style>
     """, unsafe_allow_html=True)
-        )
 
         # セッションステートで開閉状態を管理
         if f'week_{idx}_expanded' not in st.session_state:
