@@ -34,7 +34,7 @@ css_file_path = "style.css"  # 絶対パスを設定
 load_css(css_file_path)
 
 # ✅ データベースのパス
-DB_PATH = "data/reports.db"
+DB_PATH = "/mount/src/ok-nippou-kun/Ok-nippou-kun/data/reports.db"
 
 # ✅ SQLite 初期化（データを消さない）
 init_db(keep_existing=True)
