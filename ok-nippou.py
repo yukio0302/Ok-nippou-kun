@@ -175,10 +175,21 @@ def weekly_schedule():
 # ✅ 日報投稿ページ（修正済み）
 def post_report():
     st.title("日報作成")
+    report_date = st.date_input("実行日")
+
+    # 週間予定を取得
+    weekly_schedule = load_weekly_schedule_by_date(st.session_state["user"]["id"], report_date)
+
+    # 予定を表示
+    if weekly_schedule:
+        st.write(f"**予定**: {weekly_schedule}")
+    else:
+        st.write("この日の予定はありません")
+
     report = {
         "投稿者ID": st.session_state["user"]["id"],
-        "実行日": st.date_input("実行日"),
-        "カテゴリ": st.selectbox("カテゴリ", ["営業", "開発", "その他"]),
+        "実行日": report_date,
+        "カテゴリ": st.selectbox("カテゴリ", ["訪問/商談", "事務作業", "その他"]),
         "場所": st.text_input("場所"),
         "実施内容": st.text_area("実施内容"),
         "所感": st.text_area("所感")
@@ -190,7 +201,7 @@ def post_report():
 
     if st.button("投稿"):
         save_report(report)
-        st.success("日報を投稿しました！")
+        st.success("✅　日報を投稿しました！")
 
 # ✅ タイムライン（コメント機能修正）
 def timeline():
