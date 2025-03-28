@@ -12,9 +12,6 @@ from db_utils import (
 
 # データベース初期化
 init_db(keep_existing=True)
-
-from functools import wraps
-
 # パスワードハッシュ化
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
