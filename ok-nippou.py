@@ -3,6 +3,11 @@ import base64
 from datetime import datetime, timedelta
 import json
 import time
+import hashlib
+import pandas as pd
+from io import BytesIO
+import psycopg2
+from db_utils import get_db_connection
 from db_utils import (
     init_db, authenticate_user, save_report, load_reports, update_reaction,
     save_comment, load_notices, mark_notice_as_read, save_weekly_schedule,
