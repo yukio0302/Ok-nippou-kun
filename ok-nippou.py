@@ -14,7 +14,6 @@ from db_utils import (
 init_db(keep_existing=True)
 
 from functools import wraps
-import hashlib
 
 # パスワードハッシュ化
 def hash_password(password):
