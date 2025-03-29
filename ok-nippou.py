@@ -123,27 +123,32 @@ def login():
 def save_weekly_schedule(schedule):
     """週間予定をデータベースに保存"""
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()  # Neonデータベースに接続
         cur = conn.cursor()
 
-        # ✅ 投稿日時を JST で保存
+        # 投稿日時を JST で保存
         schedule["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
 
         cur.execute("""
-        INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO weekly_schedules (
+                投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 
+                木曜日, 金曜日, 土曜日, 日曜日, 投稿日時, コメント
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
         """, (
             schedule["投稿者"], schedule["開始日"], schedule["終了日"], 
             schedule["月曜日"], schedule["火曜日"], schedule["水曜日"], 
             schedule["木曜日"], schedule["金曜日"], schedule["土曜日"], 
-            schedule["日曜日"], schedule["投稿日時"]
+            schedule["日曜日"], schedule["投稿日時"], json.dumps([])
         ))
 
         conn.commit()
-        conn.close()
         print("✅ 週間予定を保存しました！")  # デバッグログ
+
     except Exception as e:
         print(f"⚠️ 週間予定の保存エラー: {e}")  # エラー内容を表示
+        raise
 
 def load_weekly_schedules():
     """週間予定データを取得（最新の投稿順にソート）"""
