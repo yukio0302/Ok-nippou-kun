@@ -1,4 +1,3 @@
-import sys
 import os
 import time
 import streamlit as st
@@ -8,19 +7,20 @@ from datetime import datetime, timedelta, timezone  # timezoneを追加
 import json
 import psycopg2
 from collections import defaultdict
+import sys
+sys.path.append('/mount/src/ok-nippou-kun/')  # db_utils.py があるディレクトリ
+
+from db_utils import (
+    init_db, authenticate_user, save_report, load_reports,
+    load_notices, mark_notice_as_read, edit_report, delete_report,
+    update_reaction, save_comment, load_commented_reports,
+    save_weekly_schedule_comment, load_weekly_schedules, load_comments,
+    get_db_connection
+)
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
     return datetime.now() + timedelta(hours=9)  # JSTで現在時刻を取得
-
-# サブコーディングから必要な関数をインポート
-from db_utils import (
-    init_db, authenticate_user, save_report, load_reports, 
-    load_notices, mark_notice_as_read, edit_report, delete_report, 
-    update_reaction, save_comment, load_commented_reports,
-    save_weekly_schedule_comment, load_weekly_schedules, load_comments,
-    get_db_connection  # 追加
-)
 
 # excel_utils.py をインポート
 import excel_utils  # この行を追加
