@@ -12,11 +12,14 @@ def get_db_connection():
             type="sql",
             url=st.secrets.connections.neon.url
         )
+        # 接続テスト
+        cur = conn.cursor()
+        cur.execute("SELECT 1")
         return conn
     except Exception as e:
         print(f"⚠️ データベース接続エラー: {e}")
         raise
-
+        
 def init_db(keep_existing=True):
     """データベースの初期化（テーブル作成）"""
     conn = get_db_connection()
