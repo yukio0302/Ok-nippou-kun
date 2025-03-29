@@ -1,4 +1,3 @@
-import sys
 import os
 import time
 import streamlit as st
@@ -8,18 +7,20 @@ from datetime import datetime, timedelta
 import json
 import sqlite3
 from collections import defaultdict
+import sys
+sys.path.append("/mount/src/ok-nippou-kun/data") # db_utils.py が存在するディレクトリの絶対パス
+
+from db_utils import (
+    init_db, authenticate_user, save_report, load_reports, 
+    load_notices, mark_notice_as_read, edit_report, delete_report, 
+    update_reaction, save_comment, load_commented_reports,
+    save_weekly_schedule_comment, add_comments_column,
+    get_weekly_schedule_for_all_users, get_daily_schedule
+)
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
     return datetime.now() + timedelta(hours=9)  # JSTで現在時刻を取得
-
-# サブコーディングから必要な関数をインポート
-from data.db_utils import (
-    init_db, authenticate_user, save_report, load_reports, 
-    load_notices, mark_notice_as_read, edit_report, delete_report, 
-    update_reaction, save_comment, load_commented_reports,
-    save_weekly_schedule_comment, add_comments_column, get_weekly_schedule_for_all_users, get_daily_schedule  # 追加
-)
 
 # excel_utils.py をインポート
 import excel_utils  # この行を追加
