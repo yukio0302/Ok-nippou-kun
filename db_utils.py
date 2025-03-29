@@ -6,11 +6,21 @@ from psycopg2.extras import DictCursor
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
-load_dotenv()
-
-# ✅ Neonデータベース接続
+# ✅ Neonデータベース接続（テスト環境用）
 def get_db_connection():
-    return psycopg2.connect(os.getenv("NEON_DB_URL"))
+    try:
+        conn = psycopg2.connect(
+            host="ep-dawn-credit-a16vhe5b-pooler.ap-southeast-1.aws.neon.tech",
+            port=5432,  # Neonのデフォルトポート
+            user="neondb_owner",
+            password="npg_E63kPJglOeih",
+            database="neondb",
+            sslmode="require"
+        )
+        return conn
+    except Exception as e:
+        print(f"データベース接続エラー: {e}")
+        return None  # 接続失敗時はNoneを返す
 
 # ✅ ユーザー認証（変更なし）
 def authenticate_user(employee_code, password):
