@@ -4,7 +4,7 @@ import time
 import streamlit as st
 import pandas as pd
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone  # timezoneを追加
 import json
 import psycopg2
 from collections import defaultdict
@@ -18,7 +18,8 @@ from db_utils import (
     init_db, authenticate_user, save_report, load_reports, 
     load_notices, mark_notice_as_read, edit_report, delete_report, 
     update_reaction, save_comment, load_commented_reports,
-    save_weekly_schedule_comment, load_weekly_schedules, load_comments
+    save_weekly_schedule_comment, load_weekly_schedules, load_comments,
+    get_db_connection  # 追加
 )
 
 # excel_utils.py をインポート
@@ -314,20 +315,22 @@ if st.session_state["user"] is None:
     login()
 else:
     sidebar_navigation()
-    if st.session_state["page"] == "タイムライン":
-        timeline()
-    elif st.session_state["page"] == "日報投稿":
-        post_report()
-    elif st.session_state["page"] == "お知らせ":
-        notice()
-    elif st.session_state["page"] == "マイページ":
-        mypage()
-    elif st.session_state["page"] == "日報編集":
-        edit_report_page()
-    elif st.session_state["page"] == "週間予定投稿":
-        post_weekly_schedule()
-    elif st.session_state["page"] == "週間予定":
-        weekly_schedule()
+    
+    page_functions = {
+        "タイムライン": timeline,
+        "日報投稿": post_report,
+        "お知らせ": notice,
+        "マイページ": mypage,
+        "日報編集": edit_report_page,
+        "週間予定投稿": post_weekly_schedule,
+        "週間予定": weekly_schedule
+    }
+    
+    current_page = st.session_state["page"]
+    if current_page in page_functions:
+        page_functions[current_page]()
+    else:
+        st.error("無効なページです")
 
     # ログアウトボタン
     if st.session_state["user"] and st.sidebar.button("ログアウト"):
