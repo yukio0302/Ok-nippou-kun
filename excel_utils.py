@@ -48,6 +48,7 @@ def download_weekly_schedule_excel(start_date, end_date):
         return None
 
     finally:
-        if conn:
+        if 'cur' in locals() and cur is not None:
             cur.close()
+        if 'conn' in locals() and conn is not None:
             conn.close()
