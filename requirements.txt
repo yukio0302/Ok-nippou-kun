@@ -7,3 +7,4 @@ timedelta
 gdown
 openpyxl
 psycopg2-binary
+python-dotenv
