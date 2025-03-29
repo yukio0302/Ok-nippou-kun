@@ -527,3 +527,4 @@ def get_daily_schedule(user_name: str, target_date: str) -> str:
     except Exception as e:
         print(f"週間予定取得エラー: {e}")
         return ""
+
