@@ -16,11 +16,11 @@ DB_PORT = "5432"
 # データベース接続関数
 def get_db_connection():
     conn = psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        port=DB_PORT
+        host="ep-dawn-credit-a16vhe5b-pooler.ap-southeast-1.aws.neon.tech",
+        database="neondb",
+        user="neondb_owner",
+        password="npg_E63kPJglOeih",
+        port=5432
     )
     return conn
 
