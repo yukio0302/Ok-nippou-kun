@@ -5,18 +5,39 @@ from datetime import datetime, timedelta
 import streamlit as st
 from psycopg2.extras import DictCursor
 
-# データベース接続の最適化
 @st.cache_data
 def get_db_connection():
     try:
+        # デバッグポイント1: 接続URL確認
+        print("⚠️ デバッグ: データベースURLを確認中...")
         conn = st.connection(
             name="neon",
             type="sql",
             url=st.secrets.connections.neon.url
         )
+        
+        # デバッグポイント2: 接続テスト
+        print("⚠️ デバッグ: データベース接続テスト中...")
+        cur = conn.cursor()
+        cur.execute("SELECT version()")
+        db_version = cur.fetchone()[0]
+        print(f"⚠️ デバッグ: データベースバージョン: {db_version}")
+        
+        # デバッグポイント3: テーブル存在確認
+        print("⚠️ デバッグ: テーブル存在確認中...")
+        cur.execute("""
+            SELECT tablename 
+            FROM pg_tables 
+            WHERE schemaname = 'public'
+        """)
+        tables = [row[0] for row in cur.fetchall()]
+        print(f"⚠️ デバッグ: 存在するテーブル: {tables}")
+        
         return conn
     except Exception as e:
-        print(f"⚠️ データベース接続エラー: {e}")
+        print(f"⚠️ デバッグ: データベース接続エラーの詳細:")
+        print(f"エラーメッセージ: {str(e)}")
+        print(f"エラーの種類: {type(e).__name__}")
         raise
 
 # データベース初期化の改善
