@@ -1,36 +1,19 @@
-import psycopg2
+import sqlite3
 import json
 import os
 from datetime import datetime, timedelta
 import streamlit as st
 
-# Neonデータベース接続情報
-DB_HOST = "ep-dawn-credit-a16vhe5b-pooler.ap-southeast-1.aws.neon.tech"
-DB_NAME = "neondb"
-DB_USER = "neondb_owner"
-DB_PASSWORD = "npg_E63kPJglOeih"
-DB_PORT = "5432"
+# ✅ データベースのパス
+DB_PATH = "/mount/src/ok-nippou-kun/data/reports.db"
 
-# データベース接続関数（コネクションプールを使用）
+# db_utils.pyに追加
 def get_db_connection():
-    if 'db_conn' not in st.session_state:
-        try:
-            conn = psycopg2.connect(
-                host=DB_HOST,
-                dbname=DB_NAME,
-                user=DB_USER,
-                password=DB_PASSWORD,
-                port=DB_PORT
-            )
-            st.session_state['db_conn'] = conn
-            print("データベースに接続しました。")
-        except psycopg2.Error as e:
-            print(f"データベース接続エラー: {e}")
-            return None
-    return st.session_state['db_conn']
+    return sqlite3.connect(DB_PATH)
 
-# ユーザー認証（users_data.jsonを使用）
+# ✅ ユーザー認証（先に定義！）
 def authenticate_user(employee_code, password):
+    """ユーザー認証（users_data.jsonを使用）"""
     USER_FILE = "data/users_data.json"
 
     if not os.path.exists(USER_FILE):
@@ -50,81 +33,76 @@ def authenticate_user(employee_code, password):
 
 def init_db(keep_existing=True):
     """データベースの初期化（テーブル作成）"""
-    conn = get_db_connection()
-    if conn is None:
-        return
-
+    db_folder = os.path.dirname(DB_PATH)  # データフォルダのパスを取得
+    os.makedirs(db_folder, exist_ok=True)  # データフォルダがなければ作成
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
     if not keep_existing:
         cur.execute("DROP TABLE IF EXISTS reports")
         cur.execute("DROP TABLE IF EXISTS notices")
-        cur.execute("DROP TABLE IF EXISTS weekly_schedules")
+        cur.execute("DROP TABLE IF EXISTS weekly_schedules")  # 週間予定テーブルを削除
 
-    # 日報データのテーブル作成（存在しない場合のみ）
+    # ✅ 日報データのテーブル作成（存在しない場合のみ）
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS reports (
-            id SERIAL PRIMARY KEY,
-            投稿者 TEXT,
-            実行日 TEXT,
-            カテゴリ TEXT,
-            場所 TEXT,
-            実施内容 TEXT,
-            所感 TEXT,
-            いいね INTEGER DEFAULT 0,
-            ナイスファイト INTEGER DEFAULT 0,
-            コメント TEXT DEFAULT '[]',
-            画像 TEXT,
-            投稿日時 TEXT
-        )
+    CREATE TABLE IF NOT EXISTS reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        投稿者 TEXT,
+        実行日 TEXT,
+        カテゴリ TEXT,
+        場所 TEXT,
+        実施内容 TEXT,
+        所感 TEXT,
+        いいね INTEGER DEFAULT 0,
+        ナイスファイト INTEGER DEFAULT 0,
+        コメント TEXT DEFAULT '[]',
+        画像 TEXT,
+        投稿日時 TEXT
+    )
     """)
 
-    # お知らせデータのテーブル作成（存在しない場合のみ）
+    # ✅ お知らせデータのテーブル作成（存在しない場合のみ）
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS notices (
-            id SERIAL PRIMARY KEY,
-            タイトル TEXT,
-            内容 TEXT,
-            日付 TEXT,
-            既読 INTEGER DEFAULT 0,
-            対象ユーザー TEXT
-        )
+    CREATE TABLE IF NOT EXISTS notices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        タイトル TEXT,
+        内容 TEXT,
+        日付 TEXT,
+        既読 INTEGER DEFAULT 0,
+        対象ユーザー TEXT
+    )
     """)
 
-    # 週間予定データのテーブル作成（存在しない場合のみ）
+    # ✅ 週間予定データのテーブル作成（存在しない場合のみ）
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS weekly_schedules (
-            id SERIAL PRIMARY KEY,
-            投稿者 TEXT,
-            開始日 TEXT,
-            終了日 TEXT,
-            月曜日 TEXT,
-            火曜日 TEXT,
-            水曜日 TEXT,
-            木曜日 TEXT,
-            金曜日 TEXT,
-            土曜日 TEXT,
-            日曜日 TEXT,
-            投稿日時 TEXT,
-            コメント TEXT DEFAULT '[]'
-        )
+    CREATE TABLE IF NOT EXISTS weekly_schedules (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        投稿者 TEXT,
+        開始日 TEXT,
+        終了日 TEXT,
+        月曜日 TEXT,
+        火曜日 TEXT,
+        水曜日 TEXT,
+        木曜日 TEXT,
+        金曜日 TEXT,
+        土曜日 TEXT,
+        日曜日 TEXT,
+        投稿日時 TEXT,
+    コメント TEXT DEFAULT '[]'
+    )
     """)
 
     conn.commit()
-    cur.close()
-    #conn.close() #コネクションプールを使用するので閉じない
+    conn.close()
 
 def update_db_schema():
     """既存のデータベーススキーマを安全に更新する"""
-    conn = get_db_connection()
-    if conn is None:
-        return
-
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # カラム存在チェック
-    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'notices'")
-    columns = [col[0] for col in cur.fetchall()]
+    # ✅ カラム存在チェック
+    cur.execute("PRAGMA table_info(notices)")
+    columns = [col[1] for col in cur.fetchall()]  # カラム名のリスト取得
 
     if "対象ユーザー" not in columns:
         try:
@@ -136,168 +114,130 @@ def update_db_schema():
     else:
         print("✅ 対象ユーザーカラムは既に存在します")
 
-    cur.close()
-    #conn.close() #コネクションプールを使用するので閉じない
+    conn.close()
 
-# データベーススキーマを更新
+# ✅ データベーススキーマを更新
 update_db_schema()
 
 def save_report(report):
     """日報をデータベースに保存（表示形式は変更しない安定版）"""
-    conn = get_db_connection()
-    if conn is None:
-        print("❌ データベース接続エラー")
-        return False
-
-    cur = conn.cursor()
-
     try:
-        # 必要なフィールドがあるかチェック
-        required_fields = ['投稿者', '実行日', 'カテゴリ', '場所', '実施内容', '所感']
-        for field in required_fields:
-            if field not in report:
-                print(f"❌ 必要なフィールドが不足しています: {field}")
-                return False
+        # データベース接続（with文で自動クローズ）
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
 
-        # 投稿日時をJSTで保存
-        report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+            # 投稿日時をJSTで保存（元の形式保持）
+            report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+            
+            # 実行日が未設定の場合のみ現在日付を使用
+            if '実行日' not in report or not report['実行日']:
+                report['実行日'] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d")
 
-        # 実行日が未設定の場合のみ現在日付を使用
-        if '実行日' not in report or not report['実行日']:
-            report['実行日'] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d")
-
-        # データを表示して確認
-        print("✅ 投稿データの確認:")
-        print(f"投稿者: {report['投稿者']}")
-        print(f"実行日: {report['実行日']}")
-        print(f"カテゴリ: {report['カテゴリ']}")
-        print(f"場所: {report['場所']}")
-        print(f"実施内容: {report['実施内容']}")
-        print(f"所感: {report['所感']}")
-
-        # INSERT文を実行
-        cur.execute("""
+            # 元のINSERT文をそのまま保持
+            cur.execute("""
             INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント, 画像, 投稿日時)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            report["投稿者"],
-            report["実行日"],
-            report["カテゴリ"],
-            report["場所"],
-            report["実施内容"],
-            report["所感"],
-            0,  # いいね初期値
-            0,  # ナイスファイト初期値
-            json.dumps([]),  # 空のコメント配列
-            report.get("image", None),  # 画像データ（Noneの場合も許容）
-            report["投稿日時"]
-        ))
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                report["投稿者"], 
+                report["実行日"], 
+                report["カテゴリ"], 
+                report["場所"],
+                report["実施内容"], 
+                report["所感"], 
+                0,  # いいね初期値
+                0,  # ナイスファイト初期値
+                json.dumps([]),  # 空のコメント配列
+                report.get("image", None), 
+                report["投稿日時"]
+            ))
 
-        conn.commit()
-        print(f"✅ 日報を保存しました！（投稿者: {report['投稿者']}, 実行日: {report['実行日']}）")
-        return True
+            conn.commit()
+            print(f"✅ 日報を保存しました（投稿者: {report['投稿者']}, 実行日: {report['実行日']}）")
 
-    except psycopg2.Error as e:
-        print(f"❌ データベースエラー: {e}")
-        conn.rollback()
-        return False
+    except sqlite3.Error as e:
+        print(f"⚠️ データベースエラー: {e}")
+        raise  # 呼び出し元でエラーハンドリングさせる
     except Exception as e:
-        print(f"❌ 予期せぬエラー: {e}")
-        conn.rollback()
-        return False
-    finally:
-        cur.close()
-        #conn.close() #コネクションプールを使用するので閉じない
+        print(f"⚠️ 予期せぬエラー: {e}")
+        raise
 
 def load_reports():
     """日報データを取得（最新の投稿順にソート）"""
-    conn = get_db_connection()
-    if conn is None:
-        return []
-
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
     cur.execute("SELECT * FROM reports ORDER BY 投稿日時 DESC")
     rows = cur.fetchall()
+    conn.close()
 
-    cur.close()
-    #conn.close() #コネクションプールを使用するので閉じない
-
-    # データを辞書リストに変換
+    # ✅ データを辞書リストに変換
     reports = []
     for row in rows:
         reports.append({
-            "id": row[0], "投稿者": row[1], "実行日": row[2], "カテゴリ": row[3],
-            "場所": row[4], "実施内容": row[5], "所感": row[6], "いいね": row[7],
-            "ナイスファイト": row[8], "コメント": json.loads(row[9]), "image": row[10],
+            "id": row[0], "投稿者": row[1], "実行日": row[2], "カテゴリ": row[3], 
+            "場所": row[4], "実施内容": row[5], "所感": row[6], "いいね": row[7], 
+            "ナイスファイト": row[8], "コメント": json.loads(row[9]), "image": row[10], 
             "投稿日時": row[11]
         })
     return reports
 
 def update_reaction(report_id, reaction_type):
     """リアクション（いいね・ナイスファイト）を更新"""
-    conn = get_db_connection()
-    if conn is None:
-        return
-
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
     if reaction_type == "いいね":
-        cur.execute("UPDATE reports SET いいね = いいね + 1 WHERE id = %s", (report_id,))
+        cur.execute("UPDATE reports SET いいね = いいね + 1 WHERE id = ?", (report_id,))
     elif reaction_type == "ナイスファイト":
-        cur.execute("UPDATE reports SET ナイスファイト = ナイスファイト + 1 WHERE id = %s", (report_id,))
+        cur.execute("UPDATE reports SET ナイスファイト = ナイスファイト + 1 WHERE id = ?", (report_id,))
 
     conn.commit()
-    cur.close()
-    #conn.close() #コネクションプールを使用するので閉じない
+    conn.close()
 
 def save_comment(report_id, commenter, comment):
     """コメントを保存＆通知を追加"""
-    conn = get_db_connection()
-    if conn is None:
-        return
-
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # 投稿の情報を取得
-    cur.execute("SELECT 投稿者, 実行日, 場所, 実施内容, コメント FROM reports WHERE id = %s", (report_id,))
+    # ✅ 投稿の情報を取得
+    cur.execute("SELECT 投稿者, 実行日, 場所, 実施内容, コメント FROM reports WHERE id = ?", (report_id,))
     row = cur.fetchone()
 
     if row:
-        投稿者 = row[0]
-        実行日 = row[1]
-        場所 = row[2]
-        実施内容 = row[3]
+        投稿者 = row[0]  # 投稿者名
+        実行日 = row[1]  # 実施日
+        場所 = row[2]  # 場所
+        実施内容 = row[3]  # 実施内容
         comments = json.loads(row[4]) if row[4] else []
 
-        # 新しいコメントを追加
+        # ✅ 新しいコメントを追加
         new_comment = {
-            "投稿者": commenter,
-            "日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
+            "投稿者": commenter, 
+            "日時": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"), 
             "コメント": comment
         }
         comments.append(new_comment)
 
-        # コメントを更新
-        cur.execute("UPDATE reports SET コメント = %s WHERE id = %s", (json.dumps(comments), report_id))
+        # ✅ コメントを更新
+        cur.execute("UPDATE reports SET コメント = ? WHERE id = ?", (json.dumps(comments), report_id))
 
-        # 投稿者がコメント者と違う場合、投稿者にお知らせを追加
+        # ✅ 投稿者がコメント者と違う場合、投稿者にお知らせを追加
         if 投稿者 != commenter:
-            notification_content = f"""【お知らせ】
-{new_comment["日時"]}
+            notification_content = f"""【お知らせ】  
+{new_comment["日時"]}  
 
-実施日: {実行日}
-場所: {場所}
-実施内容: {実施内容}
+実施日: {実行日}  
+場所: {場所}  
+実施内容: {実施内容}  
 
-の投稿に {commenter} さんがコメントしました。
+の投稿に {commenter} さんがコメントしました。  
 コメント内容: {comment}
 """
 
-            # お知らせを追加
+            # ✅ お知らせを追加
             cur.execute("""
                 INSERT INTO notices (タイトル, 内容, 日付, 既読, 対象ユーザー)
-                VALUES (%s, %s, %s, %s, %s)
+                VALUES (?, ?, ?, ?, ?)
             """, (
                 "新しいコメントが届きました！",
                 notification_content,
@@ -308,22 +248,16 @@ def save_comment(report_id, commenter, comment):
 
         conn.commit()
 
-    cur.close()
-    #conn.close() #コネクションプールを使用するので閉じない
+    conn.close()
 
 def load_commented_reports(commenter_name):
     """指定したユーザーがコメントした投稿を取得（コメント日時の降順でソート）"""
-    conn = get_db_connection()
-    if conn is None:
-        return []
-
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
     cur.execute("SELECT * FROM reports")
     rows = cur.fetchall()
-
-    cur.close()
-    #conn.close() #コネクションプールを使用するので閉じない
+    conn.close()
 
     # コメントした投稿をフィルタリング
     commented_reports = []
@@ -332,9 +266,9 @@ def load_commented_reports(commenter_name):
         for comment in comments:
             if comment["投稿者"] == commenter_name:
                 commented_reports.append({
-                    "id": row[0], "投稿者": row[1], "実行日": row[2], "カテゴリ": row[3],
-                    "場所": row[4], "実施内容": row[5], "所感": row[6], "いいね": row[7],
-                    "ナイスファイト": row[8], "コメント": comments, "image": row[10],
+                    "id": row[0], "投稿者": row[1], "実行日": row[2], "カテゴリ": row[3], 
+                    "場所": row[4], "実施内容": row[5], "所感": row[6], "いいね": row[7], 
+                    "ナイスファイト": row[8], "コメント": comments, "image": row[10], 
                     "投稿日時": row[11],
                     "コメント日時": comment["日時"]  # コメント日時を追加
                 })
@@ -344,23 +278,18 @@ def load_commented_reports(commenter_name):
     commented_reports.sort(key=lambda x: x["コメント日時"], reverse=True)
 
     return commented_reports
-
+    
 def load_notices(user_name):
     """お知らせデータを取得（対象ユーザーのみ）"""
-    conn = get_db_connection()
-    if conn is None:
-        return []
-
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # 対象ユーザーに紐づくお知らせのみを取得
-    cur.execute("SELECT * FROM notices WHERE 対象ユーザー = %s ORDER BY 日付 DESC", (user_name,))
+    # ✅ 対象ユーザーに紐づくお知らせのみを取得
+    cur.execute("SELECT * FROM notices WHERE 対象ユーザー = ? ORDER BY 日付 DESC", (user_name,))
     rows = cur.fetchall()
+    conn.close()
 
-    cur.close()
-    #conn.close() #コネクションプールを使用するので閉じない
-
-    # データを辞書リストに変換
+    # ✅ データを辞書リストに変換
     notices = []
     for row in rows:
         notices.append({
@@ -370,121 +299,91 @@ def load_notices(user_name):
 
 def mark_notice_as_read(notice_id):
     """お知らせを既読にする"""
-    conn = get_db_connection()
-    if conn is None:
-        return
-
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("UPDATE notices SET 既読 = 1 WHERE id = %s", (notice_id,))
+    cur.execute("UPDATE notices SET 既読 = 1 WHERE id = ?", (notice_id,))
     conn.commit()
-    cur.close()
-    #conn.close() #コネクションプールを使用するので閉じない
+    conn.close()
 
 def edit_report(report_id, new_date, new_location, new_content, new_remarks):
     """投稿を編集する"""
-    conn = get_db_connection()
-    if conn is None:
-        return
-
-    cur = conn.cursor()
-
     try:
-        cur.execute("""
+        conn = sqlite3.connect(DB_PATH)  # DB_PATHを使用
+        c = conn.cursor()
+        c.execute("""
             UPDATE reports
-            SET 実行日 = %s, 場所 = %s, 実施内容 = %s, 所感 = %s
-            WHERE id = %s
+            SET 実行日 = ?, 場所 = ?, 実施内容 = ?, 所感 = ?
+            WHERE id = ?
         """, (new_date, new_location, new_content, new_remarks, report_id))
         conn.commit()
-        print(f"✅ 投稿 (ID: {report_id}) を編集しました！")
-    except psycopg2.Error as e:
-        print(f"❌ データベースエラー: {e}")
-        conn.rollback()
-    finally:
-        cur.close()
-        #conn.close() #コネクションプールを使用するので閉じない
+        conn.close()
+        print(f"✅ 投稿 (ID: {report_id}) を編集しました！")  # デバッグ用ログ
+    except sqlite3.Error as e:
+        print(f"❌ データベースエラー: {e}")  # エラーログ
 
 def delete_report(report_id):
     """投稿を削除する（エラーハンドリング付き）"""
-    conn = get_db_connection()
-    if conn is None:
-        return False
-
-    cur = conn.cursor()
-
     try:
-        print(f"️ 削除処理開始: report_id={report_id}")
-        cur.execute("DELETE FROM reports WHERE id = %s", (report_id,))
-        conn.commit()
+        with sqlite3.connect(DB_PATH) as conn:
+            c = conn.cursor()
+            print(f"🗑️ 削除処理開始: report_id={report_id}")  # デバッグ用
+            c.execute("DELETE FROM reports WHERE id = ?", (report_id,))
+            conn.commit()
+            
+            # 削除が成功したかチェック
+            if c.rowcount == 0:
+                print(f"⚠️ 削除対象の投稿（ID: {report_id}）が見つかりませんでした。")
+                return False
 
-        # 削除が成功したかチェック
-        if cur.rowcount == 0:
-            print(f"⚠️ 削除対象の投稿（ID: {report_id}）が見つかりませんでした。")
-            return False
+            print("✅ 削除成功！")
+            return True
 
-        print("✅ 削除成功！")
-        return True
-
-    except psycopg2.Error as e:
+    except sqlite3.Error as e:
         print(f"❌ データベースエラー: {e}")
-        conn.rollback()
         return False
-    finally:
-        cur.close()
-        #conn.close() #コネクションプールを使用するので閉じない
-
+        
 def save_weekly_schedule(schedule):
     """週間予定をデータベースに保存"""
-    conn = get_db_connection()
-    if conn is None:
-        return
-
-    cur = conn.cursor()
-
     try:
-        # 投稿日時を JST で保存
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+
+        # ✅ 投稿日時を JST で保存
         schedule["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
 
         cur.execute("""
-            INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            schedule["投稿者"], schedule["開始日"], schedule["終了日"],
-            schedule["月曜日"], schedule["火曜日"], schedule["水曜日"],
-            schedule["木曜日"], schedule["金曜日"], schedule["土曜日"],
+            schedule["投稿者"], schedule["開始日"], schedule["終了日"], 
+            schedule["月曜日"], schedule["火曜日"], schedule["水曜日"], 
+            schedule["木曜日"], schedule["金曜日"], schedule["土曜日"], 
             schedule["日曜日"], schedule["投稿日時"]
         ))
 
         conn.commit()
-        print("✅ 週間予定を保存しました！")
-    except psycopg2.Error as e:
-        print(f"⚠️ 週間予定の保存エラー: {e}")
-        conn.rollback()
-    finally:
-        cur.close()
-        #conn.close() #コネクションプールを使用するので閉じない
+        conn.close()
+        print("✅ 週間予定を保存しました！")  # デバッグログ
+    except Exception as e:
+        print(f"⚠️ 週間予定の保存エラー: {e}")  # エラー内容を表示
 
 def load_weekly_schedules():
     """週間予定データを取得（最新の投稿順にソート）"""
-    conn = get_db_connection()
-    if conn is None:
-        return []
-
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("SELECT *, コメント FROM weekly_schedules ORDER BY 投稿日時 DESC")
+    cur.execute("SELECT * FROM weekly_schedules ORDER BY 投稿日時 DESC")
     rows = cur.fetchall()
+    conn.close()
 
-    cur.close()
-    #conn.close() #コネクションプールを使用するので閉じない
-
-    # データを辞書リストに変換
+    # ✅ データを辞書リストに変換
     schedules = []
     for row in rows:
         schedules.append({
-            "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3],
-            "月曜日": row[4], "火曜日": row[5], "水曜日": row[6],
-            "木曜日": row[7], "金曜日": row[8], "土曜日": row[9],
+            "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3], 
+            "月曜日": row[4], "火曜日": row[5], "水曜日": row[6], 
+            "木曜日": row[7], "金曜日": row[8], "土曜日": row[9], 
             "日曜日": row[10], "投稿日時": row[11],
             "コメント": json.loads(row[12]) if row[12] else []  # コメントをJSONデコード
         })
@@ -492,56 +391,43 @@ def load_weekly_schedules():
 
 def update_weekly_schedule(schedule_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday):
     """週間予定を更新する"""
-    conn = get_db_connection()
-    if conn is None:
-        return
-
-    cur = conn.cursor()
-
     try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
         cur.execute("""
             UPDATE weekly_schedules
-            SET 月曜日 = %s, 火曜日 = %s, 水曜日 = %s, 木曜日 = %s, 金曜日 = %s, 土曜日 = %s, 日曜日 = %s
-            WHERE id = %s
+            SET 月曜日 = ?, 火曜日 = ?, 水曜日 = ?, 木曜日 = ?, 金曜日 = ?, 土曜日 = ?, 日曜日 = ?
+            WHERE id = ?
         """, (monday, tuesday, wednesday, thursday, friday, saturday, sunday, schedule_id))
         conn.commit()
-        print(f"✅ 週間予定 (ID: {schedule_id}) を編集しました！")
-    except psycopg2.Error as e:
-        print(f"❌ データベースエラー: {e}")
-        conn.rollback()
-    finally:
-        cur.close()
-        #conn.close() #コネクションプールを使用するので閉じない
+        conn.close()
+        print(f"✅ 週間予定 (ID: {schedule_id}) を編集しました！")  # デバッグ用ログ
+    except sqlite3.Error as e:
+        print(f"❌ データベースエラー: {e}")  # エラーログ
 
 def add_comments_column():
     """weekly_schedules テーブルにコメントカラムを追加（存在しない場合のみ）"""
-    conn = get_db_connection()
-    if conn is None:
-        return
-
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-
     try:
+        # カラムが存在するかチェック
         cur.execute("SELECT コメント FROM weekly_schedules LIMIT 1")
-    except psycopg2.Error:
+    except sqlite3.OperationalError:
+        # カラムが存在しない場合のみ追加
         cur.execute("ALTER TABLE weekly_schedules ADD COLUMN コメント TEXT DEFAULT '[]'")
         conn.commit()
         print("✅ コメントカラムを追加しました！")
     finally:
-        cur.close()
-        #conn.close() #コネクションプールを使用するので閉じない
+        conn.close()
 
 def save_weekly_schedule_comment(schedule_id, commenter, comment):
     """週間予定へのコメントを保存＆通知を追加"""
-    conn = get_db_connection()
-    if conn is None:
-        return
-
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
     try:
         # 週間予定の情報を取得
-        cur.execute("SELECT 投稿者, 開始日, 終了日, コメント FROM weekly_schedules WHERE id = %s", (schedule_id,))
+        cur.execute("SELECT 投稿者, 開始日, 終了日, コメント FROM weekly_schedules WHERE id = ?", (schedule_id,))
         row = cur.fetchone()
 
         if row:
@@ -559,7 +445,7 @@ def save_weekly_schedule_comment(schedule_id, commenter, comment):
             comments.append(new_comment)
 
             # コメントを更新
-            cur.execute("UPDATE weekly_schedules SET コメント = %s WHERE id = %s", (json.dumps(comments, ensure_ascii=False), schedule_id))
+            cur.execute("UPDATE weekly_schedules SET コメント = ? WHERE id = ?", (json.dumps(comments, ensure_ascii=False), schedule_id))
 
             # 投稿者がコメント者と違う場合、投稿者にお知らせを追加
             if 投稿者 != commenter:
@@ -573,7 +459,7 @@ def save_weekly_schedule_comment(schedule_id, commenter, comment):
                 # お知らせを追加
                 cur.execute("""
                     INSERT INTO notices (タイトル, 内容, 日付, 既読, 対象ユーザー)
-                    VALUES (%s, %s, %s, %s, %s)
+                    VALUES (?, ?, ?, ?, ?)
                 """, (
                     "新しいコメントが届きました！",
                     notification_content,
@@ -583,35 +469,30 @@ def save_weekly_schedule_comment(schedule_id, commenter, comment):
                 ))
 
             conn.commit()
-            print(f"✅ 週間予定 (ID: {schedule_id}) にコメントを保存し、通知を追加しました！")
+            print(f"✅ 週間予定 (ID: {schedule_id}) にコメントを保存し、通知を追加しました！")  # デバッグログ
 
-    except psycopg2.Error as e:
-        print(f"⚠️ 週間予定 (ID: {schedule_id}) へのコメント保存中にエラーが発生しました: {e}")
-        conn.rollback()
+    except sqlite3.Error as e:
+        print(f"⚠️ 週間予定 (ID: {schedule_id}) へのコメント保存中にエラーが発生しました: {e}")  # エラーログ
+        conn.rollback()  # エラー発生時はロールバック
+
     finally:
-        cur.close()
-        #conn.close() #コネクションプールを使用するので閉じない
-
+        conn.close()
+        
 def get_weekly_schedule_for_all_users(start_date, end_date):
     """
     指定期間の全ユーザーの週間予定データを取得する
     """
-    conn = get_db_connection()
-    if conn is None:
-        return {}
-
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute("""
         SELECT user_id, schedule_date, schedule_content, comment
         FROM weekly_schedule
-        WHERE schedule_date BETWEEN %s AND %s
+        WHERE schedule_date BETWEEN ? AND ?
     """, (start_date, end_date))
 
     results = cursor.fetchall()
-
-    cursor.close()
-    #conn.close() #コネクションプールを使用するので閉じない
+    conn.close()
 
     # ユーザーごとにデータを整理
     user_schedules = {}
@@ -625,25 +506,21 @@ def get_weekly_schedule_for_all_users(start_date, end_date):
         })
 
     return user_schedules
-
 def get_daily_schedule(user_name: str, target_date: str) -> str:
     """指定日の週間予定を取得"""
-    conn = get_db_connection()
-    if conn is None:
-        return ""
-
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-
+    
     try:
         # 最新の週間予定から該当曜日の予定を取得
         cur.execute("""
             SELECT 開始日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日
             FROM weekly_schedules
-            WHERE 投稿者 = %s AND %s BETWEEN 開始日 AND 終了日
+            WHERE 投稿者 = ? AND ? BETWEEN 開始日 AND 終了日
             ORDER BY 投稿日時 DESC
             LIMIT 1
         """, (user_name, target_date))
-
+        
         result = cur.fetchone()
         if not result:
             return ""
@@ -654,12 +531,11 @@ def get_daily_schedule(user_name: str, target_date: str) -> str:
 
         if 0 <= day_diff <= 6:
             return result[day_diff + 1]  # 月曜日=1 index
-
+        
         return ""
-
-    except psycopg2.Error as e:
+    
+    except sqlite3.Error as e:
         print(f"週間予定取得エラー: {e}")
         return ""
     finally:
-        cur.close()
-        #conn.close() #コネクションプールを使用するので閉じない
+        conn.close()
