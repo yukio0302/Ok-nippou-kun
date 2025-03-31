@@ -588,30 +588,100 @@ def show_notices():
             if st.checkbox("詳細を表示", key=f"details_{notice['id']}"):
                 st.markdown(notice["内容"])
 
-def show_mypage():
+# マイページ機能
+def mypage():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
 
-    st.title("マイページ")
     user = st.session_state["user"]
-    st.write(f"**名前:** {user['name']}")
-    st.write(f"**社員コード:** {user['code']}")
-    st.write(f"**部署:** {', '.join(user['depart'])}")
+    st.title("マイページ")
 
-    # コメントした投稿を表示
+    # ユーザー情報の表示
+    st.subheader("ユーザー情報")
+    st.write(f"氏名: {user['name']}")
+    st.write(f"部署: {', '.join(user['depart'])}")
+
+    # 投稿した日報の一覧表示
+    st.subheader("投稿した日報")
+    my_reports = [report for report in load_reports() if report["投稿者"] == user["name"]]
+    if my_reports:
+        for report in my_reports:
+            with st.expander(f"{report['実行日']} の日報 ▽"):
+                st.write(f"**カテゴリ:** {report['カテゴリ']}")
+                st.write(f"**場所:** {report['場所']}")
+                st.write(f"**実施内容:** {report['実施内容']}")
+                st.write(f"**所感:** {report['所感']}")
+                st.write(f"**投稿日時:** {report['投稿日時']}")
+
+                # 編集・削除ボタン
+                col1, col2 = st.columns(2)
+                if col1.button("編集", key=f"edit_report_{report['id']}"):
+                    edit_report_ui(report)
+                if col2.button("削除", key=f"delete_report_{report['id']}"):
+                    if st.warning("本当に削除しますか？"):
+                        delete_report(report["id"])
+                        st.success("日報を削除しました。")
+                        st.rerun()
+    else:
+        st.info("投稿した日報はありません。")
+
+    # 投稿した週間予定の一覧表示
+    st.subheader("投稿した週間予定")
+    my_schedules = [schedule for schedule in load_weekly_schedules() if schedule["投稿者"] == user["name"]]
+    if my_schedules:
+        for schedule in my_schedules:
+            with st.expander(f"{schedule['開始日']} ~ {schedule['終了日']} の週間予定 ▽"):
+                days = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]
+                for day in days:
+                    st.write(f"**{day}**: {schedule[day]}")
+                st.write(f"**投稿日時:** {schedule['投稿日時']}")
+
+                # 編集ボタン
+                if st.button("編集", key=f"edit_schedule_{schedule['id']}"):
+                    edit_weekly_schedule_ui(schedule)
+    else:
+        st.info("投稿した週間予定はありません。")
+
+    # コメントした投稿の一覧表示
     st.subheader("コメントした投稿")
     commented_reports = load_commented_reports(user["name"])
     if commented_reports:
         for report in commented_reports:
-            st.write(f"- {report['実行日']} の投稿にコメントしました ({report['コメント日時']})")
-            if st.checkbox("投稿内容を表示", key=f"report_{report['id']}"):
-                st.write(f"  - **投稿者:** {report['投稿者']}")
-                st.write(f"  - **場所:** {report['場所']}")
-                st.write(f"  - **実施内容:** {report['実施内容']}")
-                st.write(f"  - **コメント:** {report['コメント'][-1]['コメント']}")
+            with st.expander(f"{report['実行日']} の日報にコメントしました ▽"):
+                st.write(f"**投稿者:** {report['投稿者']}")
+                st.write(f"**カテゴリ:** {report['カテゴリ']}")
+                st.write(f"**場所:** {report['場所']}")
+                st.write(f"**実施内容:** {report['実施内容']}")
+                st.write(f"**コメント日時:** {report['コメント日時']}")
     else:
-        st.write("コメントした投稿はありません。")
+        st.info("コメントした投稿はありません。")
+
+# 日報編集UI
+def edit_report_ui(report):
+    st.title("日報編集")
+    new_date = st.date_input("実行日", datetime.strptime(report["実行日"], "%Y-%m-%d"))
+    new_location = st.text_input("場所", report["場所"])
+    new_content = st.text_area("実施内容", report["実施内容"])
+    new_remarks = st.text_area("所感", report["所感"])
+
+    if st.button("更新"):
+        edit_report(report["id"], new_date.strftime("%Y-%m-%d"), new_location, new_content, new_remarks)
+        st.success("日報を更新しました。")
+        st.rerun()
+
+# 週間予定編集UI
+def edit_weekly_schedule_ui(schedule):
+    st.title("週間予定編集")
+    days = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]
+    new_plans = {}
+    for day in days:
+        new_plans[day] = st.text_area(day, schedule[day])
+
+    if st.button("更新"):
+        update_weekly_schedule(schedule["id"], new_plans["月曜日"], new_plans["火曜日"], new_plans["水曜日"], new_plans["木曜日"], new_plans["金曜日"], new_plans["土曜日"], new_plans["日曜日"])
+        st.success("週間予定を更新しました。")
+        st.rerun()
 
 # ページの表示
 if st.session_state["user"] is None:
