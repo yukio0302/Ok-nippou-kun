@@ -169,7 +169,7 @@ def save_report(report):
             0,  # いいね初期値
             0,  # ナイスファイト初期値
             json.dumps([]),  # 空のコメント配列
-            report.get("image", None),
+            report.get("image", None),  # 画像データ（Noneの場合も許容）
             report["投稿日時"]
         ))
 
@@ -187,7 +187,6 @@ def save_report(report):
     finally:
         cur.close()
         conn.close()
-
 def load_reports():
     """日報データを取得（最新の投稿順にソート）"""
     conn = get_db_connection()
