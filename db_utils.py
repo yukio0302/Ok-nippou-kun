@@ -143,19 +143,36 @@ def save_report(report):
     """日報をデータベースに保存（表示形式は変更しない安定版）"""
     conn = get_db_connection()
     if conn is None:
-        return
-
+        print("❌ データベース接続エラー")
+        return False
+    
     cur = conn.cursor()
-
+    
     try:
-        # 投稿日時をJSTで保存（元の形式保持）
+        # 必要なフィールドがあるかチェック
+        required_fields = ['投稿者', '実行日', 'カテゴリ', '場所', '実施内容', '所感']
+        for field in required_fields:
+            if field not in report:
+                print(f"❌ 必要なフィールドが不足しています: {field}")
+                return False
+        
+        # 投稿日時をJSTで保存
         report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-
+        
         # 実行日が未設定の場合のみ現在日付を使用
         if '実行日' not in report or not report['実行日']:
             report['実行日'] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d")
-
-        # 元のINSERT文をそのまま保持
+        
+        # データを表示して確認
+        print("✅ 投稿データの確認:")
+        print(f"投稿者: {report['投稿者']}")
+        print(f"実行日: {report['実行日']}")
+        print(f"カテゴリ: {report['カテゴリ']}")
+        print(f"場所: {report['場所']}")
+        print(f"実施内容: {report['実施内容']}")
+        print(f"所感: {report['所感']}")
+        
+        # INSERT文を実行
         cur.execute("""
             INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント, 画像, 投稿日時)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -172,21 +189,23 @@ def save_report(report):
             report.get("image", None),  # 画像データ（Noneの場合も許容）
             report["投稿日時"]
         ))
-
+        
         conn.commit()
-        print(f"✅ 日報を保存しました（投稿者: {report['投稿者']}, 実行日: {report['実行日']}）")
-
+        print(f"✅ 日報を保存しました！（投稿者: {report['投稿者']}, 実行日: {report['実行日']}）")
+        return True
+        
     except psycopg2.Error as e:
-        print(f"⚠️ データベースエラー: {e}")
+        print(f"❌ データベースエラー: {e}")
         conn.rollback()
-        raise
+        return False
     except Exception as e:
-        print(f"⚠️ 予期せぬエラー: {e}")
+        print(f"❌ 予期せぬエラー: {e}")
         conn.rollback()
-        raise
+        return False
     finally:
         cur.close()
         conn.close()
+
 def load_reports():
     """日報データを取得（最新の投稿順にソート）"""
     conn = get_db_connection()
