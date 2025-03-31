@@ -93,42 +93,28 @@ def init_db(keep_existing=True):
         cur.close()
 
 # ユーザー認証の改善
-def authenticate_user(employee_code, password):
-    """ユーザー認証（users_data.jsonを使用）"""
-    USER_FILE = "data/users_data.json"
-    
-    # デバッグポイント1: ファイル存在確認
-    if not os.path.exists(USER_FILE):
-        print(f"⚠️ 警告: ユーザー認証ファイルが見つかりません: {USER_FILE}")
-        return None
-    
-    # デバッグポイント2: ファイルサイズ確認
-    file_size = os.path.getsize(USER_FILE)
-    print(f"⚠️ デバッグ: ユーザー認証ファイルサイズ: {file_size} バイト")
-    
-    try:
-        # デバッグポイント3: エンコーディング確認
-        with open(USER_FILE, "r", encoding="utf-8-sig") as file:
-            print("⚠️ デバッグ: ファイルエンコーディング: utf-8-sig")
-            users = json.load(file)
-            
-            # デバッグポイント4: データ構造確認
-            print(f"⚠️ デバッグ: 認証ファイルに {len(users)} 人のユーザーが登録されています")
-            
-            for user in users:
-                if user["code"] == employee_code and user["password"] == password:
-                    print(f"⚠️ デバッグ: ユーザー認証成功: {user['name']}")
-                    return user
-            print(f"⚠️ デバッグ: ユーザー認証失敗: 社員コード {employee_code} が見つかりません")
-            return None
-            
-    except json.JSONDecodeError as e:
-        print(f"⚠️ デバッグ: JSONデコードエラー: {e}")
-        print(f"⚠️ デバッグ: ファイル内容:\n{open(USER_FILE, 'r', encoding='utf-8-sig').read()}")
-        return None
-    except Exception as e:
-        print(f"⚠️ デバッグ: 認証エラー: {e}")
-        return None
+# ✅ ログイン機能（修正済み）
+def login():
+    # ロゴ表示（中央揃え）
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        st.image("OK-Nippou4.png", use_container_width=True)  # 画像をコンテナ幅に合わせる
+
+    st.title(" ログイン")
+    employee_code = st.text_input("社員コード")
+    password = st.text_input("パスワード", type="password")
+    login_button = st.button("ログイン")
+
+    if login_button:
+        user = authenticate_user(employee_code, password)
+        if user:
+            st.session_state["user"] = user
+            st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
+            time.sleep(1)
+            st.session_state["page"] = "タイムライン"
+            st.rerun()  # ✅ ここで即リロード！
+        else:
+            st.error("社員コードまたはパスワードが間違っています。")
 
 # データ保存の改善
 def save_report(report):
