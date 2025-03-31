@@ -487,68 +487,161 @@ def show_timeline():
 
     reports = load_reports()
 
-    if not reports:
-        st.info("まだ投稿はありません。")
+    # ✅ 期間選択（キーを追加）
+    st.sidebar.subheader("表示期間を選択")
+
+    # カスタムCSSを適用
+    st.markdown(
+        """
+        <style>
+            div[data-baseweb="radio"] label {
+                color: white !important;
+            }
+            .stSidebar .stSubheader {
+                color: white !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    period_option = st.sidebar.radio(
+        "表示する期間を選択",
+        ["24時間以内の投稿", "1週間以内の投稿", "過去の投稿"],
+        index=0,
+        key="timeline_period_selector"
+    )
+
+    # ✅ デフォルトで24時間以内の投稿を表示
+    if period_option == "24時間以内の投稿":
+        start_datetime = datetime.now() + timedelta(hours=9) - timedelta(hours=24)  # 過去24時間（JST）
+        end_datetime = datetime.now() + timedelta(hours=9)  # 現在時刻（JST）
+    elif period_option == "1週間以内の投稿":
+        start_datetime = datetime.now() + timedelta(hours=9) - timedelta(days=7)  # 過去7日間（JST）
+        end_datetime = datetime.now() + timedelta(hours=9)  # 現在時刻（JST）
+    else:
+        # ✅ 過去の投稿を選択した場合、カレンダーで期間を指定
+        st.sidebar.subheader("過去の投稿を表示")
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            start_date = st.date_input("開始日", datetime.now().date() - timedelta(days=365), max_value=datetime.now().date() - timedelta(days=1))
+        with col2:
+            end_date = st.date_input("終了日", datetime.now().date() - timedelta(days=1), min_value=start_date, max_value=datetime.now().date() - timedelta(days=1))
+        start_datetime = datetime(start_date.year, start_date.month, start_date.day)
+        end_datetime = datetime(end_date.year, end_date.month, end_date.day) + timedelta(days=1)
+
+    # ✅ 選択された期間に該当する投稿をフィルタリング
+    filtered_reports = []
+    for report in reports:
+        report_datetime = datetime.strptime(report["投稿日時"], "%Y-%m-%d %H:%M:%S")
+        if start_datetime <= report_datetime <= end_datetime:
+            filtered_reports.append(report)
+
+    # ✅ 現在のユーザーの所属部署を取得
+    user_departments = st.session_state["user"]["depart"]  # 配列で取得
+
+    # ✅ フィルタリング用のセッション管理（デフォルトは「すべて表示」）
+    if "filter_department" not in st.session_state:
+        st.session_state["filter_department"] = "すべて"
+
+    # ✅ 部署フィルタボタン
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(" すべての投稿を見る"):
+            st.session_state["filter_department"] = "すべて"
+            st.rerun()
+
+    with col2:
+        if st.button(" 自分の部署のメンバーの投稿を見る"):
+            st.session_state["filter_department"] = "自分の部署"
+            st.rerun()
+
+    # ✅ フィルタを適用（自分の部署のメンバーの投稿のみ表示）
+    if st.session_state["filter_department"] == "自分の部署":
+        try:
+            USER_FILE = "data/users_data.json"
+            with open(USER_FILE, "r", encoding="utf-8-sig") as file:
+                users = json.load(file)
+
+            # ✅ 自分の部署にいるメンバーの名前を取得
+            department_members = {
+                user["name"] for user in users if any(dept in user_departments for dept in user["depart"])
+            }
+
+            # ✅ メンバーの投稿のみフィルタリング
+            filtered_reports = [report for report in filtered_reports if report["投稿者"] in department_members]
+
+        except Exception as e:
+            st.error(f"⚠️ 部署情報の読み込みエラー: {e}")
+            return
+
+    search_query = st.text_input("投稿を検索", "")
+
+    if search_query:
+        filtered_reports = [
+            report for report in filtered_reports
+            if search_query.lower() in report["実施内容"].lower()
+            or search_query.lower() in report["所感"].lower()
+            or search_query.lower() in report["カテゴリ"].lower()
+            or search_query.lower() in report["投稿者"].lower()  # 投稿主の名前でも検索
+        ]
+
+    if not filtered_reports:
+        st.warning("該当する投稿が見つかりませんでした。")
         return
 
-    for report in reports:
-        st.markdown("---")
-        st.write(f"**投稿者:** {report['投稿者']}")
-        st.write(f"**実行日:** {report['実行日']}")
-        st.write(f"**カテゴリ:** {report['カテゴリ']}")
+    # ✅ 投稿を表示
+    for report in filtered_reports:
+        st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
+        st.write(f"**実施日:** {report['実行日']}")
         st.write(f"**場所:** {report['場所']}")
         st.write(f"**実施内容:** {report['実施内容']}")
         st.write(f"**所感:** {report['所感']}")
 
-        # 画像表示
-        if report["image"]:
+        # ✅ 画像が存在する場合、表示する
+        if report.get("image"):
             try:
-                img_data = base64.b64decode(report["image"])
-                st.image(img_data, caption="添付画像", use_column_width=True)
+                # Base64データをデコードして画像を表示
+                image_data = base64.b64decode(report["image"])
+                st.image(image_data, caption="投稿画像", use_container_width=True)
             except Exception as e:
-                st.error(f"画像表示エラー: {e}")
+                st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
 
-        st.write(f"**投稿日時:** {report['投稿日時']}")
-
-        # リアクションボタン
-        cols = st.columns(3)
-        if cols[0].button(f"いいね  {report['いいね']}", key=f"like_{report['id']}"):
-            update_reaction(report["id"], "いいね")
-            st.rerun()
-        if cols[1].button(f"ナイスファイト  {report['ナイスファイト']}", key=f"nice_{report['id']}"):
-            update_reaction(report["id"], "ナイスファイト")
-            st.rerun()
-
-        # コメント表示
-        st.markdown("---")
-        st.subheader("コメント")
-        if report["コメント"]:
-            for comment in report["コメント"]:
-                st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
-        else:
-            st.write("まだコメントはありません。")
-
-        # コメント入力
-        comment_text = st.text_area(f"コメントを入力 (ID: {report['id']})", key=f"comment_{report['id']}")
-        if st.button("コメントを投稿", key=f"submit_{report['id']}"):
-            if comment_text.strip():
-                save_comment(report["id"], st.session_state["user"]["name"], comment_text)
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button(f"❤️ {report['いいね']} いいね！", key=f"like_{report['id']}"):
+                update_reaction(report["id"], "いいね")
                 st.rerun()
-            else:
-                st.warning("コメントを入力してください。")
+        with col2:
+            if st.button(f" {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
+                update_reaction(report["id"], "ナイスファイト")
+                st.rerun()
 
-        # 投稿者のみ編集・削除ボタンを表示
-        if report["投稿者"] == st.session_state["user"]["name"]:
-            if st.button("編集", key=f"edit_{report['id']}"):
-                st.session_state["edit_report_id"] = report["id"]
-                switch_page("投稿編集")
-            if st.button("削除", key=f"delete_{report['id']}"):
-                if delete_report(report["id"]):
-                    st.success("投稿を削除しました。")
+        # コメント欄
+        comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
+        with st.expander(f"({comment_count}件)のコメントを見る・追加する"):  # 件数を表示
+            if report["コメント"]:
+                for c in report["コメント"]:
+                    st.write(f"{c['投稿者']} ({c['日時']}): {c['コメント']}")
+
+            if report.get("id") is None:
+                st.error("⚠️ 投稿のIDが見つかりません。")
+                continue
+
+            commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
+            new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
+
+            if st.button("コメントを投稿", key=f"submit_comment_{report['id']}"):
+                if new_comment and new_comment.strip():
+                    print(f"️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
+                    save_comment(report["id"], commenter_name, new_comment)
+                    st.success("✅ コメントを投稿しました！")
                     st.rerun()
                 else:
-                    st.error("投稿の削除に失敗しました。")
+                    st.warning("⚠️ 空白のコメントは投稿できません！")
 
+        st.write("----")
+        
 def edit_post():
     """投稿編集ページ"""
     report_id = st.session_state.get("edit_report_id")
