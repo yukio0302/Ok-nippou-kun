@@ -399,66 +399,92 @@ def show_timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
-
+    
     st.title("タイムライン")
-
-    # 日報表示
-    reports = load_reports()
-    for report in reports:
-        with st.container():
-            st.markdown(f"### {report['投稿者']} さんの日報 ({report['実行日']})")
-            st.write(f"**カテゴリ:** {report['カテゴリ']}")
-            st.write(f"**場所:** {report['場所']}")
-            st.write(f"**実施内容:** {report['実施内容']}")
-            st.write(f"**所感:** {report['所感']}")
-
-            # 画像表示
-            if report["image"]:
-                try:
-                    # base64エンコードされた画像データをデコードして表示
-                    image_data = base64.b64decode(report["image"])
-                    st.image(image_data, caption="添付画像", use_column_width=True)
-                except Exception as e:
-                    st.error(f"画像表示エラー: {e}")
-
-            # いいね・ナイスファイトボタン
-            col1, col2 = st.columns(2)
-            if col1.button(f"いいね  {report['いいね']}", key=f"like_{report['id']}"):
-                update_reaction(report["id"], "いいね")
-                st.rerun()  # ページをリロードして更新
-            if col2.button(f"ナイスファイト  {report['ナイスファイト']}", key=f"nice_{report['id']}"):
-                update_reaction(report["id"], "ナイスファイト")
-                st.rerun()  # ページをリロードして更新
-
-            # コメント表示
-            st.markdown("---")
-            st.subheader("コメント")
-            if report["コメント"]:
-                for comment in report["コメント"]:
-                    st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
-            else:
-                st.write("まだコメントはありません。")
-
-            # コメント入力
-            comment_text = st.text_area(f"コメントを入力 (ID: {report['id']})", key=f"comment_{report['id']}")
-            if st.button(f"コメントを投稿", key=f"submit_{report['id']}"):
-                if comment_text.strip():
-                    save_comment(report["id"], st.session_state["user"]["name"], comment_text)
-                    st.rerun()
-                else:
-                    st.warning("コメントを入力してください。")
-
-            # 投稿者のみ編集・削除ボタンを表示
-            if report["投稿者"] == st.session_state["user"]["name"]:
+    
+    # データ取得と表示の詳細なログを追加
+    print("✅ タイムライン表示処理開始")
+    
+    try:
+        # データベース接続の確認
+        conn = get_db_connection()
+        if conn is None:
+            print("❌ データベース接続エラー")
+            st.error("データベース接続エラーが発生しました")
+            return
+        
+        cur = conn.cursor()
+        
+        # データ取得のログを追加
+        print("✅ データ取得を試みます")
+        cur.execute("SELECT * FROM reports ORDER BY 投稿日時 DESC")
+        rows = cur.fetchall()
+        
+        # データ件数の確認
+        print(f"✅ 取得データ件数: {len(rows)}")
+        
+        if not rows:
+            print("⚠️ データが存在しません")
+            st.info("タイムラインに表示する投稿はありません。")
+            cur.close()
+            conn.close()
+            return
+        
+        # データの表示処理
+        print("✅ タイムライン表示開始")
+        for row in rows:
+            with st.container():
+                st.markdown(f"### {row[1]} さんの日報 ({row[2]})")
+                st.write(f"**カテゴリ:** {row[3]}")
+                st.write(f"**場所:** {row[4]}")
+                st.write(f"**実施内容:** {row[5]}")
+                st.write(f"**所感:** {row[6]}")
+                
+                # 画像表示のログを追加
+                if row[10]:  # 画像データがある場合
+                    try:
+                        print("✅ 画像データをデコードして表示を試みます")
+                        image_data = base64.b64decode(row[10])
+                        st.image(image_data, caption="添付画像", use_column_width=True)
+                    except Exception as e:
+                        print(f"❌ 画像表示エラー: {e}")
+                        st.error("画像の表示に失敗しました")
+                
+                # リアクションボタンの表示
                 col1, col2 = st.columns(2)
-                if col1.button("編集", key=f"edit_{report['id']}"):
-                    st.session_state["edit_report_id"] = report["id"]
-                    st.session_state["page"] = "日報編集"
+                if col1.button(f"いいね {row[7]}", key=f"like_{row[0]}"):
+                    update_reaction(row[0], "いいね")
                     st.rerun()
-                if col2.button("削除", key=f"delete_{report['id']}"):
-                    delete_report(report["id"])
+                if col2.button(f"ナイスファイト {row[8]}", key=f"nice_{row[0]}"):
+                    update_reaction(row[0], "ナイスファイト")
                     st.rerun()
-
+                
+                # コメント表示
+                st.markdown("---")
+                st.subheader("コメント")
+                if row[9]:  # コメントデータがある場合
+                    comments = json.loads(row[9])
+                    for comment in comments:
+                        st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                else:
+                    st.write("まだコメントはありません。")
+                
+                # コメント入力
+                comment_text = st.text_area(f"コメントを入力 (ID: {row[0]})", key=f"comment_{row[0]}")
+                if st.button(f"コメントを投稿", key=f"submit_{row[0]}"):
+                    if comment_text.strip():
+                        save_comment(row[0], st.session_state["user"]["name"], comment_text)
+                        st.rerun()
+                    else:
+                        st.warning("コメントを入力してください。")
+        
+        cur.close()
+        conn.close()
+        print("✅ タイムライン表示完了")
+        
+    except Exception as e:
+        print(f"❌ タイムライン表示エラー: {e}")
+        st.error("タイムラインの表示に失敗しました")
 def edit_report_page():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
