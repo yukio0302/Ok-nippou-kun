@@ -695,7 +695,7 @@ else:
     elif st.session_state["page"] == "お知らせ":
         show_notices()
     elif st.session_state["page"] == "マイページ":
-        show_mypage()
+        mypage()
     elif st.session_state["page"] == "日報編集":
         edit_report_page()
     elif st.session_state["page"] == "週間予定投稿":
