@@ -402,11 +402,9 @@ def show_timeline():
     
     st.title("タイムライン")
     
-    # データ取得と表示の詳細なログを追加
-    print("✅ タイムライン表示処理開始")
-    
     try:
-        # データベース接続の確認
+        # データベース接続の詳細なログを追加
+        print("✅ データベース接続を試みます")
         conn = get_db_connection()
         if conn is None:
             print("❌ データベース接続エラー")
@@ -415,13 +413,16 @@ def show_timeline():
         
         cur = conn.cursor()
         
-        # データ取得のログを追加
-        print("✅ データ取得を試みます")
+        # データ取得の詳細なログを追加
+        print("✅ データ取得クエリを実行します")
         cur.execute("SELECT * FROM reports ORDER BY 投稿日時 DESC")
-        rows = cur.fetchall()
         
-        # データ件数の確認
-        print(f"✅ 取得データ件数: {len(rows)}")
+        # クエリ実行の結果を確認
+        print("✅ クエリ実行完了")
+        
+        # データ取得の結果を確認
+        rows = cur.fetchall()
+        print(f"✅ データ取得完了: {len(rows)}件のデータを取得しました")
         
         if not rows:
             print("⚠️ データが存在しません")
@@ -431,7 +432,7 @@ def show_timeline():
             return
         
         # データの表示処理
-        print("✅ タイムライン表示開始")
+        print("✅ タイムライン表示を開始します")
         for row in rows:
             with st.container():
                 st.markdown(f"### {row[1]} さんの日報 ({row[2]})")
@@ -440,7 +441,7 @@ def show_timeline():
                 st.write(f"**実施内容:** {row[5]}")
                 st.write(f"**所感:** {row[6]}")
                 
-                # 画像表示のログを追加
+                # 画像表示の処理を改善
                 if row[10]:  # 画像データがある場合
                     try:
                         print("✅ 画像データをデコードして表示を試みます")
@@ -463,9 +464,13 @@ def show_timeline():
                 st.markdown("---")
                 st.subheader("コメント")
                 if row[9]:  # コメントデータがある場合
-                    comments = json.loads(row[9])
-                    for comment in comments:
-                        st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                    try:
+                        comments = json.loads(row[9])
+                        for comment in comments:
+                            st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
+                    except Exception as e:
+                        print(f"❌ コメント表示エラー: {e}")
+                        st.error("コメントの表示に失敗しました")
                 else:
                     st.write("まだコメントはありません。")
                 
@@ -473,18 +478,26 @@ def show_timeline():
                 comment_text = st.text_area(f"コメントを入力 (ID: {row[0]})", key=f"comment_{row[0]}")
                 if st.button(f"コメントを投稿", key=f"submit_{row[0]}"):
                     if comment_text.strip():
-                        save_comment(row[0], st.session_state["user"]["name"], comment_text)
-                        st.rerun()
+                        try:
+                            save_comment(row[0], st.session_state["user"]["name"], comment_text)
+                            st.rerun()
+                        except Exception as e:
+                            print(f"❌ コメント保存エラー: {e}")
+                            st.error("コメントの保存に失敗しました")
                     else:
                         st.warning("コメントを入力してください。")
         
+        print("✅ タイムライン表示完了")
         cur.close()
         conn.close()
-        print("✅ タイムライン表示完了")
         
+    except psycopg2.Error as e:
+        print(f"❌ データベースエラー: {e}")
+        st.error("データベースエラーが発生しました")
     except Exception as e:
-        print(f"❌ タイムライン表示エラー: {e}")
+        print(f"❌ 予期せぬエラー: {e}")
         st.error("タイムラインの表示に失敗しました")
+        
 def edit_report_page():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
