@@ -8,6 +8,10 @@ from datetime import datetime, timedelta
 import json
 import sqlite3
 from collections import defaultdict
+import logging  # ログ記録用
+
+# ログ設定
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
@@ -138,9 +142,9 @@ def save_weekly_schedule(schedule):
         ))
 
         conn.commit()
-        print("✅ 週間予定を保存しました！")  # デバッグログ
+        logging.info("週間予定を保存しました！")  # ログ追加
     except Exception as e:
-        print(f"⚠️ 週間予定の保存エラー: {e}")  # エラー内容を表示
+        logging.error(f"週間予定の保存エラー: {e}")  # ログ追加
     finally:
         conn.close()
 
@@ -443,39 +447,6 @@ def display_past_schedules(past_schedules):
 
                 st.markdown('</div>', unsafe_allow_html=True)
 
-def post_report():
-    """日報投稿"""
-    if "user" not in st.session_state or st.session_state["user"] is None:
-        st.error("ログインしてください。")
-        return
-
-    st.title("日報作成")
-    # top_navigation()
-
-    # 入力フォーム
-    today = datetime.now() + timedelta(hours=9)  # JST
-    report_date = st.date_input("実行日", today)
-    category = st.selectbox("カテゴリ", ["業務", "学習", "その他"])
-    location = st.text_input("場所")
-    content = st.text_area("実施内容")
-    remarks = st.text_area("所感")
-    image = st.file_uploader("画像", type=["png", "jpg", "jpeg"])
-
-    if st.button("投稿"):
-        report = {
-            "投稿者": st.session_state["user"]["name"],
-            "実行日": report_date.strftime("%Y-%m-%d"),
-            "カテゴリ": category,
-            "場所": location,
-            "実施内容": content,
-            "所感": remarks,
-            "image": base64.b64encode(image.getvalue()).decode() if image else None
-        }
-        save_report(report)
-        st.success("日報を投稿しました！")
-        time.sleep(1)
-        switch_page("タイムライン")
-
 def show_timeline():
     """タイムライン表示"""
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -641,27 +612,40 @@ def show_timeline():
                     st.warning("⚠️ 空白のコメントは投稿できません！")
 
         st.write("----")
-        
-def edit_post():
-    """投稿編集ページ"""
-    report_id = st.session_state.get("edit_report_id")
-    if not report_id:
-        st.error("編集する投稿が選択されていません。")
+
+def post_report():
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
         return
 
-    report = next(report for report in load_reports() if report["id"] == report_id)
-
-    st.title("投稿編集")
+    st.title("日報作成")
     # top_navigation()
 
-    new_date = st.date_input("実行日", datetime.strptime(report["実行日"], "%Y-%m-%d"))
-    new_location = st.text_input("場所", report["場所"])
-    new_content = st.text_area("実施内容", report["実施内容"])
-    new_remarks = st.text_area("所感", report["所感"])
+    report_date = st.date_input("実行日", datetime.now() + timedelta(hours=9))
+    location = st.text_input("場所")
+    category = st.text_input("カテゴリ")
+    content = st.text_area("実施内容")
+    remarks = st.text_area("所感")
 
-    if st.button("更新"):
-        edit_report(report_id, new_date.strftime("%Y-%m-%d"), new_location, new_content, new_remarks)
-        st.success("投稿を更新しました！")
+    # 画像アップロード機能
+    uploaded_file = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"])
+    image_data = None  # 初期化
+    if uploaded_file is not None:
+        # 画像をBase64に変換
+        image_data = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
+
+    if st.button("投稿"):
+        report = {
+            "投稿者": st.session_state["user"]["name"],
+            "実行日": report_date.strftime("%Y-%m-%d"),
+            "場所": location,
+            "カテゴリ": category,
+            "実施内容": content,
+            "所感": remarks,
+            "image": image_data  # 画像データを追加
+        }
+        save_report(report)
+        st.success("✅ 日報を投稿しました！")
         time.sleep(1)
         switch_page("タイムライン")
 
@@ -681,15 +665,20 @@ def show_notices():
         return
 
     for notice in notices:
-        if not notice["既読"]:
-            st.markdown(f"**{notice['タイトル']}**")
+        col1, col2 = st.columns([0.8, 0.2])
+        with col1:
+            st.subheader(notice["タイトル"])
             st.write(notice["内容"])
-            if st.button("既読にする", key=f"read_{notice['id']}"):
-                mark_notice_as_read(notice["id"])
-                st.rerun()
+            st.write(f"投稿日時: {notice['日付']}")
+        with col2:
+            if not notice["既読"]:
+                if st.button("既読にする", key=f"read_{notice['id']}"):
+                    mark_notice_as_read(notice["id"])
+                    st.rerun()
 
-def my_page():
-    """マイページ"""
+        st.write("---")
+
+def show_mypage():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
@@ -702,37 +691,41 @@ def my_page():
     st.write(f"**社員コード:** {user['code']}")
     st.write(f"**部署:** {', '.join(user['depart'])}")
 
-    # コメントした投稿一覧
-    st.subheader("コメントした投稿")
+    # 投稿した日報
+    st.subheader("あなたの投稿した日報")
+    my_reports = [r for r in load_reports() if r["投稿者"] == user["name"]]
+    if my_reports:
+        for report in my_reports:
+            st.write(f"- {report['実行日']}: {report['実施内容']}")
+    else:
+        st.info("投稿した日報はありません。")
+
+    # コメントした投稿
+    st.subheader("あなたがコメントした投稿")
     commented_reports = load_commented_reports(user["name"])
     if commented_reports:
         for report in commented_reports:
-            st.write(f"- {report['実行日']} の投稿")
-            st.write(f"  > {report['コメント'][-1]['コメント']}")  # 最後のコメントを表示
-            st.write(f"  ({report['コメント'][-1]['日時']})")
+            st.write(f"- {report['実行日']}: {report['実施内容']}")
     else:
-        st.write("まだコメントした投稿はありません。")
+        st.info("コメントした投稿はありません。")
 
 def main():
-    if st.session_state["user"]:
-        sidebar_navigation()  # ログイン時のみサイドバーを表示
-
-    if st.session_state["page"] == "ログイン":
+    if st.session_state["user"] is None:
         login()
-    elif st.session_state["page"] == "日報投稿":
-        post_report()
-    elif st.session_state["page"] == "タイムライン":
-        show_timeline()
-    elif st.session_state["page"] == "お知らせ":
-        show_notices()
-    elif st.session_state["page"] == "マイページ":
-        my_page()
-    elif st.session_state["page"] == "投稿編集":
-        edit_post()
-    elif st.session_state["page"] == "週間予定投稿":
-        post_weekly_schedule()
-    elif st.session_state["page"] == "週間予定":
-        show_weekly_schedules()
+    else:
+        sidebar_navigation()
+        if st.session_state["page"] == "タイムライン":
+            show_timeline()
+        elif st.session_state["page"] == "日報投稿":
+            post_report()
+        elif st.session_state["page"] == "お知らせ":
+            show_notices()
+        elif st.session_state["page"] == "マイページ":
+            show_mypage()
+        elif st.session_state["page"] == "週間予定投稿":
+            post_weekly_schedule()
+        elif st.session_state["page"] == "週間予定":
+            show_weekly_schedules()
 
 if __name__ == "__main__":
     main()
