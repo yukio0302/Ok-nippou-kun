@@ -97,22 +97,37 @@ def authenticate_user(employee_code, password):
     """ユーザー認証（users_data.jsonを使用）"""
     USER_FILE = "data/users_data.json"
     
+    # デバッグポイント1: ファイル存在確認
+    if not os.path.exists(USER_FILE):
+        print(f"⚠️ 警告: ユーザー認証ファイルが見つかりません: {USER_FILE}")
+        return None
+    
+    # デバッグポイント2: ファイルサイズ確認
+    file_size = os.path.getsize(USER_FILE)
+    print(f"⚠️ デバッグ: ユーザー認証ファイルサイズ: {file_size} バイト")
+    
     try:
-        if not os.path.exists(USER_FILE):
-            return None
-            
+        # デバッグポイント3: エンコーディング確認
         with open(USER_FILE, "r", encoding="utf-8-sig") as file:
+            print("⚠️ デバッグ: ファイルエンコーディング: utf-8-sig")
             users = json.load(file)
             
-        for user in users:
-            if user["code"] == employee_code and user["password"] == password:
-                return user
-        return None
-    except (FileNotFoundError, json.JSONDecodeError):
-        print("⚠️ ユーザー認証ファイルの読み込みエラー")
+            # デバッグポイント4: データ構造確認
+            print(f"⚠️ デバッグ: 認証ファイルに {len(users)} 人のユーザーが登録されています")
+            
+            for user in users:
+                if user["code"] == employee_code and user["password"] == password:
+                    print(f"⚠️ デバッグ: ユーザー認証成功: {user['name']}")
+                    return user
+            print(f"⚠️ デバッグ: ユーザー認証失敗: 社員コード {employee_code} が見つかりません")
+            return None
+            
+    except json.JSONDecodeError as e:
+        print(f"⚠️ デバッグ: JSONデコードエラー: {e}")
+        print(f"⚠️ デバッグ: ファイル内容:\n{open(USER_FILE, 'r', encoding='utf-8-sig').read()}")
         return None
     except Exception as e:
-        print(f"⚠️ ユーザー認証エラー: {e}")
+        print(f"⚠️ デバッグ: 認証エラー: {e}")
         return None
 
 # データ保存の改善
