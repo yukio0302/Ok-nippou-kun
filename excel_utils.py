@@ -1,43 +1,47 @@
+import pandas as pd
+import io
+from db_utils import load_weekly_schedules
+from datetime import datetime
+
 def download_weekly_schedule_excel(start_date, end_date):
-    """
-    週間予定をExcelファイルとしてダウンロードする
-    """
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=DictCursor)
-        
-        cur.execute("""
-            SELECT 投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時
-            FROM weekly_schedules
-            WHERE 開始日 = %s AND 終了日 = %s
-        """, (start_date, end_date))
-        rows = cur.fetchall()
-        
-        if not rows:
-            return None
-        
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        
-        headers = ["投稿者", "開始日", "終了日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日", "投稿日時"]
-        for col_num, header in enumerate(headers, 1):
-            ws.cell(row=1, column=col_num, value=header)
-        
-        for row_num, row in enumerate(rows, 2):
-            for col_num, value in enumerate(row, 1):
-                ws.cell(row=row_num, column=col_num, value=value)
-        
-        excel_file = BytesIO()
-        wb.save(excel_file)
-        excel_file.seek(0)
-        
-        return excel_file
-        
-    except Exception as e:
-        print(f"エラーが発生しました: {e}")
-        return None
-        
-    finally:
-        if conn:
-            cur.close()
-            conn.close()
+    """週間予定をExcelファイルとしてダウンロード"""
+
+    # データベースから週間予定データを取得
+    schedules = load_weekly_schedules()
+
+    # 指定された期間のデータのみをフィルタリング
+    filtered_schedules = [
+        schedule
+        for schedule in schedules
+        if datetime.strptime(schedule["開始日"], "%Y-%m-%d").date() == datetime.strptime(start_date, "%Y-%m-%d").date()
+        and datetime.strptime(schedule["終了日"], "%Y-%m-%d").date() == datetime.strptime(end_date, "%Y-%m-%d").date()
+    ]
+
+    # データが存在しない場合は空のDataFrameを作成
+    if not filtered_schedules:
+        df = pd.DataFrame()
+    else:
+        # データをDataFrameに変換
+        df = pd.DataFrame(filtered_schedules)
+
+        # 不要な列を削除
+        df = df.drop(columns=["id", "開始日", "終了日", "投稿日時", "コメント"])
+
+        # 列名を日本語に変更
+        df = df.rename(columns={
+            "投稿者": "投稿者",
+            "月曜日": "月曜日",
+            "火曜日": "火曜日",
+            "水曜日": "水曜日",
+            "木曜日": "木曜日",
+            "金曜日": "金曜日",
+            "土曜日": "土曜日",
+            "日曜日": "日曜日",
+        })
+
+    # Excelファイルとして保存
+    excel_file = io.BytesIO()
+    df.to_excel(excel_file, index=False)
+    excel_file.seek(0)
+
+    return excel_file
