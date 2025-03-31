@@ -3,6 +3,10 @@ import json
 import os
 from datetime import datetime, timedelta
 import streamlit as st
+import logging  # ログ記録用
+
+# ログ設定
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ✅ データベースのパス
 DB_PATH = "/mount/src/ok-nippou-kun/data/reports.db"
@@ -11,9 +15,10 @@ DB_PATH = "/mount/src/ok-nippou-kun/data/reports.db"
 def get_db_connection():
     try:
         conn = sqlite3.connect(DB_PATH)
+        logging.info("データベース接続成功")  # ログ追加
         return conn
     except sqlite3.Error as e:
-        print(f"⚠️ データベース接続エラー: {e}")
+        logging.error(f"データベース接続エラー: {e}")  # ログ追加
         return None
 
 # ✅ ユーザー認証（先に定義！）
@@ -117,11 +122,11 @@ def update_db_schema():
         try:
             cur.execute("ALTER TABLE notices ADD COLUMN 対象ユーザー TEXT")
             conn.commit()
-            print("✅ 対象ユーザーカラムを追加しました！")
+            logging.info("対象ユーザーカラムを追加しました")  # ログ追加
         except Exception as e:
-            print(f"⚠️ スキーマ更新エラー: {e}")
+            logging.error(f"スキーマ更新エラー: {e}")  # ログ追加
     else:
-        print("✅ 対象ユーザーカラムは既に存在します")
+        logging.info("対象ユーザーカラムは既に存在します")  # ログ追加
 
     conn.close()
 
@@ -163,14 +168,14 @@ def save_report(report):
             ))
 
         conn.commit()
-        print(f"✅ 日報を保存しました（投稿者: {report['投稿者']}, 実行日: {report['実行日']}）")
+        logging.info(f"日報を保存しました（投稿者: {report['投稿者']}, 実行日: {report['実行日']}）")  # ログ追加
 
     except sqlite3.Error as e:
-        print(f"⚠️ データベースエラー: {e}")
+        logging.error(f"データベースエラー: {e}")  # ログ追加
         conn.rollback()  # エラー発生時はロールバック
         raise  # 呼び出し元でエラーハンドリングさせる
     except Exception as e:
-        print(f"⚠️ 予期せぬエラー: {e}")
+        logging.error(f"予期せぬエラー: {e}")  # ログ追加
         conn.rollback()
         raise
     finally:
@@ -353,9 +358,9 @@ def edit_report(report_id, new_date, new_location, new_content, new_remarks):
             WHERE id = ?
         """, (new_date, new_location, new_content, new_remarks, report_id))
         conn.commit()
-        print(f"✅ 投稿 (ID: {report_id}) を編集しました！")  # デバッグ用ログ
+        logging.info(f"投稿 (ID: {report_id}) を編集しました！")  # ログ追加
     except sqlite3.Error as e:
-        print(f"❌ データベースエラー: {e}")  # エラーログ
+        logging.error(f"データベースエラー: {e}")  # ログ追加
     finally:
         conn.close()
 
@@ -367,20 +372,20 @@ def delete_report(report_id):
 
     try:
         c = conn.cursor()
-        print(f"️ 削除処理開始: report_id={report_id}")  # デバッグ用
+        logging.info(f"削除処理開始: report_id={report_id}")  # ログ追加
         c.execute("DELETE FROM reports WHERE id = ?", (report_id,))
         conn.commit()
 
         # 削除が成功したかチェック
         if c.rowcount == 0:
-            print(f"⚠️ 削除対象の投稿（ID: {report_id}）が見つかりませんでした。")
+            logging.warning(f"削除対象の投稿（ID: {report_id}）が見つかりませんでした。")  # ログ追加
             return False
 
-        print("✅ 削除成功！")
+        logging.info("削除成功！")  # ログ追加
         return True
 
     except sqlite3.Error as e:
-        print(f"❌ データベースエラー: {e}")
+        logging.error(f"データベースエラー: {e}")  # ログ追加
         return False
     finally:
         conn.close()
@@ -408,9 +413,9 @@ def save_weekly_schedule(schedule):
         ))
 
         conn.commit()
-        print("✅ 週間予定を保存しました！")  # デバッグログ
+        logging.info("週間予定を保存しました！")  # ログ追加
     except Exception as e:
-        print(f"⚠️ 週間予定の保存エラー: {e}")  # エラー内容を表示
+        logging.error(f"週間予定の保存エラー: {e}")  # ログ追加
         conn.rollback()
     finally:
         conn.close()
@@ -453,9 +458,9 @@ def update_weekly_schedule(schedule_id, monday, tuesday, wednesday, thursday, fr
             WHERE id = ?
         """, (monday, tuesday, wednesday, thursday, friday, saturday, sunday, schedule_id))
         conn.commit()
-        print(f"✅ 週間予定 (ID: {schedule_id}) を編集しました！")  # デバッグ用ログ
+        logging.info(f"週間予定 (ID: {schedule_id}) を編集しました！")  # ログ追加
     except sqlite3.Error as e:
-        print(f"❌ データベースエラー: {e}")  # エラーログ
+        logging.error(f"データベースエラー: {e}")  # ログ追加
         conn.rollback()
     finally:
         conn.close()
@@ -474,7 +479,7 @@ def add_comments_column():
         # カラムが存在しない場合のみ追加
         cur.execute("ALTER TABLE weekly_schedules ADD COLUMN コメント TEXT DEFAULT '[]'")
         conn.commit()
-        print("✅ コメントカラムを追加しました！")
+        logging.info("コメントカラムを追加しました！")  # ログ追加
     finally:
         conn.close()
 
@@ -530,10 +535,10 @@ def save_weekly_schedule_comment(schedule_id, commenter, comment):
                 ))
 
             conn.commit()
-            print(f"✅ 週間予定 (ID: {schedule_id}) にコメントを保存し、通知を追加しました！")  # デバッグログ
+            logging.info(f"週間予定 (ID: {schedule_id}) にコメントを保存し、通知を追加しました！")  # ログ追加
 
     except sqlite3.Error as e:
-        print(f"⚠️ 週間予定 (ID: {schedule_id}) へのコメント保存中にエラーが発生しました: {e}")  # エラーログ
+        logging.error(f"週間予定 (ID: {schedule_id}) へのコメント保存中にエラーが発生しました: {e}")  # ログ追加
         conn.rollback()  # エラー発生時はロールバック
     finally:
         conn.close()
@@ -602,7 +607,7 @@ def get_daily_schedule(user_name: str, target_date: str) -> str:
         return ""
 
     except sqlite3.Error as e:
-        print(f"週間予定取得エラー: {e}")
+        logging.error(f"週間予定取得エラー: {e}")  # ログ追加
         return ""
     finally:
         conn.close()
