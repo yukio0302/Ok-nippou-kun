@@ -11,20 +11,23 @@ DB_USER = "neondb_owner"
 DB_PASSWORD = "npg_E63kPJglOeih"
 DB_PORT = "5432"
 
-# データベース接続関数
+# データベース接続関数（コネクションプールを使用）
 def get_db_connection():
-    try:
-        conn = psycopg2.connect(
-            host=DB_HOST,
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            port=DB_PORT
-        )
-        return conn
-    except psycopg2.Error as e:
-        print(f"データベース接続エラー: {e}")
-        return None
+    if 'db_conn' not in st.session_state:
+        try:
+            conn = psycopg2.connect(
+                host=DB_HOST,
+                dbname=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                port=DB_PORT
+            )
+            st.session_state['db_conn'] = conn
+            print("データベースに接続しました。")
+        except psycopg2.Error as e:
+            print(f"データベース接続エラー: {e}")
+            return None
+    return st.session_state['db_conn']
 
 # ユーザー認証（users_data.jsonを使用）
 def authenticate_user(employee_code, password):
@@ -109,7 +112,7 @@ def init_db(keep_existing=True):
 
     conn.commit()
     cur.close()
-    conn.close()
+    #conn.close() #コネクションプールを使用するので閉じない
 
 def update_db_schema():
     """既存のデータベーススキーマを安全に更新する"""
@@ -134,7 +137,7 @@ def update_db_schema():
         print("✅ 対象ユーザーカラムは既に存在します")
 
     cur.close()
-    conn.close()
+    #conn.close() #コネクションプールを使用するので閉じない
 
 # データベーススキーマを更新
 update_db_schema()
@@ -145,9 +148,9 @@ def save_report(report):
     if conn is None:
         print("❌ データベース接続エラー")
         return False
-    
+
     cur = conn.cursor()
-    
+
     try:
         # 必要なフィールドがあるかチェック
         required_fields = ['投稿者', '実行日', 'カテゴリ', '場所', '実施内容', '所感']
@@ -155,14 +158,14 @@ def save_report(report):
             if field not in report:
                 print(f"❌ 必要なフィールドが不足しています: {field}")
                 return False
-        
+
         # 投稿日時をJSTで保存
         report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-        
+
         # 実行日が未設定の場合のみ現在日付を使用
         if '実行日' not in report or not report['実行日']:
             report['実行日'] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d")
-        
+
         # データを表示して確認
         print("✅ 投稿データの確認:")
         print(f"投稿者: {report['投稿者']}")
@@ -171,7 +174,7 @@ def save_report(report):
         print(f"場所: {report['場所']}")
         print(f"実施内容: {report['実施内容']}")
         print(f"所感: {report['所感']}")
-        
+
         # INSERT文を実行
         cur.execute("""
             INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント, 画像, 投稿日時)
@@ -189,11 +192,11 @@ def save_report(report):
             report.get("image", None),  # 画像データ（Noneの場合も許容）
             report["投稿日時"]
         ))
-        
+
         conn.commit()
         print(f"✅ 日報を保存しました！（投稿者: {report['投稿者']}, 実行日: {report['実行日']}）")
         return True
-        
+
     except psycopg2.Error as e:
         print(f"❌ データベースエラー: {e}")
         conn.rollback()
@@ -204,7 +207,7 @@ def save_report(report):
         return False
     finally:
         cur.close()
-        conn.close()
+        #conn.close() #コネクションプールを使用するので閉じない
 
 def load_reports():
     """日報データを取得（最新の投稿順にソート）"""
@@ -218,7 +221,7 @@ def load_reports():
     rows = cur.fetchall()
 
     cur.close()
-    conn.close()
+    #conn.close() #コネクションプールを使用するので閉じない
 
     # データを辞書リストに変換
     reports = []
@@ -246,7 +249,7 @@ def update_reaction(report_id, reaction_type):
 
     conn.commit()
     cur.close()
-    conn.close()
+    #conn.close() #コネクションプールを使用するので閉じない
 
 def save_comment(report_id, commenter, comment):
     """コメントを保存＆通知を追加"""
@@ -280,14 +283,14 @@ def save_comment(report_id, commenter, comment):
 
         # 投稿者がコメント者と違う場合、投稿者にお知らせを追加
         if 投稿者 != commenter:
-            notification_content = f"""【お知らせ】 
-{new_comment["日時"]} 
+            notification_content = f"""【お知らせ】
+{new_comment["日時"]}
 
-実施日: {実行日} 
-場所: {場所} 
-実施内容: {実施内容} 
+実施日: {実行日}
+場所: {場所}
+実施内容: {実施内容}
 
-の投稿に {commenter} さんがコメントしました。 
+の投稿に {commenter} さんがコメントしました。
 コメント内容: {comment}
 """
 
@@ -306,7 +309,7 @@ def save_comment(report_id, commenter, comment):
         conn.commit()
 
     cur.close()
-    conn.close()
+    #conn.close() #コネクションプールを使用するので閉じない
 
 def load_commented_reports(commenter_name):
     """指定したユーザーがコメントした投稿を取得（コメント日時の降順でソート）"""
@@ -320,7 +323,7 @@ def load_commented_reports(commenter_name):
     rows = cur.fetchall()
 
     cur.close()
-    conn.close()
+    #conn.close() #コネクションプールを使用するので閉じない
 
     # コメントした投稿をフィルタリング
     commented_reports = []
@@ -355,7 +358,7 @@ def load_notices(user_name):
     rows = cur.fetchall()
 
     cur.close()
-    conn.close()
+    #conn.close() #コネクションプールを使用するので閉じない
 
     # データを辞書リストに変換
     notices = []
@@ -376,7 +379,7 @@ def mark_notice_as_read(notice_id):
     cur.execute("UPDATE notices SET 既読 = 1 WHERE id = %s", (notice_id,))
     conn.commit()
     cur.close()
-    conn.close()
+    #conn.close() #コネクションプールを使用するので閉じない
 
 def edit_report(report_id, new_date, new_location, new_content, new_remarks):
     """投稿を編集する"""
@@ -399,7 +402,7 @@ def edit_report(report_id, new_date, new_location, new_content, new_remarks):
         conn.rollback()
     finally:
         cur.close()
-        conn.close()
+        #conn.close() #コネクションプールを使用するので閉じない
 
 def delete_report(report_id):
     """投稿を削除する（エラーハンドリング付き）"""
@@ -428,7 +431,7 @@ def delete_report(report_id):
         return False
     finally:
         cur.close()
-        conn.close()
+        #conn.close() #コネクションプールを使用するので閉じない
 
 def save_weekly_schedule(schedule):
     """週間予定をデータベースに保存"""
@@ -459,7 +462,7 @@ def save_weekly_schedule(schedule):
         conn.rollback()
     finally:
         cur.close()
-        conn.close()
+        #conn.close() #コネクションプールを使用するので閉じない
 
 def load_weekly_schedules():
     """週間予定データを取得（最新の投稿順にソート）"""
@@ -473,7 +476,7 @@ def load_weekly_schedules():
     rows = cur.fetchall()
 
     cur.close()
-    conn.close()
+    #conn.close() #コネクションプールを使用するので閉じない
 
     # データを辞書リストに変換
     schedules = []
@@ -508,7 +511,7 @@ def update_weekly_schedule(schedule_id, monday, tuesday, wednesday, thursday, fr
         conn.rollback()
     finally:
         cur.close()
-        conn.close()
+        #conn.close() #コネクションプールを使用するので閉じない
 
 def add_comments_column():
     """weekly_schedules テーブルにコメントカラムを追加（存在しない場合のみ）"""
@@ -526,7 +529,7 @@ def add_comments_column():
         print("✅ コメントカラムを追加しました！")
     finally:
         cur.close()
-        conn.close()
+        #conn.close() #コネクションプールを使用するので閉じない
 
 def save_weekly_schedule_comment(schedule_id, commenter, comment):
     """週間予定へのコメントを保存＆通知を追加"""
@@ -587,7 +590,7 @@ def save_weekly_schedule_comment(schedule_id, commenter, comment):
         conn.rollback()
     finally:
         cur.close()
-        conn.close()
+        #conn.close() #コネクションプールを使用するので閉じない
 
 def get_weekly_schedule_for_all_users(start_date, end_date):
     """
@@ -608,7 +611,7 @@ def get_weekly_schedule_for_all_users(start_date, end_date):
     results = cursor.fetchall()
 
     cursor.close()
-    conn.close()
+    #conn.close() #コネクションプールを使用するので閉じない
 
     # ユーザーごとにデータを整理
     user_schedules = {}
@@ -659,4 +662,4 @@ def get_daily_schedule(user_name: str, target_date: str) -> str:
         return ""
     finally:
         cur.close()
-        conn.close()
+        #conn.close() #コネクションプールを使用するので閉じない
