@@ -3,23 +3,41 @@ import json
 import os
 from datetime import datetime, timedelta
 import streamlit as st
-from psycopg2.extras import DictCursor
 
-# データベース接続の取得
+# ✅ データベース接続情報
+DB_HOST = "ep-dawn-credit-a16vhe5b-pooler.ap-southeast-1.aws.neon.tech"
+DB_NAME = "neondb"
+DB_USER = "neondb_owner"
+DB_PASSWORD = "npg_E63kPJglOeih"
+DB_PORT = "5432"
+
 def get_db_connection():
-    return st.connection("neon_db", "sql")
+    """Neonデータベースへの接続を取得"""
+    try:
+        conn = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT,
+            sslmode='require'
+        )
+        return conn
+    except psycopg2.Error as e:
+        print(f"⚠️ データベース接続エラー: {e}")
+        raise
 
 def init_db(keep_existing=True):
     """データベースの初期化（テーブル作成）"""
     conn = get_db_connection()
     cur = conn.cursor()
-    
+
     if not keep_existing:
         cur.execute("DROP TABLE IF EXISTS reports")
         cur.execute("DROP TABLE IF EXISTS notices")
         cur.execute("DROP TABLE IF EXISTS weekly_schedules")
-    
-    # 日報データのテーブル作成
+
+    # ✅ 日報データのテーブル作成（存在しない場合のみ）
     cur.execute("""
     CREATE TABLE IF NOT EXISTS reports (
         id SERIAL PRIMARY KEY,
@@ -31,25 +49,25 @@ def init_db(keep_existing=True):
         所感 TEXT,
         いいね INTEGER DEFAULT 0,
         ナイスファイト INTEGER DEFAULT 0,
-        コメント JSONB DEFAULT '[]'::jsonb,
+        コメント TEXT DEFAULT '[]',
         画像 TEXT,
-        投稿日時 TIMESTAMP
+        投稿日時 TEXT
     )
     """)
-    
-    # お知らせデータのテーブル作成
+
+    # ✅ お知らせデータのテーブル作成（存在しない場合のみ）
     cur.execute("""
     CREATE TABLE IF NOT EXISTS notices (
         id SERIAL PRIMARY KEY,
         タイトル TEXT,
         内容 TEXT,
-        日付 TIMESTAMP,
+        日付 TEXT,
         既読 INTEGER DEFAULT 0,
         対象ユーザー TEXT
     )
     """)
-    
-    # 週間予定データのテーブル作成
+
+    # ✅ 週間予定データのテーブル作成（存在しない場合のみ）
     cur.execute("""
     CREATE TABLE IF NOT EXISTS weekly_schedules (
         id SERIAL PRIMARY KEY,
@@ -63,11 +81,11 @@ def init_db(keep_existing=True):
         金曜日 TEXT,
         土曜日 TEXT,
         日曜日 TEXT,
-        投稿日時 TIMESTAMP,
-        コメント JSONB DEFAULT '[]'::jsonb
+        投稿日時 TEXT,
+        コメント TEXT DEFAULT '[]'
     )
     """)
-    
+
     conn.commit()
     conn.close()
 
@@ -76,11 +94,12 @@ def save_report(report):
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
+
         report["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+        
         if '実行日' not in report or not report['実行日']:
             report['実行日'] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d")
-        
+
         cur.execute("""
         INSERT INTO reports (投稿者, 実行日, カテゴリ, 場所, 実施内容, 所感, いいね, ナイスファイト, コメント, 画像, 投稿日時)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -97,12 +116,12 @@ def save_report(report):
             report.get("image", None), 
             report["投稿日時"]
         ))
-        
+
         conn.commit()
         conn.close()
         print(f"✅ 日報を保存しました（投稿者: {report['投稿者']}, 実行日: {report['実行日']}）")
-        
-    except Exception as e:
+
+    except psycopg2.Error as e:
         print(f"⚠️ データベースエラー: {e}")
         raise
 
@@ -110,11 +129,11 @@ def load_reports():
     """日報データを取得（最新の投稿順にソート）"""
     conn = get_db_connection()
     cur = conn.cursor()
-    
+
     cur.execute("SELECT * FROM reports ORDER BY 投稿日時 DESC")
     rows = cur.fetchall()
     conn.close()
-    
+
     reports = []
     for row in rows:
         reports.append({
