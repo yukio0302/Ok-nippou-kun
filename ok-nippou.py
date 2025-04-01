@@ -1,4 +1,3 @@
-import sys
 import os
 import time
 import streamlit as st
@@ -6,9 +5,8 @@ import pandas as pd
 import base64
 from datetime import datetime, timedelta
 import json
-import sqlite3
-from collections import defaultdict
 import logging  # ログ記録用
+from collections import defaultdict
 
 # ログ設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -17,12 +15,13 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def get_current_time():
     return datetime.now() + timedelta(hours=9)  # JSTで現在時刻を取得
 
-# サブコーディングから必要な関数をインポート
+# データベース操作ユーティリティをインポート
 from db_utils import (
     init_db, authenticate_user, save_report, load_reports,
     load_notices, mark_notice_as_read, edit_report, delete_report,
     update_reaction, save_comment, load_commented_reports,
-    save_weekly_schedule_comment, add_comments_column
+    save_weekly_schedule, save_weekly_schedule_comment, 
+    add_comments_column, load_weekly_schedules
 )
 
 # excel_utils.py をインポート
@@ -37,13 +36,11 @@ def load_css(file_name):
 css_file_path = "style.css"  # 絶対パスを設定
 load_css(css_file_path)
 
-# ✅ データベースのパス
-DB_PATH = "/mount/src/ok-nippou-kun/data/reports.db"
-
-# ✅ SQLite 初期化（データを消さない）
+# ✅ PostgreSQL 初期化（データを消さない）
 init_db(keep_existing=True)
-# メインコードの最初の方（データベース初期化後）に追加
-add_comments_column()  # 週間予定テーブルにコメントカラムが存在することを保証
+
+# コメントカラムの存在確認
+add_comments_column()
 
 # ✅ ログイン状態を管理
 if "user" not in st.session_state:
@@ -60,7 +57,19 @@ def switch_page(page_name):
 def sidebar_navigation():
     with st.sidebar:
         # 画像表示（サイドバー上部）
-        st.image("OK-Nippou5.png", use_container_width=True)
+        try:
+            st.image("OK-Nippou5.png", use_container_width=True)
+        except:
+            st.title("日報システム")  # 画像がない場合はタイトルを表示
+
+        # ユーザー名と役割を表示
+        user = st.session_state["user"]
+        if user.get("admin", False):
+            st.caption(f"**{user['name']}** さん（管理者）")
+        else:
+            st.caption(f"**{user['name']}** さん")
+        
+        st.caption(f"所属: {', '.join(user['depart'])}")
 
         # ナビゲーションボタン
         st.markdown("""
@@ -80,7 +89,15 @@ def sidebar_navigation():
         </style>
         """, unsafe_allow_html=True)
 
-        # ナビゲーションボタン
+        # 通常のナビゲーションボタン（全ユーザー向け）
+        st.markdown("### メニュー")
+        
+        # 通知の未読数を取得
+        from db_utils import get_user_notifications
+        unread_notifications = get_user_notifications(st.session_state["user"]["name"], unread_only=True)
+        unread_count = len(unread_notifications)
+        notification_badge = f"🔔 通知 ({unread_count})" if unread_count > 0 else "🔔 通知"
+        
         if st.button("⏳ タイムライン", key="sidebar_timeline"):
             switch_page("タイムライン")
 
@@ -89,6 +106,10 @@ def sidebar_navigation():
 
         if st.button(" お知らせ", key="sidebar_notice"):
             switch_page("お知らせ")
+            
+        if st.button(notification_badge, key="sidebar_notifications"):
+            st.session_state["page"] = "通知"
+            st.rerun()
 
         if st.button("✈️ 週間予定投稿", key="sidebar_post_schedule"):
             switch_page("週間予定投稿")
@@ -98,13 +119,25 @@ def sidebar_navigation():
 
         if st.button(" マイページ", key="sidebar_mypage"):
             switch_page("マイページ")
+            
+        # 管理者向け機能
+        if user.get("admin", False):
+            st.markdown("### 管理者メニュー")
+            if st.button(" お知らせ投稿", key="sidebar_post_notice"):
+                switch_page("お知らせ投稿")
+            
+            if st.button(" データエクスポート", key="sidebar_export"):
+                switch_page("データエクスポート")
 
 # ✅ ログイン機能（修正済み）
 def login():
     # ロゴ表示（中央揃え）
     col1, col2, col3 = st.columns([1, 3, 1])
     with col2:
-        st.image("OK-Nippou4.png", use_container_width=True)  # 画像をコンテナ幅に合わせる
+        try:
+            st.image("OK-Nippou4.png", use_container_width=True)  # 画像をコンテナ幅に合わせる
+        except:
+            st.title("日報システム")  # 画像がない場合はタイトルを表示
 
     st.title(" ログイン")
     employee_code = st.text_input("社員コード")
@@ -121,53 +154,6 @@ def login():
             st.rerun()  # ✅ ここで即リロード！
         else:
             st.error("社員コードまたはパスワードが間違っています。")
-
-def save_weekly_schedule(schedule):
-    """週間予定をデータベースに保存"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-
-        # ✅ 投稿日時を JST で保存
-        schedule["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-
-        cur.execute("""
-            INSERT INTO weekly_schedules (投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            schedule["投稿者"], schedule["開始日"], schedule["終了日"],
-            schedule["月曜日"], schedule["火曜日"], schedule["水曜日"],
-            schedule["木曜日"], schedule["金曜日"], schedule["土曜日"],
-            schedule["日曜日"], schedule["投稿日時"]
-        ))
-
-        conn.commit()
-        logging.info("週間予定を保存しました！")  # ログ追加
-    except Exception as e:
-        logging.error(f"週間予定の保存エラー: {e}")  # ログ追加
-    finally:
-        conn.close()
-
-def load_weekly_schedules():
-    """週間予定データを取得（最新の投稿順にソート）"""
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    cur.execute("SELECT *, コメント FROM weekly_schedules ORDER BY 投稿日時 DESC") # コメントカラムも取得
-    rows = cur.fetchall()
-    conn.close()
-
-    # ✅ データを辞書リストに変換
-    schedules = []
-    for row in rows:
-        schedules.append({
-            "id": row[0], "投稿者": row[1], "開始日": row[2], "終了日": row[3],
-            "月曜日": row[4], "火曜日": row[5], "水曜日": row[6],
-            "木曜日": row[7], "金曜日": row[8], "土曜日": row[9],
-            "日曜日": row[10], "投稿日時": row[11],
-            "コメント": json.loads(row[12]) if row[12] else [] # コメントをJSONデコード
-        })
-    return schedules
 
 def post_weekly_schedule():
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -224,6 +210,7 @@ def post_weekly_schedule():
             "土曜日": weekly_plan[(start_date + timedelta(days=5)).strftime("%Y-%m-%d")],
             "日曜日": weekly_plan[(start_date + timedelta(days=6)).strftime("%Y-%m-%d")]
         }
+
         save_weekly_schedule(schedule)
         st.success("✅ 週間予定を投稿しました！")
         time.sleep(1)
@@ -234,221 +221,67 @@ def show_weekly_schedules():
         st.error("ログインしてください。")
         return
 
-    st.title("週間予定")
+    st.title("週間予定一覧")
+    # top_navigation()
 
-    # カスタムCSSでネスト表現を実現
-    st.markdown("""
-    <style>
-    .nested-expander {
-        border-left: 3px solid #f0f2f6;
-        margin-left: 1rem;
-        padding-left: 1rem;
-    }
-    .week-header {
-        cursor: pointer;
-        padding: 0.5rem;
-        background-color: #f0f2f6;
-        border-radius: 0.5rem;
-        margin: 0.5rem 0;
-        transition: background-color 0.3s ease, max-height 0.3s ease; /* アニメーションを追加 */
-        overflow: hidden; /* コンテンツを非表示 */
-    }
-    .week-header:hover {
-        background-color: #e0e0e0; /* ホバー時の色を変更 */
-    }
-    .week-header.expanded {
-        max-height: none; /* 展開時は高さを自動調整 */
-    }
-    .week-content {
-        overflow: hidden; /* アニメーションのために追加 */
-        transition: max-height 0.3s ease; /* アニメーションを追加 */
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
+    # 週間予定データ取得
     schedules = load_weekly_schedules()
 
     if not schedules:
-        st.info("週間予定はありません。")
+        st.info("週間予定はまだありません。")
         return
 
-    # 週ごとにグループ化
-    grouped = defaultdict(list)
-    for s in schedules:
-        key = (s['開始日'], s['終了日'])
-        grouped[key].append(s)
+    # 週間予定を表示（最新のものから）
+    for i, schedule in enumerate(schedules):
+        # 週間予定用のユニークキー
+        schedule_key = f"weekly_schedule_{i}"
+        
+        with st.expander(f"【{schedule['投稿者']}】 {schedule['開始日']} 〜 {schedule['終了日']}", expanded=True):
+            # 週間予定テーブル表示
+            data = {
+                "項目": ["予定"],
+                "月曜日": [schedule["月曜日"]],
+                "火曜日": [schedule["火曜日"]],
+                "水曜日": [schedule["水曜日"]],
+                "木曜日": [schedule["木曜日"]],
+                "金曜日": [schedule["金曜日"]],
+                "土曜日": [schedule["土曜日"]],
+                "日曜日": [schedule["日曜日"]]
+            }
+            df = pd.DataFrame(data)
+            df = df.set_index("項目")  # 項目列をインデックスに設定
+            st.table(df)  # テーブル表示
 
-    # 開始日で降順ソート
-    sorted_groups = sorted(grouped.items(),
-                           key=lambda x: datetime.strptime(x[0][0], "%Y-%m-%d"),
-                           reverse=True)
+            st.caption(f"投稿者: {schedule['投稿者']} / 投稿日時: {schedule['投稿日時']}")
 
-    # 現在の日付から6週間前の日付を計算
-    six_weeks_ago = datetime.now() - timedelta(weeks=6)
+            # コメント表示
+            if schedule["コメント"]:
+                st.markdown("#### コメント")
+                for comment in schedule["コメント"]:
+                    st.markdown(f"""
+                    **{comment['投稿者']}** - {comment['投稿日時']}  
+                    {comment['内容']}
+                    ---
+                    """)
 
-    # 最新の投稿（5週分）と過去の投稿（6週前以前）に分割
-    recent_schedules = []
-    past_schedules = []
-    for start_end, group_schedules in sorted_groups:
-        start_date = datetime.strptime(start_end[0], "%Y-%m-%d")
-        if start_date >= six_weeks_ago:
-            recent_schedules.append((start_end, group_schedules))
-        else:
-            past_schedules.append((start_end, group_schedules))
+            # コメント入力フォーム
+            with st.form(key=f"{schedule_key}_schedule_comment_{schedule['id']}"):
+                comment_text = st.text_area("コメントを入力", key=f"{schedule_key}_comment_text_{schedule['id']}")
+                submit_button = st.form_submit_button("コメントする")
 
-    # 最新の投稿を表示
-    st.subheader("直近5週分の予定")
-    display_schedules(recent_schedules)
+                if submit_button and comment_text.strip():
+                    comment = {
+                        "投稿者": st.session_state["user"]["name"],
+                        "内容": comment_text,
+                    }
+                    if save_weekly_schedule_comment(schedule["id"], comment):
+                        st.success("コメントを投稿しました！")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("コメントの投稿に失敗しました。")
 
-    # 過去の投稿を表示
-    if past_schedules:
-        st.subheader("過去の予定を見る（6週間以前）")
-        display_past_schedules(past_schedules)
-
-    # ダウンロードボタン（ループの外に移動）
-    if schedules:
-        if st.button("週間予定をExcelでダウンロード"):
-            start_date = schedules[0]["開始日"]
-            end_date = schedules[0]["終了日"]
-            excel_file = excel_utils.download_weekly_schedule_excel(start_date, end_date)
-            st.download_button(
-                label="ダウンロード",
-                data=excel_file,
-                file_name="週間予定.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-def display_schedules(schedules_to_display):
-    for idx, ((start_str, end_str), group_schedules) in enumerate(schedules_to_display):
-        start_date = datetime.strptime(start_str, "%Y-%m-%d")
-        end_date = datetime.strptime(end_str, "%Y-%m-%d")
-        weekday_ja = ["月", "火", "水", "木", "金", "土", "日"]
-
-        # 週のヘッダー（擬似折りたたみボタン）
-        group_title = (
-            f"{start_date.month}月{start_date.day}日（{weekday_ja[start_date.weekday()]}）"
-            f" ～ {end_date.month}月{end_date.day}日（{weekday_ja[end_date.weekday()]}）"
-        )
-
-        # セッションステートで開閉状態を管理
-        if f'week_{idx}_expanded' not in st.session_state:
-            st.session_state[f'week_{idx}_expanded'] = False
-
-        # ヘッダークリックで状態切り替え
-        clicked = st.button(
-            f" {group_title} {'▼' if st.session_state[f'week_{idx}_expanded'] else '▶'}",
-            key=f'week_header_{idx}',
-            use_container_width=True
-        )
-
-        if clicked:
-            st.session_state[f'week_{idx}_expanded'] = not st.session_state[f'week_{idx}_expanded']
-
-        # コンテンツ表示
-        if st.session_state[f'week_{idx}_expanded']:
-            with st.container():
-                st.markdown('<div class="nested-expander">', unsafe_allow_html=True)
-
-                for schedule in group_schedules:
-                    with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
-                        # 各曜日の日付を計算
-                        days = []
-                        current_date = start_date
-                        for i in range(7):
-                            days.append(current_date)
-                            current_date += timedelta(days=1)
-
-                        # 予定表示
-                        for i, weekday in enumerate(["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]):
-                            target_date = days[i]
-                            date_str = f"{target_date.month}月{target_date.day}日（{weekday_ja[target_date.weekday()]}）"
-                            st.write(f"**{date_str}**: {schedule[weekday]}")
-
-                        st.write(f"**投稿日時:** {schedule['投稿日時']}")
-
-                        # コメント表示
-                        st.markdown("---")
-                        st.subheader("コメント")
-                        if schedule["コメント"]:
-                            for comment in schedule["コメント"]:
-                                st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
-                        else:
-                            st.write("まだコメントはありません。")
-
-                        # コメント入力
-                        comment_text = st.text_area(
-                            f"コメントを入力 (ID: {schedule['id']})",
-                            key=f"comment_{schedule['id']}"
-                        )
-                        if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-                            if comment_text.strip():
-                                save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                                st.rerun()
-                            else:
-                                st.warning("コメントを入力してください。")
-
-                st.markdown('</div>', unsafe_allow_html=True)  # ここでdivを閉じる
-
-def display_past_schedules(past_schedules):
-    # 月ごとにグループ化
-    monthly_grouped = defaultdict(lambda: defaultdict(list))
-    for (start_str, end_str), group_schedules in past_schedules:
-        start_date = datetime.strptime(start_str, "%Y-%m-%d")
-        monthly_grouped[start_date.year][start_date.month].append(((start_str, end_str), group_schedules))
-
-    # 年と月でソートして表示
-    for year in sorted(monthly_grouped.keys(), reverse=True):
-        st.markdown(f"├─ {year}年{'' if len(monthly_grouped[year]) > 1 else ' '}{list(monthly_grouped[year].keys())[0] if len(monthly_grouped[year]) == 1 else ''}")
-        for month in sorted(monthly_grouped[year].keys(), reverse=True):
-            st.markdown(f"│ ├─ {month}月")
-            for (start_str, end_str), group_schedules in sorted(monthly_grouped[year][month], key=lambda x: x[0][0], reverse=True):
-                start_date = datetime.strptime(start_str, "%Y-%m-%d")
-                end_date = datetime.strptime(end_str, "%Y-%m-%d")
-                weekday_ja = ["月", "火", "水", "木", "金", "土", "日"]
-                st.markdown(f"│ │ ├─ {start_date.month}/{start_date.day} ({weekday_ja[start_date.weekday()]})～{end_date.month}/{end_date.day} ({weekday_ja[end_date.weekday()]})")
-                st.markdown('│ │ │ <div class="nested-expander">', unsafe_allow_html=True)
-                for schedule in group_schedules:
-                    with st.expander(f"{schedule['投稿者']} さんの週間予定 ▽"):
-                        # 各曜日の日付を計算
-                        days = []
-                        current_date = start_date
-                        for i in range(7):
-                            days.append(current_date)
-                            current_date += timedelta(days=1)
-
-                        # 予定表示
-                        for i, weekday in enumerate(["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]):
-                            target_date = days[i]
-                            date_str = f"{target_date.month}月{target_date.day}日（{weekday_ja[target_date.weekday()]}）"
-                            st.write(f"**{date_str}**: {schedule[weekday]}")
-
-                        st.write(f"**投稿日時:** {schedule['投稿日時']}")
-
-                        # コメント表示
-                        st.markdown("---")
-                        st.subheader("コメント")
-                        if schedule["コメント"]:
-                            for comment in schedule["コメント"]:
-                                st.write(f"- {comment['投稿者']} ({comment['日時']}): {comment['コメント']}")
-                        else:
-                            st.write("まだコメントはありません。")
-
-                        # コメント入力
-                        comment_text = st.text_area(
-                            f"コメントを入力 (ID: {schedule['id']})",
-                            key=f"comment_{schedule['id']}"
-                        )
-                        if st.button(f"コメントを投稿", key=f"submit_{schedule['id']}"):
-                            if comment_text.strip():
-                                save_weekly_schedule_comment(schedule["id"], st.session_state["user"]["name"], comment_text)
-                                st.rerun()
-                            else:
-                                st.warning("コメントを入力してください。")
-
-                st.markdown('</div>', unsafe_allow_html=True)
-
-def show_timeline():
-    """タイムライン表示"""
+def timeline():
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
@@ -456,162 +289,113 @@ def show_timeline():
     st.title("タイムライン")
     # top_navigation()
 
-    reports = load_reports()
+    # ログインユーザーの所属部署
+    user_depart = st.session_state["user"]["depart"][0] if st.session_state["user"]["depart"] else None
 
-    # ✅ 期間選択（キーを追加）
-    st.sidebar.subheader("表示期間を選択")
+    # 表示件数設定
+    display_count = st.slider("表示件数", min_value=5, max_value=50, value=10, step=5)
 
-    # カスタムCSSを適用
-    st.markdown(
-        """
-        <style>
-            div[data-baseweb="radio"] label {
-                color: white !important;
-            }
-            .stSidebar .stSubheader {
-                color: white !important;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    # タブ（すべて/所属部署のみ）
+    tab1, tab2 = st.tabs(["すべての日報", f"{user_depart}の日報"])
 
-    period_option = st.sidebar.radio(
-        "表示する期間を選択",
-        ["24時間以内の投稿", "1週間以内の投稿", "過去の投稿"],
-        index=0,
-        key="timeline_period_selector"
-    )
+    with tab1:
+        reports = load_reports(limit=display_count)
+        display_reports(reports)
 
-    # ✅ デフォルトで24時間以内の投稿を表示
-    if period_option == "24時間以内の投稿":
-        start_datetime = datetime.now() + timedelta(hours=9) - timedelta(hours=24)  # 過去24時間（JST）
-        end_datetime = datetime.now() + timedelta(hours=9)  # 現在時刻（JST）
-    elif period_option == "1週間以内の投稿":
-        start_datetime = datetime.now() + timedelta(hours=9) - timedelta(days=7)  # 過去7日間（JST）
-        end_datetime = datetime.now() + timedelta(hours=9)  # 現在時刻（JST）
-    else:
-        # ✅ 過去の投稿を選択した場合、カレンダーで期間を指定
-        st.sidebar.subheader("過去の投稿を表示")
-        col1, col2 = st.sidebar.columns(2)
-        with col1:
-            start_date = st.date_input("開始日", datetime.now().date() - timedelta(days=365), max_value=datetime.now().date() - timedelta(days=1))
-        with col2:
-            end_date = st.date_input("終了日", datetime.now().date() - timedelta(days=1), min_value=start_date, max_value=datetime.now().date() - timedelta(days=1))
-        start_datetime = datetime(start_date.year, start_date.month, start_date.day)
-        end_datetime = datetime(end_date.year, end_date.month, end_date.day) + timedelta(days=1)
+    with tab2:
+        if user_depart:
+            depart_reports = load_reports(depart=user_depart, limit=display_count)
+            display_reports(depart_reports)
+        else:
+            st.info("部署が設定されていません。")
 
-    # ✅ 選択された期間に該当する投稿をフィルタリング
-    filtered_reports = []
-    for report in reports:
-        report_datetime = datetime.strptime(report["投稿日時"], "%Y-%m-%d %H:%M:%S")
-        if start_datetime <= report_datetime <= end_datetime:
-            filtered_reports.append(report)
-
-    # ✅ 現在のユーザーの所属部署を取得
-    user_departments = st.session_state["user"]["depart"]  # 配列で取得
-
-    # ✅ フィルタリング用のセッション管理（デフォルトは「すべて表示」）
-    if "filter_department" not in st.session_state:
-        st.session_state["filter_department"] = "すべて"
-
-    # ✅ 部署フィルタボタン
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button(" すべての投稿を見る"):
-            st.session_state["filter_department"] = "すべて"
-            st.rerun()
-
-    with col2:
-        if st.button(" 自分の部署のメンバーの投稿を見る"):
-            st.session_state["filter_department"] = "自分の部署"
-            st.rerun()
-
-    # ✅ フィルタを適用（自分の部署のメンバーの投稿のみ表示）
-    if st.session_state["filter_department"] == "自分の部署":
-        try:
-            USER_FILE = "data/users_data.json"
-            with open(USER_FILE, "r", encoding="utf-8-sig") as file:
-                users = json.load(file)
-
-            # ✅ 自分の部署にいるメンバーの名前を取得
-            department_members = {
-                user["name"] for user in users if any(dept in user_departments for dept in user["depart"])
-            }
-
-            # ✅ メンバーの投稿のみフィルタリング
-            filtered_reports = [report for report in filtered_reports if report["投稿者"] in department_members]
-
-        except Exception as e:
-            st.error(f"⚠️ 部署情報の読み込みエラー: {e}")
-            return
-
-    search_query = st.text_input("投稿を検索", "")
-
-    if search_query:
-        filtered_reports = [
-            report for report in filtered_reports
-            if search_query.lower() in report["実施内容"].lower()
-            or search_query.lower() in report["所感"].lower()
-            or search_query.lower() in report["カテゴリ"].lower()
-            or search_query.lower() in report["投稿者"].lower()  # 投稿主の名前でも検索
-        ]
-
-    if not filtered_reports:
-        st.warning("該当する投稿が見つかりませんでした。")
+def display_reports(reports):
+    """日報表示関数"""
+    if not reports:
+        st.info("表示する日報はありません。")
         return
 
-    # ✅ 投稿を表示
-    for report in filtered_reports:
-        st.subheader(f"{report['投稿者']} さんの日報 ({report['実行日']})")
-        st.write(f"**実施日:** {report['実行日']}")
-        st.write(f"**場所:** {report['場所']}")
-        st.write(f"**実施内容:** {report['実施内容']}")
-        st.write(f"**所感:** {report['所感']}")
+    for i, report in enumerate(reports):
+        # ユニークなインデックスを生成（現在のページとレポートのIDとインデックスを組み合わせる）
+        unique_prefix = f"{st.session_state['page']}_{i}_{report['id']}"
+        
+        with st.expander(f"【{report['投稿者']}】 {report['日付']} の日報 - {report['所属部署']}", expanded=True):
+            # 項目ごとにテーブル形式で表示
+            data = {
+                "項目": ["業務内容", "メンバー状況", "作業時間", "翌日予定", "相談事項"],
+                "内容": [
+                    report["業務内容"], report["メンバー状況"], report["作業時間"],
+                    report["翌日予定"], report["相談事項"]
+                ]
+            }
+            df = pd.DataFrame(data)
+            st.table(df)
 
-        # ✅ 画像が存在する場合、表示する
-        if report.get("image"):
-            try:
-                # Base64データをデコードして画像を表示
-                image_data = base64.b64decode(report["image"])
-                st.image(image_data, caption="投稿画像", use_container_width=True)
-            except Exception as e:
-                st.error(f"⚠️ 画像の表示中にエラーが発生しました: {e}")
+            st.caption(f"投稿者: {report['投稿者']} ({report['所属部署']}) / 投稿日時: {report['投稿日時']}")
 
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button(f"❤️ {report['いいね']} いいね！", key=f"like_{report['id']}"):
-                update_reaction(report["id"], "いいね")
-                st.rerun()
-        with col2:
-            if st.button(f" {report['ナイスファイト']} ナイスファイト！", key=f"nice_{report['id']}"):
-                update_reaction(report["id"], "ナイスファイト")
-                st.rerun()
+            # 編集・削除ボタン（投稿者のみ表示）
+            if st.session_state["user"]["name"] == report["投稿者"]:
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("編集", key=f"{unique_prefix}_edit_{report['id']}"):
+                        st.session_state["edit_report"] = report
+                        switch_page("日報編集")
+                with col2:
+                    if st.button("削除", key=f"{unique_prefix}_delete_{report['id']}"):
+                        if delete_report(report["id"]):
+                            st.success("日報を削除しました！")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error("削除に失敗しました。")
 
-        # コメント欄
-        comment_count = len(report["コメント"]) if report["コメント"] else 0  # コメント件数を取得
-        with st.expander(f"({comment_count}件)のコメントを見る・追加する"):  # 件数を表示
-            if report["コメント"]:
-                for c in report["コメント"]:
-                    st.write(f"{c['投稿者']} ({c['日時']}): {c['コメント']}")
+            # リアクションボタン
+            reaction_col1, reaction_col2, reaction_col3, reaction_col4 = st.columns(4)
+            reaction_types = {"👍": "thumbs_up", "👏": "clap", "😊": "smile", "🎉": "party"}
 
-            if report.get("id") is None:
-                st.error("⚠️ 投稿のIDが見つかりません。")
-                continue
+            for j, (emoji, reaction_type) in enumerate(reaction_types.items()):
+                col = [reaction_col1, reaction_col2, reaction_col3, reaction_col4][j]
+                with col:
+                    # リアクション数とユーザー名を表示
+                    reaction_users = report.get("reactions", {}).get(reaction_type, [])
+                    count = len(reaction_users)
+                    button_label = f"{emoji} {count}" if count > 0 else emoji
 
-            commenter_name = st.session_state["user"]["name"] if st.session_state["user"] else "匿名"
-            new_comment = st.text_area(f"✏️ {commenter_name} さんのコメント", key=f"comment_{report['id']}")
+                    # 自分がリアクション済みかチェック
+                    user_reacted = st.session_state["user"]["name"] in reaction_users
+                    button_key = f"{unique_prefix}_{reaction_type}_{report['id']}"
 
-            if st.button("コメントを投稿", key=f"submit_comment_{report['id']}"):
-                if new_comment and new_comment.strip():
-                    print(f"️ コメント投稿デバッグ: report_id={report['id']}, commenter={commenter_name}, comment={new_comment}")
-                    save_comment(report["id"], commenter_name, new_comment)
-                    st.success("✅ コメントを投稿しました！")
-                    st.rerun()
-                else:
-                    st.warning("⚠️ 空白のコメントは投稿できません！")
+                    # ボタン表示と処理
+                    if st.button(button_label, key=button_key, help=", ".join(reaction_users) if reaction_users else None):
+                        if update_reaction(report["id"], st.session_state["user"]["name"], reaction_type):
+                            st.rerun()
 
-        st.write("----")
+            # コメント表示
+            if report.get("comments"):
+                st.markdown("#### コメント")
+                for comment in report["comments"]:
+                    st.markdown(f"""
+                    **{comment['投稿者']}** - {comment['投稿日時']}  
+                    {comment['内容']}
+                    ---
+                    """)
+
+            # コメント入力フォーム
+            with st.form(key=f"{unique_prefix}_comment_{report['id']}"):
+                comment_text = st.text_area("コメントを入力", key=f"{unique_prefix}_comment_text_{report['id']}")
+                submit_button = st.form_submit_button("コメントする")
+
+                if submit_button and comment_text.strip():
+                    comment = {
+                        "投稿者": st.session_state["user"]["name"],
+                        "内容": comment_text,
+                    }
+                    if save_comment(report["id"], comment):
+                        st.success("コメントを投稿しました！")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("コメントの投稿に失敗しました。")
 
 def post_report():
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -621,36 +405,100 @@ def post_report():
     st.title("日報作成")
     # top_navigation()
 
-    report_date = st.date_input("実行日", datetime.now() + timedelta(hours=9))
-    location = st.text_input("場所")
-    category = st.text_input("カテゴリ")
-    content = st.text_area("実施内容")
-    remarks = st.text_area("所感")
+    # 所属部署設定
+    depart = st.selectbox(
+        "所属部署",
+        options=st.session_state["user"]["depart"],
+        index=0
+    )
 
-    # 画像アップロード機能
-    uploaded_file = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"])
-    image_data = None  # 初期化
-    if uploaded_file is not None:
-        # 画像をBase64に変換
-        image_data = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
+    # 日付設定（デフォルトは今日の日付）
+    today = datetime.now().date()
+    date = st.date_input("日付", value=today)
 
-    if st.button("投稿"):
+    # 各項目の入力
+    業務内容 = st.text_area("業務内容", help="今日行った業務の内容を入力してください")
+    メンバー状況 = st.text_area("メンバー状況", help="チームメンバーの状況を入力してください")
+    作業時間 = st.text_input("作業時間", help="作業時間を入力してください（例: 9:00-18:00）")
+    翌日予定 = st.text_area("翌日予定", help="翌日の予定を入力してください")
+    相談事項 = st.text_area("相談事項（任意）", help="相談事項がある場合は入力してください")
+
+    if st.button("日報を投稿"):
+        # 必須項目のチェック
+        if not 業務内容 or not メンバー状況 or not 作業時間 or not 翌日予定:
+            st.error("必須項目を入力してください。")
+            return
+
+        # 日報データ作成
         report = {
             "投稿者": st.session_state["user"]["name"],
-            "実行日": report_date.strftime("%Y-%m-%d"),
-            "場所": location,
-            "カテゴリ": category,
-            "実施内容": content,
-            "所感": remarks,
-            "image": image_data  # 画像データを追加
+            "所属部署": depart,
+            "日付": date.strftime("%Y-%m-%d"),
+            "業務内容": 業務内容,
+            "メンバー状況": メンバー状況,
+            "作業時間": 作業時間,
+            "翌日予定": 翌日予定,
+            "相談事項": 相談事項,
         }
-        save_report(report)
-        st.success("✅ 日報を投稿しました！")
-        time.sleep(1)
-        switch_page("タイムライン")
+
+        # 日報保存
+        if save_report(report):
+            st.success("✅ 日報を投稿しました！")
+            time.sleep(1)
+            switch_page("タイムライン")
+        else:
+            st.error("❌ 日報の投稿に失敗しました。")
+
+def edit_report_page():
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+
+    if "edit_report" not in st.session_state:
+        st.error("編集する日報が選択されていません。")
+        return
+
+    report = st.session_state["edit_report"]
+
+    st.title("日報編集")
+    # top_navigation()
+
+    # 編集不可の項目表示
+    st.subheader(f"{report['日付']} の日報編集")
+    st.text(f"投稿者: {report['投稿者']} ({report['所属部署']})")
+
+    # 編集可能な項目
+    業務内容 = st.text_area("業務内容", value=report["業務内容"])
+    メンバー状況 = st.text_area("メンバー状況", value=report["メンバー状況"])
+    作業時間 = st.text_input("作業時間", value=report["作業時間"])
+    翌日予定 = st.text_area("翌日予定", value=report["翌日予定"])
+    相談事項 = st.text_area("相談事項", value=report["相談事項"])
+
+    if st.button("更新する"):
+        # 必須項目のチェック
+        if not 業務内容 or not メンバー状況 or not 作業時間 or not 翌日予定:
+            st.error("必須項目を入力してください。")
+            return
+
+        # 日報データ更新
+        updated_report = {
+            "業務内容": 業務内容,
+            "メンバー状況": メンバー状況,
+            "作業時間": 作業時間,
+            "翌日予定": 翌日予定,
+            "相談事項": 相談事項,
+        }
+
+        if edit_report(report["id"], updated_report):
+            st.success("✅ 日報を更新しました！")
+            # 編集状態をクリア
+            del st.session_state["edit_report"]
+            time.sleep(1)
+            switch_page("タイムライン")
+        else:
+            st.error("❌ 日報の更新に失敗しました。")
 
 def show_notices():
-    """お知らせ表示"""
     if "user" not in st.session_state or st.session_state["user"] is None:
         st.error("ログインしてください。")
         return
@@ -658,25 +506,87 @@ def show_notices():
     st.title("お知らせ")
     # top_navigation()
 
-    notices = load_notices(st.session_state["user"]["name"])
+    # ユーザーの所属部署
+    user_depart = st.session_state["user"]["depart"][0] if st.session_state["user"]["depart"] else None
+
+    # お知らせデータ取得（ユーザーの部署向けのみ）
+    notices = load_notices(depart=user_depart)
 
     if not notices:
-        st.info("現在お知らせはありません。")
+        st.info("表示するお知らせはありません。")
         return
 
-    for notice in notices:
-        col1, col2 = st.columns([0.8, 0.2])
-        with col1:
-            st.subheader(notice["タイトル"])
-            st.write(notice["内容"])
-            st.write(f"投稿日時: {notice['日付']}")
-        with col2:
-            if not notice["既読"]:
-                if st.button("既読にする", key=f"read_{notice['id']}"):
-                    mark_notice_as_read(notice["id"])
-                    st.rerun()
+    # お知らせを表示
+    for i, notice in enumerate(notices):
+        # お知らせ用のユニークキー
+        notice_key = f"notice_{i}"
+        
+        # 既読チェック
+        is_read = st.session_state["user"]["name"] in notice.get("既読者", [])
+        
+        # タイトルの前に未読マークを表示
+        title_prefix = "" if is_read else "🔴 "
+        
+        with st.expander(f"{title_prefix}{notice['タイトル']} ({notice['対象部署']})", expanded=not is_read):
+            st.markdown(f"**内容:** {notice['内容']}")
+            st.caption(f"投稿者: {notice['投稿者']} / 投稿日時: {notice['投稿日時']}")
+            
+            # 未読の場合は既読ボタン表示
+            if not is_read:
+                if st.button("既読にする", key=f"{notice_key}_read_{notice['id']}"):
+                    if mark_notice_as_read(notice["id"], st.session_state["user"]["name"]):
+                        st.success("既読にしました！")
+                        time.sleep(1)
+                        st.rerun()
 
-        st.write("---")
+def post_notice():
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+        
+    # 管理者権限をチェック
+    if not st.session_state["user"].get("admin", False):
+        st.error("このページは管理者のみアクセスできます。")
+        return
+
+    st.title("お知らせ投稿")
+    # top_navigation()
+
+    # デフォルトでユーザーの所属部署を選択
+    user_depart = st.session_state["user"]["depart"][0] if st.session_state["user"]["depart"] else "すべて"
+    
+    # 入力フォーム
+    タイトル = st.text_input("タイトル", help="お知らせのタイトルを入力してください")
+    内容 = st.text_area("内容", help="お知らせの内容を入力してください")
+    
+    # 部署リスト - 新しい部署を含む
+    department_options = ["すべて", "業務部", "営業部", "企画部", "国際流通", "総務部", "情報統括", "マーケティング室"] 
+    対象部署 = st.selectbox(
+        "対象部署",
+        options=department_options,
+        index=0 if user_depart == "すべて" else (department_options.index(user_depart) if user_depart in department_options else 0)
+    )
+
+    if st.button("投稿する"):
+        if not タイトル or not 内容:
+            st.error("タイトルと内容は必須です。")
+            return
+            
+        notice = {
+            "投稿者": st.session_state["user"]["name"],
+            "タイトル": タイトル,
+            "内容": 内容,
+            "対象部署": 対象部署,
+        }
+        
+        # お知らせ保存
+        from db_utils import save_notice
+        if save_notice(notice):
+            st.success("✅ お知らせを投稿しました！")
+            time.sleep(1)
+            switch_page("お知らせ")
+        else:
+            st.error("❌ お知らせの投稿に失敗しました。")
 
 def show_mypage():
     if "user" not in st.session_state or st.session_state["user"] is None:
@@ -686,46 +596,301 @@ def show_mypage():
     st.title("マイページ")
     # top_navigation()
 
+    # ユーザー情報表示
     user = st.session_state["user"]
-    st.write(f"**名前:** {user['name']}")
-    st.write(f"**社員コード:** {user['code']}")
-    st.write(f"**部署:** {', '.join(user['depart'])}")
+    st.subheader(f"{user['name']} さんのマイページ")
+    st.write(f"社員コード: {user['code']}")
+    st.write(f"所属部署: {', '.join(user['depart'])}")
 
-    # 投稿した日報
-    st.subheader("あなたの投稿した日報")
-    my_reports = [r for r in load_reports() if r["投稿者"] == user["name"]]
-    if my_reports:
-        for report in my_reports:
-            st.write(f"- {report['実行日']}: {report['実施内容']}")
-    else:
-        st.info("投稿した日報はありません。")
+    # タブで切り替え（自分の日報/コメントした日報）
+    tab1, tab2 = st.tabs(["自分の日報", "コメントした日報"])
 
-    # コメントした投稿
-    st.subheader("あなたがコメントした投稿")
-    commented_reports = load_commented_reports(user["name"])
-    if commented_reports:
-        for report in commented_reports:
-            st.write(f"- {report['実行日']}: {report['実施内容']}")
-    else:
-        st.info("コメントした投稿はありません。")
+    with tab1:
+        # 自分の投稿した日報を表示
+        my_reports = load_reports(limit=None)
+        my_reports = [r for r in my_reports if r["投稿者"] == user["name"]]
+        
+        if not my_reports:
+            st.info("投稿した日報はありません。")
+        else:
+            for i, report in enumerate(my_reports):
+                # マイページ用のユニークキー
+                mp_key = f"mypage_report_{i}"
+                
+                with st.expander(f"{report['日付']} の日報 - {report['所属部署']}", expanded=False):
+                    # 項目ごとにテーブル形式で表示
+                    data = {
+                        "項目": ["業務内容", "メンバー状況", "作業時間", "翌日予定", "相談事項"],
+                        "内容": [
+                            report["業務内容"], report["メンバー状況"], report["作業時間"],
+                            report["翌日予定"], report["相談事項"]
+                        ]
+                    }
+                    df = pd.DataFrame(data)
+                    st.table(df)
+                    st.caption(f"投稿日時: {report['投稿日時']}")
+                    
+                    # 編集・削除ボタン
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("編集", key=f"{mp_key}_edit_{report['id']}"):
+                            st.session_state["edit_report"] = report
+                            switch_page("日報編集")
+                    with col2:
+                        if st.button("削除", key=f"{mp_key}_delete_{report['id']}"):
+                            if delete_report(report["id"]):
+                                st.success("日報を削除しました！")
+                                time.sleep(1)
+                                st.rerun()
+                            else:
+                                st.error("削除に失敗しました。")
+
+    with tab2:
+        # コメントした日報を表示
+        commented_reports = load_commented_reports(user["name"])
+        
+        if not commented_reports:
+            st.info("コメントした日報はありません。")
+        else:
+            for i, report in enumerate(commented_reports):
+                # コメント済み日報用のユニークキー
+                cm_key = f"commented_report_{i}"
+                
+                with st.expander(f"【{report['投稿者']}】 {report['日付']} の日報 - {report['所属部署']}", expanded=False):
+                    # 項目ごとにテーブル形式で表示
+                    data = {
+                        "項目": ["業務内容", "メンバー状況", "作業時間", "翌日予定", "相談事項"],
+                        "内容": [
+                            report["業務内容"], report["メンバー状況"], report["作業時間"],
+                            report["翌日予定"], report["相談事項"]
+                        ]
+                    }
+                    df = pd.DataFrame(data)
+                    st.table(df)
+                    
+                    st.caption(f"投稿者: {report['投稿者']} ({report['所属部署']}) / 投稿日時: {report['投稿日時']}")
+                    
+                    # 自分のコメントを強調表示
+                    st.markdown("#### コメント")
+                    for j, comment in enumerate(report["comments"]):
+                        is_my_comment = comment["投稿者"] == user["name"]
+                        comment_style = "background-color: #f0f7ff; padding: 10px; border-radius: 5px;" if is_my_comment else ""
+                        
+                        st.markdown(f"""
+                        <div style="{comment_style}">
+                        <strong>{comment['投稿者']}</strong> - {comment['投稿日時']}<br>
+                        {comment['内容']}
+                        </div>
+                        <hr>
+                        """, unsafe_allow_html=True)
+
+    # お知らせ投稿へのリンク (管理者のみ表示)
+    if st.session_state["user"].get("admin", False):
+        st.markdown("---")
+        st.markdown("### 管理者機能")
+        if st.button("お知らせを投稿"):
+            switch_page("お知らせ投稿")
+
+def logout():
+    st.session_state["user"] = None
+    st.session_state["page"] = "ログイン"
+    st.rerun()
+
+# メイン処理
+def export_data_page():
+    """管理者向けデータエクスポートページ"""
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+        
+    # 管理者権限をチェック
+    if not st.session_state["user"].get("admin", False):
+        st.error("このページは管理者のみアクセスできます。")
+        return
+    
+    st.title("データエクスポート")
+    
+    # 日報データエクスポート
+    st.header("日報データエクスポート")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # フィルター設定
+        st.subheader("フィルター設定")
+        target_depart = st.selectbox(
+            "部署で絞り込み", 
+            options=["すべて", "業務部", "営業部", "企画部", "国際流通", "総務部", "情報統括", "マーケティング室"],
+            index=0
+        )
+        
+        # 日付範囲
+        date_range = st.date_input(
+            "日付範囲",
+            value=[datetime.now().date() - timedelta(days=30), datetime.now().date()],
+            key="date_range_reports",
+            help="エクスポートする日報の日付範囲を指定",
+        )
+        
+    with col2:
+        st.subheader("エクスポート設定")
+        # エクスポートボタン
+        depart_filter = None if target_depart == "すべて" else target_depart
+        if st.button("日報データをエクスポート"):
+            reports = load_reports(depart=depart_filter)
+            
+            # 日付フィルター適用
+            if len(date_range) == 2:
+                start_date, end_date = date_range
+                filtered_reports = [r for r in reports if start_date <= datetime.strptime(r["日付"], "%Y-%m-%d").date() <= end_date]
+            else:
+                filtered_reports = reports
+                
+            if filtered_reports:
+                from excel_utils import export_to_excel
+                filename = export_to_excel(filtered_reports, "日報データ.xlsx")
+                
+                with open(filename, "rb") as file:
+                    st.download_button(
+                        label="ダウンロード",
+                        data=file,
+                        file_name="日報データ.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+                os.remove(filename)  # 一時ファイル削除
+            else:
+                st.warning("条件に一致する日報はありません。")
+    
+    # 週間予定データエクスポート
+    st.markdown("---")
+    st.header("週間予定データエクスポート")
+    
+    if st.button("週間予定データをエクスポート"):
+        schedules = load_weekly_schedules()
+        if schedules:
+            from excel_utils import export_weekly_schedules_to_excel
+            filename = export_weekly_schedules_to_excel(schedules, "週間予定データ.xlsx")
+            
+            with open(filename, "rb") as file:
+                st.download_button(
+                    label="ダウンロード",
+                    data=file,
+                    file_name="週間予定データ.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            os.remove(filename)  # 一時ファイル削除
+        else:
+            st.warning("週間予定データがありません。")
+
+def show_notifications():
+    """通知一覧を表示するページ"""
+    if "user" not in st.session_state or st.session_state["user"] is None:
+        st.error("ログインしてください。")
+        return
+    
+    from db_utils import get_user_notifications, mark_notification_as_read, mark_all_notifications_as_read
+    from db_utils import load_report_by_id
+    
+    st.title("通知一覧")
+    
+    # 通知データを取得
+    notifications = get_user_notifications(st.session_state["user"]["name"])
+    
+    if not notifications:
+        st.info("通知はありません。")
+        return
+    
+    # 全て既読にするボタン
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        if st.button("すべて既読にする"):
+            if mark_all_notifications_as_read(st.session_state["user"]["name"]):
+                st.success("すべての通知を既読にしました！")
+                time.sleep(1)
+                st.rerun()
+    
+    # 通知を表示
+    for i, notification in enumerate(notifications):
+        notification_key = f"notification_{i}"
+        
+        # 未読のものは強調表示
+        is_unread = not notification["is_read"]
+        prefix = "🔴 " if is_unread else ""
+        
+        with st.expander(f"{prefix}{notification['content']}", expanded=is_unread):
+            st.caption(f"通知日時: {notification['created_at']}")
+            
+            # リンク先情報によって適切なボタンを表示
+            if notification["link_type"] == "report":
+                report_id = notification["link_id"]
+                report = load_report_by_id(report_id)
+                
+                if report:
+                    st.markdown(f"**日報情報:**")
+                    st.markdown(f"投稿日: {report['日付']}")
+                    st.markdown(f"投稿者: {report['投稿者']}")
+                    
+                    if st.button("日報を表示", key=f"{notification_key}_view_report_{report_id}"):
+                        # 通知を既読にして日報ページへ移動
+                        if is_unread:
+                            mark_notification_as_read(notification["id"])
+                        
+                        # URLパラメータとして日報IDを渡して表示
+                        st.session_state["view_report_id"] = report_id
+                        switch_page("タイムライン")
+                else:
+                    st.warning("この日報は削除されています。")
+            
+            elif notification["link_type"] == "weekly_schedule":
+                schedule_id = notification["link_id"]
+                if st.button("週間予定を表示", key=f"{notification_key}_view_schedule_{schedule_id}"):
+                    # 通知を既読にして週間予定ページへ移動
+                    if is_unread:
+                        mark_notification_as_read(notification["id"])
+                    switch_page("週間予定")
+            
+            # 既読ボタン
+            if is_unread:
+                if st.button("既読にする", key=f"{notification_key}_mark_read_{notification['id']}"):
+                    if mark_notification_as_read(notification["id"]):
+                        st.success("既読にしました！")
+                        time.sleep(1)
+                        st.rerun()
 
 def main():
-    if st.session_state["user"] is None:
-        login()
-    else:
+    # サイドバー表示（ログイン後のみ）
+    if st.session_state["user"]:
         sidebar_navigation()
-        if st.session_state["page"] == "タイムライン":
-            show_timeline()
-        elif st.session_state["page"] == "日報投稿":
-            post_report()
-        elif st.session_state["page"] == "お知らせ":
-            show_notices()
-        elif st.session_state["page"] == "マイページ":
-            show_mypage()
-        elif st.session_state["page"] == "週間予定投稿":
-            post_weekly_schedule()
-        elif st.session_state["page"] == "週間予定":
-            show_weekly_schedules()
+        # ログアウトボタン
+        with st.sidebar:
+            st.markdown("---")
+            if st.button("ログアウト"):
+                logout()
+
+    # 現在のページに応じた内容表示
+    if st.session_state["page"] == "ログイン":
+        login()
+    elif st.session_state["page"] == "タイムライン":
+        timeline()
+    elif st.session_state["page"] == "日報投稿":
+        post_report()
+    elif st.session_state["page"] == "日報編集":
+        edit_report_page()
+    elif st.session_state["page"] == "週間予定":
+        show_weekly_schedules()
+    elif st.session_state["page"] == "週間予定投稿":
+        post_weekly_schedule()
+    elif st.session_state["page"] == "お知らせ":
+        show_notices()
+    elif st.session_state["page"] == "お知らせ投稿":
+        post_notice()
+    elif st.session_state["page"] == "マイページ":
+        show_mypage()
+    elif st.session_state["page"] == "データエクスポート":
+        export_data_page()
+    elif st.session_state["page"] == "通知":
+        show_notifications()
+    else:
+        st.error(f"不明なページ: {st.session_state['page']}")
 
 if __name__ == "__main__":
     main()
