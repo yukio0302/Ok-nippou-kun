@@ -1,103 +1,90 @@
-/* ナビゲーションバーのスタイル */
-.nav-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
+/* 全体のフォント設定 */
+body {
+    font-family: 'Meiryo', 'Hiragino Kaku Gothic Pro', sans-serif;
+}
+
+/* ヘッダータイトルの設定 */
+.reportview-container .main h1 {
+    color: #2c3e50;
+    font-weight: 700;
+}
+
+/* サブタイトルの設定 */
+.reportview-container .main h2 {
+    color: #3498db;
+    font-weight: 600;
+}
+
+/* 日報エントリーのスタイル */
+.stExpander {
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+/* ボタンスタイル */
+.stButton button {
+    border-radius: 4px;
+    padding: 8px 15px;
+    background-color: #3498db;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.stButton button:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* フォームスタイル */
+.stTextInput input, .stTextArea textarea, .stSelectbox select {
+    border-radius: 4px;
+    border: 1px solid #bdc3c7;
+    padding: 8px;
+}
+
+/* テーブルスタイル */
+.stTable {
     width: 100%;
-    background-color: #ffffff;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 10px;
-    border-bottom: 1px solid #ccc;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 9999;
+    border-collapse: collapse;
 }
 
-.nav-item {
-    text-align: center;
-    font-size: 14px;
-    padding: 10px;
+.stTable th {
+    background-color: #f2f2f2;
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.stTable td {
+    padding: 8px;
+    border: 1px solid #ddd;
+}
+
+/* サイドバースタイル */
+.sidebar .sidebar-content {
+    background-color: #f8f9fa;
+}
+
+/* リアクションボタンスタイル */
+.reaction-button {
+    font-size: 1.2em;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: #f1f1f1;
+    border: none;
     cursor: pointer;
-    color: #666;
-    background-color: #f8f8f8;
-    border-radius: 5px;
+    margin-right: 5px;
 }
 
-.nav-item.active {
-    color: black;
-    font-weight: bold;
-    background-color: #ddd;
+.reaction-button:hover {
+    background-color: #e0e0e0;
 }
 
-@media (max-width: 600px) {
-    .nav-bar {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-/* サイドバーのスタイリング */
-section[data-testid="stSidebar"] {
-    background-color: #1d2088 !important;
-    padding: 20px 10px !important;
-}
-
-/* サイドバーボタンのスタイル */
-div[data-testid="stSidebarNav"] button {
-    color: white !important;
-    width: 100% !important;
-    text-align: left !important;
-    margin: 5px 0 !important;
-    padding: 10px !important;
-}
-
-/* 表示期間選択のテキスト色 */
-div[data-testid="stSidebarNav"] label {
-    color: white !important;
-}
-
-/* ラジオボタンの色変更 */
-div[data-testid="stSidebarNav"] .stRadio [role="radiogroup"] {
-    accent-color: #14ae67 !important;
-}
-
-/* アクティブなボタンのスタイル */
-div[data-testid="stSidebarNav"] button:focus {
-    background-color: rgba(255,255,255,0.1) !important;
-}
-
-/* 画像のスタイリング */
-section[data-testid="stSidebar"] img {
-    padding: 0 !important;       /* 余白を除去 */
-    background: transparent !important;  /* 背景色を透明に */
-    border: none !important;      /* 枠線を除去 */
-    margin-top: 10px;
-    border-radius: 0 !important;  /* 角丸を除去 */
-}
-
-/* ログイン画面の画像スタイリング */
-div[data-testid="column"] img {
-    margin-bottom: 30px !important;
-    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));
-}
-
-/* モバイル表示用 */
-@media (max-width: 768px) {
-    div[data-testid="column"] img {
-        width: 70% !important;
-        margin: 0 auto 20px !important;
-    }
-}
-/* 画像メニューのスタイリング */
-section[data-testid="stSidebar"] img.menu-image {
-    width: 100% !important;
-    padding: 5px !important;
-    background: transparent !important;
-    border-radius: 8px !important;
-}
-
-/* ホバーエフェクト */
-section[data-testid="stSidebar"] img.menu-image:hover {
-    background: rgba(255,255,255,0.1) !important;
-}
-
+/* コメントエリアのスタイル */
+.comment-section {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 15px;
 }
