@@ -6,7 +6,7 @@ import base64
 from io import BytesIO
 from datetime import datetime, timedelta, date
 import json
-import logging  # ログ記録用
+import logging
 from collections import defaultdict
 
 # ログ設定
@@ -14,14 +14,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # ヘルパー関数: 現在時刻に9時間を加算する
 def get_current_time():
-    return datetime.now() + timedelta(hours=9)  # JSTで現在時刻を取得
+    return datetime.now() + timedelta(hours=9)
 
 # データベース操作ユーティリティをインポート
 from db_utils import (
     init_db, authenticate_user, save_report, load_reports,
     load_notices, mark_notice_as_read, edit_report, delete_report,
     update_reaction, save_comment, load_commented_reports,
-    save_weekly_schedule, save_weekly_schedule_comment, 
+    save_weekly_schedule, save_weekly_schedule_comment,
     add_comments_column, load_weekly_schedules, get_user_stores,
     get_user_store_visits, get_store_visit_stats, save_stores_data,
     search_stores, load_report_by_id, save_notice, load_reports_by_date,
@@ -33,78 +33,55 @@ import excel_utils
 
 # 絶対パスでCSSファイルを読み込む関数
 def load_css(file_name):
-    with open(file_name) as f:  # 絶対パスをそのまま使用
+    with open(file_name) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 # 絶対パスでCSSファイルを読み込む
-css_file_path = "style.css"  # 絶対パスを設定
+css_file_path = "style.css"
 try:
     load_css(css_file_path)
 except:
-    pass  # スタイルファイルがない場合はスキップ
+    pass
 
-# ✅ PostgreSQL 初期化（データを消さない）
+# PostgreSQL 初期化
 init_db(keep_existing=True)
 
 # コメントカラムの存在確認
 add_comments_column()
 
-# ✅ ログイン状態を管理
+# セッション状態を初期化
 if "user" not in st.session_state:
     st.session_state["user"] = None
 if "page" not in st.session_state:
     st.session_state["page"] = "ログイン"
 
-# ✅ ページ遷移関数（修正済み）
+# ページ遷移関数
 def switch_page(page_name):
-    """ページを切り替える（即時リロードはなし！）"""
     st.session_state["page"] = page_name
 
-# ✅ サイドバーナビゲーションの追加
+# サイドバーナビゲーション
 def sidebar_navigation():
     with st.sidebar:
-        # 画像表示（サイドバー上部）
         try:
             st.image("OK-Nippou5.png", use_container_width=True)
         except:
-            st.title("日報システム")  # 画像がない場合はタイトルを表示
+            st.title("日報システム")
 
-        # ユーザー名と役割を表示
         user = st.session_state["user"]
         if user.get("admin", False):
             st.caption(f"**{user['name']}** さん（管理者）")
         else:
             st.caption(f"**{user['name']}** さん")
-        
+
         st.caption(f"所属: {', '.join(user['depart'])}")
 
-        # ナビゲーションボタン
-        st.markdown("""
-        <style>
-            /* 画像とボタンの間隔調整 */
-            .stImage {
-                margin-bottom: 30px !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-        st.markdown("""
-        <style>
-            .sidebar-menu {
-                color: white !important;
-                margin-bottom: 30px;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-
-        # 通常のナビゲーションボタン（全ユーザー向け）
         st.markdown("### メニュー")
-        
-        # 通知の未読数を取得
+
         from db_utils import get_user_notifications
         unread_notifications = get_user_notifications(st.session_state["user"]["name"], unread_only=True)
         unread_count = len(unread_notifications)
-        notification_badge = f"🔔 通知 ({unread_count})" if unread_count > 0 else "🔔 通知"
-        
+        notification_badge = f" 通知 ({unread_count})" if unread_count > 0 else " 通知"
+
         if st.button("⏳ タイムライン", key="sidebar_timeline"):
             switch_page("タイムライン")
 
@@ -113,7 +90,7 @@ def sidebar_navigation():
 
         if st.button(" お知らせ", key="sidebar_notice"):
             switch_page("お知らせ")
-            
+
         if st.button(notification_badge, key="sidebar_notifications"):
             st.session_state["page"] = "通知"
             st.rerun()
@@ -126,28 +103,26 @@ def sidebar_navigation():
 
         if st.button(" マイページ", key="sidebar_mypage"):
             switch_page("マイページ")
-            
-        # 管理者向け機能
+
         if user.get("admin", False):
             st.markdown("### 管理者メニュー")
             if st.button(" お知らせ投稿", key="sidebar_post_notice"):
                 switch_page("お知らせ投稿")
-            
+
             if st.button(" データエクスポート", key="sidebar_export"):
                 switch_page("データエクスポート")
-                
+
             if st.button(" 店舗データアップロード", key="sidebar_upload_stores"):
                 switch_page("店舗データアップロード")
 
-# ✅ ログイン機能（修正済み）
+# ログイン機能
 def login():
-    # ロゴ表示（中央揃え）
     col1, col2, col3 = st.columns([1, 3, 1])
     with col2:
         try:
-            st.image("OK-Nippou4.png", use_container_width=True)  # 画像をコンテナ幅に合わせる
+            st.image("OK-Nippou4.png", use_container_width=True)
         except:
-            st.title("日報システム")  # 画像がない場合はタイトルを表示
+            st.title("日報システム")
 
     st.title(" ログイン")
     employee_code = st.text_input("社員コード")
@@ -161,7 +136,7 @@ def login():
             st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
             time.sleep(1)
             st.session_state["page"] = "タイムライン"
-            st.rerun()  # ✅ ここで即リロード！
+            st.rerun()
         else:
             st.error("社員コードまたはパスワードが間違っています。")
 
@@ -1607,45 +1582,34 @@ def upload_stores_data():
         else:
             st.error("データの変換に失敗しました。")
 
-# ✅ メインアプリ
+# メイン関数
 def main():
-    # アプリタイトル設定
-    # st.set_page_config(page_title="OK-Nippou", layout="wide")  
-
-    # ログイン状態に応じてページをレンダリング
     if st.session_state["user"] is None:
         login()
     else:
-        # サイドバーナビゲーション
         sidebar_navigation()
-        
-        # 現在のページをレンダリング
-        page = st.session_state["page"]
-        
-        if page == "タイムライン":
+        if st.session_state["page"] == "タイムライン":
             timeline()
-        elif page == "週間予定":
-            show_weekly_schedules()
-        elif page == "お知らせ":
-            show_notices()
-        elif page == "日報投稿":
+        elif st.session_state["page"] == "日報投稿":
             post_report()
-        elif page == "日報編集":
+        elif st.session_state["page"] == "日報編集":
             edit_report_page()
-        elif page == "週間予定投稿":
+        elif st.session_state["page"] == "週間予定投稿":
             post_weekly_schedule()
-        elif page == "お知らせ投稿":
+        elif st.session_state["page"] == "週間予定":
+            show_weekly_schedules()
+        elif st.session_state["page"] == "お知らせ":
+            show_notices()
+        elif st.session_state["page"] == "お知らせ投稿":
             post_notice()
-        elif page == "マイページ":
-            my_page()
-        elif page == "データエクスポート":
+        elif st.session_state["page"] == "マイページ":
+            mypage()
+        elif st.session_state["page"] == "データエクスポート":
             export_data()
-        elif page == "通知":
-            show_notifications()
-        elif page == "店舗データアップロード":
-            upload_stores_data()
-        else:
-            st.error(f"不明なページ: {page}")
+        elif st.session_state["page"] == "店舗データアップロード":
+            upload_stores()
+        elif st.session_state["page"] == "通知":
+            notifications()
 
 if __name__ == "__main__":
     main()
