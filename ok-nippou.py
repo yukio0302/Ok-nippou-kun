@@ -210,21 +210,65 @@ def post_weekly_schedule():
         
         st.markdown(f"### {date_label}")
         
-        # 担当店舗マルチセレクト
-        store_options = [f"{store['code']}: {store['name']}" for store in user_stores]
-        selected_stores = st.multiselect(
-            f"{date_label}の訪問店舗",
-            options=store_options,
-            key=f"stores_{weekday}"
-        )
+        # 場所入力・選択方法のタブ
+        location_tabs = st.tabs(["担当店舗から選択", "店舗を検索", "自由入力"])
+        
+        with location_tabs[0]:
+            # 担当店舗マルチセレクト
+            store_options = [f"{store['code']}: {store['name']}" for store in user_stores]
+            selected_assigned_stores = st.multiselect(
+                f"担当店舗から選択",
+                options=store_options,
+                key=f"assigned_stores_{weekday}"
+            )
+        
+        with location_tabs[1]:
+            # 店舗検索機能
+            search_term = st.text_input("店舗名または住所で検索", key=f"store_search_{weekday}")
+            
+            # 検索結果表示
+            search_results = []
+            if search_term:
+                search_results = search_stores(search_term)
+                
+            search_store_options = [f"{store['code']}: {store['name']}" for store in search_results]
+            selected_searched_stores = st.multiselect(
+                "検索結果から選択",
+                options=search_store_options,
+                key=f"searched_stores_{weekday}"
+            )
+            
+        with location_tabs[2]:
+            # 自由入力（見込み客など）
+            custom_locations = st.text_area(
+                "場所を自由に入力（複数の場合は改行で区切る）",
+                key=f"custom_locations_{weekday}",
+                placeholder="例: 〇〇商事（見込み客）\n社内会議\n△△市役所..."
+            )
         
         # 選択した店舗情報を保存
         stores_data = []
         store_text = ""
-        for selected in selected_stores:
+        
+        # 担当店舗から選択
+        for selected in selected_assigned_stores:
             code, name = selected.split(": ", 1)
             stores_data.append({"code": code, "name": name})
             store_text += f"【{name}】"
+            
+        # 検索結果から選択
+        for selected in selected_searched_stores:
+            code, name = selected.split(": ", 1)
+            stores_data.append({"code": code, "name": name})
+            store_text += f"【{name}】"
+            
+        # 自由入力から追加
+        if custom_locations:
+            custom_locations_list = custom_locations.strip().split("\n")
+            for location in custom_locations_list:
+                if location.strip():
+                    stores_data.append({"code": "", "name": location.strip()})
+                    store_text += f"【{location.strip()}】"
         
         weekly_visited_stores[f"{weekday}_visited_stores"] = stores_data
         
@@ -360,24 +404,24 @@ def timeline():
 
     with tab1:
         reports = load_reports(time_range=time_range_param)
-        display_reports(reports)
+        display_reports(reports, tab_suffix="all")
 
     with tab2:
         if user_depart:
             depart_reports = load_reports(depart=user_depart, time_range=time_range_param)
-            display_reports(depart_reports)
+            display_reports(depart_reports, tab_suffix="depart")
         else:
             st.info("部署が設定されていません。")
 
-def display_reports(reports):
+def display_reports(reports, tab_suffix="all"):
     """日報表示関数"""
     if not reports:
         st.info("表示する日報はありません。")
         return
 
     for i, report in enumerate(reports):
-        # ユニークなインデックスを生成（現在のページとレポートのIDとインデックスを組み合わせる）
-        unique_prefix = f"{st.session_state['page']}_{i}_{report['id']}"
+        # タブ区別用サフィックスを追加して、ユニークなインデックスを生成
+        unique_prefix = f"{st.session_state['page']}_{tab_suffix}_{i}_{report['id']}"
         
         # 日報日付から曜日を取得
         try:
