@@ -1216,7 +1216,7 @@ def post_report():
     st.markdown("### 店舗選択")
     
     # タブを作成（フォームの外側）
-    tab_options = ["予定から選択", "担当店舗から選択", "店舗を検索", "自由入力"]
+    tab_options = ["担当店舗から選択", "店舗を検索", "自由入力"]
     location_tab_index = st.radio("場所の選択方法:", tab_options, horizontal=True, label_visibility="collapsed")
     
     # ユーザーの担当店舗を取得
