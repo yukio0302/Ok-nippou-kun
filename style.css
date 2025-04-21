@@ -1,6 +1,7 @@
 /* 全体のフォント設定 */
 body {
     font-family: 'Meiryo', 'Hiragino Kaku Gothic Pro', sans-serif;
+    overflow-x: hidden; /* 横スクロールバーを非表示にする */
 }
 
 /* ヘッダータイトルの設定 */
@@ -61,9 +62,49 @@ body {
     border: 1px solid #ddd;
 }
 
-/* サイドバースタイル */
-.sidebar .sidebar-content {
+/* サイドバースタイル (PCは常に表示) */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px; /* サイドバーの幅 */
     background-color: #f8f9fa;
+    padding: 20px;
+    overflow-y: auto; /* コンテンツが多い場合はスクロール可能に */
+    z-index: 999; /* 他の要素より前面に表示 */
+    transform: translateX(0); /* PCでは常に表示 */
+    transition: transform 0.3s ease-in-out; /* アニメーション効果 */
+}
+
+.sidebar .sidebar-content {
+    /* sidebar-contentのスタイルは既存のものを維持 */
+}
+
+/* メインコンテンツのスタイル (PCではサイドバーの幅だけ右にずらす) */
+.reportview-container .main {
+    margin-left: 280px;
+    transition: margin-left 0.3s ease-in-out;
+}
+
+/* モバイル用のスタイル (画面幅が768px以下の場合) */
+@media screen and (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%); /* 初期状態では左に隠す */
+        box-shadow: 5px 0 10px rgba(0, 0, 0, 0.2); /* スライドイン時の影 */
+    }
+
+    .sidebar.open {
+        transform: translateX(0); /* スライドで表示 */
+    }
+
+    .reportview-container .main {
+        margin-left: 0; /* モバイルでは左端から表示 */
+    }
+
+    .reportview-container .main.sidebar-open {
+        margin-left: 280px; /* サイドバーが開いている時は右にずらす */
+    }
 }
 
 /* リアクションボタンスタイル */
