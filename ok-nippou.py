@@ -122,56 +122,34 @@ def sidebar_navigation():
         unread_count = len(unread_notifications)
         notification_badge = f"🔔 通知 ({unread_count})" if unread_count > 0 else "🔔 通知"
         
+        if st.button(" マイページ", key="sidebar_mypage"):
+            switch_page("マイページ")
+            # モバイル表示の場合はサイドバーを自動的に閉じる
+            st.session_state["hide_sidebar"] = True
+            st.rerun()
+        
+        if st.button(" 日報作成", key="sidebar_post_report"):
+            switch_page("日報投稿")
+            # モバイル表示の場合はサイドバーを自動的に閉じる
+            st.session_state["hide_sidebar"] = True
+            st.rerun()
+        
+        if st.button(notification_badge, key="sidebar_notifications"):
+            switch_page("通知")
+            # モバイル表示の場合はサイドバーを自動的に閉じる
+            st.session_state["hide_sidebar"] = True
+            st.rerun()
+        
         if st.button("⏳ タイムライン", key="sidebar_timeline"):
             switch_page("タイムライン")
             # モバイル表示の場合はサイドバーを自動的に閉じる
             st.session_state["hide_sidebar"] = True
             st.rerun()
 
-        if st.button(" 週間予定", key="sidebar_weekly"):
-            switch_page("週間予定")
-            # モバイル表示の場合はサイドバーを自動的に閉じる
-            st.session_state["hide_sidebar"] = True
-            st.rerun()
-
-        if st.button(" お知らせ", key="sidebar_notice"):
-            switch_page("お知らせ")
-            # モバイル表示の場合はサイドバーを自動的に閉じる
-            st.session_state["hide_sidebar"] = True
-            st.rerun()
-            
-        if st.button(notification_badge, key="sidebar_notifications"):
-            switch_page("通知")
-            # モバイル表示の場合はサイドバーを自動的に閉じる
-            st.session_state["hide_sidebar"] = True
-            st.rerun()
-
-        if st.button("✈️ 週間予定投稿", key="sidebar_post_schedule"):
-            switch_page("週間予定投稿")
-            # モバイル表示の場合はサイドバーを自動的に閉じる
-            st.session_state["hide_sidebar"] = True
-            st.rerun()
-
-        if st.button(" 日報作成", key="sidebar_post_report"):
-            switch_page("日報投稿")
-            # モバイル表示の場合はサイドバーを自動的に閉じる
-            st.session_state["hide_sidebar"] = True
-            st.rerun()
-
-        if st.button(" マイページ", key="sidebar_mypage"):
-            switch_page("マイページ")
-            # モバイル表示の場合はサイドバーを自動的に閉じる
-            st.session_state["hide_sidebar"] = True
-            st.rerun()
             
         # 管理者向け機能
         if user.get("admin", False):
             st.markdown("### 管理者メニュー")
-            if st.button(" お知らせ投稿", key="sidebar_post_notice"):
-                switch_page("お知らせ投稿")
-                # モバイル表示の場合はサイドバーを自動的に閉じる
-                st.session_state["hide_sidebar"] = True
-                st.rerun()
             
             if st.button(" データエクスポート", key="sidebar_export"):
                 switch_page("データエクスポート")
