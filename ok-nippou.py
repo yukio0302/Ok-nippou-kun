@@ -187,7 +187,7 @@ def login():
             st.session_state["user"] = user
             st.success(f"ようこそ、{user['name']} さん！（{', '.join(user['depart'])}）")
             time.sleep(1)
-            st.session_state["page"] = "タイムライン"
+            st.session_state["page"] = "マイページ"
             st.rerun()  # ✅ ここで即リロード！
         else:
             st.error("社員コードまたはパスワードが間違っています。")
