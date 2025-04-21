@@ -1,17 +1,17 @@
 import os
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import psycopg2
 from psycopg2 import sql
 from psycopg2.extras import RealDictCursor, Json
 
-# Neon Database connection information
-DB_HOST = os.getenv("PGHOST", "ep-dawn-credit-a16vhe5b-pooler.ap-southeast-1.aws.neon.tech")
-DB_NAME = os.getenv("PGDATABASE", "neondb")
-DB_USER = os.getenv("PGUSER", "neondb_owner")
-DB_PASSWORD = os.getenv("PGPASSWORD", "npg_E63kPJglOeih")
-DB_PORT = os.getenv("PGPORT", "5432")
+# Neon Database connection information - 環境変数から取得
+DB_HOST = os.getenv("PGHOST")
+DB_NAME = os.getenv("PGDATABASE")
+DB_USER = os.getenv("PGUSER")
+DB_PASSWORD = os.getenv("PGPASSWORD")
+DB_PORT = os.getenv("PGPORT", "5432")  # デフォルトポートは5432
 
 # ログ設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,13 +19,23 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def get_db_connection():
     """PostgreSQLデータベースへの接続を作成"""
     try:
-        conn = psycopg2.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            port=DB_PORT
-        )
+        # DATABASE_URL環境変数が設定されている場合はそれを優先
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            conn = psycopg2.connect(database_url)
+        else:
+            # 個別の接続情報を使用
+            if not all([DB_HOST, DB_NAME, DB_USER, DB_PASSWORD]):
+                logging.error("データベース接続情報が不足しています")
+                raise ValueError("データベース接続情報が不足しています")
+                
+            conn = psycopg2.connect(
+                host=DB_HOST,
+                database=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                port=DB_PORT
+            )
         return conn
     except Exception as e:
         logging.error(f"データベース接続エラー: {e}")
@@ -51,9 +61,26 @@ def init_db(keep_existing=True):
                 投稿日時 TIMESTAMP,
                 reactions JSONB DEFAULT '{}',
                 comments JSONB DEFAULT '[]',
-                visited_stores JSONB DEFAULT '[]'
+                visited_stores JSONB DEFAULT '[]',
+                user_code TEXT
             )
         ''')
+        
+        # user_codeカラムが存在しない場合は追加
+        try:
+            cur.execute('''
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'reports' AND column_name = 'user_code'
+            ''')
+            if not cur.fetchone():
+                cur.execute('''
+                    ALTER TABLE reports
+                    ADD COLUMN user_code TEXT
+                ''')
+                logging.info("reportsテーブルにuser_codeカラムを追加しました")
+        except Exception as e:
+            logging.error(f"user_codeカラム確認エラー: {e}")
         
         # お知らせテーブル作成
         cur.execute('''
@@ -178,17 +205,24 @@ def save_report(report):
         # 訪問した店舗情報を取得
         visited_stores = report.get("visited_stores", [])
         
+        # ユーザーコードを取得
+        user_code = report.get("user_code", "")
+        
         cur.execute("""
-            INSERT INTO reports (投稿者, 所属部署, 日付, 実施内容, 所感, 今後のアクション, 投稿日時, visited_stores)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO reports (投稿者, 所属部署, 日付, 実施内容, 所感, 今後のアクション, 投稿日時, visited_stores, user_code)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             report["投稿者"], report["所属部署"], report["日付"],
             report["実施内容"], report["所感"], report["今後のアクション"], 
-            report["投稿日時"], Json(visited_stores)
+            report["投稿日時"], Json(visited_stores), user_code
         ))
         
-        report_id = cur.fetchone()[0]
+        result = cur.fetchone()
+        if result is None:
+            logging.error("日報保存失敗: レコードの挿入に失敗しました")
+            return None
+        report_id = result[0]
         
         # 訪問店舗の記録を保存
         user_code = report.get("user_code", "")
@@ -207,6 +241,47 @@ def save_report(report):
         
         conn.commit()
         logging.info(f"日報を保存しました（ID: {report_id}）")
+        
+        # お気に入りメンバーに登録されているユーザーが投稿した場合、管理者に通知
+        poster_code = report.get("user_code", "")
+        poster_name = report.get("投稿者", "")
+        if poster_code:
+            try:
+                # お気に入り登録している管理者を取得
+                cur.execute("""
+                    SELECT admin_code FROM favorite_members
+                    WHERE member_code = %s
+                """, (poster_code,))
+                admin_results = cur.fetchall()
+                
+                # 管理者に通知
+                for admin_row in admin_results:
+                    admin_code = admin_row[0]
+                    
+                    # 管理者のユーザー名を取得
+                    admin_name = None
+                    try:
+                        with open("data/users_data.json", "r", encoding="utf-8") as f:
+                            users_data = json.load(f)
+                            for user in users_data:
+                                if user.get("code") == admin_code:
+                                    admin_name = user.get("name")
+                                    break
+                    except Exception as e:
+                        logging.error(f"管理者ユーザー名取得エラー: {e}")
+                    
+                    if admin_name:
+                        notification_content = f"お気に入りメンバー {poster_name} さんが新しい日報を投稿しました。日付: {report['日付']}"
+                        create_notification(
+                            admin_name,
+                            notification_content,
+                            "report",
+                            report_id
+                        )
+                        logging.info(f"お気に入りメンバーの投稿通知を作成: 管理者 {admin_name}, メンバー {poster_name}")
+            except Exception as e:
+                logging.error(f"お気に入りメンバー通知作成エラー: {e}")
+        
         return report_id
     except Exception as e:
         logging.error(f"日報保存エラー: {e}")
@@ -327,14 +402,17 @@ def edit_report(report_id, updated_report):
         # 訪問店舗情報も更新
         visited_stores = updated_report.get("visited_stores", [])
         
+        # ユーザーコードを取得
+        user_code = updated_report.get("user_code", "")
+        
         cur.execute("""
             UPDATE reports
-            SET 実施内容 = %s, 所感 = %s, 今後のアクション = %s, visited_stores = %s
+            SET 実施内容 = %s, 所感 = %s, 今後のアクション = %s, visited_stores = %s, user_code = %s
             WHERE id = %s
         """, (
             updated_report["実施内容"], 
             updated_report["所感"], updated_report["今後のアクション"], 
-            Json(visited_stores), report_id
+            Json(visited_stores), user_code, report_id
         ))
         
         # 以前の訪問記録を削除
@@ -342,6 +420,10 @@ def edit_report(report_id, updated_report):
         
         # 更新された訪問記録を保存
         original_report = load_report_by_id(report_id)
+        if original_report is None:
+            logging.error(f"元の日報データが見つかりませんでした（ID: {report_id}）")
+            return False
+            
         user_code = updated_report.get("user_code", "")
         for store in visited_stores:
             cur.execute("""
@@ -532,6 +614,83 @@ def load_commented_reports(user_name):
         if conn:
             conn.close()
 
+def search_reports(search_query):
+    """日報をフリーワードで検索する
+    
+    Args:
+        search_query: 検索キーワード
+        
+    Returns:
+        検索結果の日報リスト（月ごとに分類）
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # 検索クエリを実行（タイトル、内容、メモなどを検索）
+        search_term = f"%{search_query}%"
+        cur.execute("""
+            SELECT * FROM reports 
+            WHERE 
+                "実施内容" ILIKE %s OR 
+                "所感" ILIKE %s OR 
+                "今後のアクション" ILIKE %s OR
+                "業務内容" ILIKE %s OR
+                "メンバー状況" ILIKE %s OR
+                "翌日予定" ILIKE %s OR
+                "投稿者" ILIKE %s
+            ORDER BY "日付" DESC, "投稿日時" DESC
+        """, (search_term, search_term, search_term, search_term, search_term, search_term, search_term))
+        
+        reports = cur.fetchall()
+        
+        # 辞書形式に変換
+        result = []
+        for report in reports:
+            # 文字列から辞書へ変換
+            if isinstance(report["reactions"], str):
+                report["reactions"] = json.loads(report["reactions"])
+            if isinstance(report["comments"], str):
+                report["comments"] = json.loads(report["comments"])
+            if isinstance(report["visited_stores"], str):
+                report["visited_stores"] = json.loads(report["visited_stores"])
+            result.append(dict(report))
+        
+        # 月ごとに分類
+        reports_by_month = {}
+        for report in result:
+            # 日付を取得
+            report_date = report.get("日付", "")
+            try:
+                # 日付文字列をパース
+                if isinstance(report_date, str):
+                    date_obj = datetime.strptime(report_date, "%Y-%m-%d")
+                    month_key = date_obj.strftime("%Y-%m")  # YYYY-MM形式
+                elif isinstance(report_date, date):
+                    month_key = report_date.strftime("%Y-%m")
+                else:
+                    month_key = "不明"
+                    
+                # 月ごとのリストに追加
+                if month_key not in reports_by_month:
+                    reports_by_month[month_key] = []
+                reports_by_month[month_key].append(report)
+            except Exception as e:
+                logging.error(f"日付パースエラー: {e}")
+                # 変換エラーの場合は「不明」カテゴリに追加
+                if "不明" not in reports_by_month:
+                    reports_by_month["不明"] = []
+                reports_by_month["不明"].append(report)
+        
+        return reports_by_month
+    except Exception as e:
+        logging.error(f"日報検索エラー: {e}")
+        return {}
+    finally:
+        if conn:
+            conn.close()
+
 def load_notices(department=None):
     """お知らせを取得（最新の投稿順にソート）"""
     conn = None
@@ -585,7 +744,11 @@ def save_notice(notice):
             notice["対象部署"], notice["投稿日時"], Json(notice.get("既読者", []))
         ))
         
-        notice_id = cur.fetchone()[0]
+        result = cur.fetchone()
+        if result is None:
+            logging.error("お知らせ保存失敗: レコードの挿入に失敗しました")
+            return None
+        notice_id = result[0]
         conn.commit()
         logging.info(f"お知らせを保存しました（ID: {notice_id}）")
         return notice_id
@@ -755,14 +918,19 @@ def mark_notification_as_read(notification_id):
             conn.close()
 
 def save_weekly_schedule(schedule):
-    """週間予定を保存"""
+    """週間予定を保存（新規または更新）"""
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # 投稿日時を JST で保存
-        schedule["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+        # 編集モード（ID指定あり）かチェック
+        is_update = "id" in schedule
+        
+        # 新規の場合は投稿日時を設定
+        if not is_update:
+            # 投稿日時を JST で保存
+            schedule["投稿日時"] = (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
         
         # 各曜日の訪問店舗データを取得
         visited_stores = {
@@ -775,24 +943,66 @@ def save_weekly_schedule(schedule):
             "日曜日_visited_stores": schedule.get("日曜日_visited_stores", [])
         }
         
-        cur.execute("""
-            INSERT INTO weekly_schedules 
-            (投稿者, 開始日, 終了日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時,
-             月曜日_visited_stores, 火曜日_visited_stores, 水曜日_visited_stores, 木曜日_visited_stores, 
-             金曜日_visited_stores, 土曜日_visited_stores, 日曜日_visited_stores)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id
-        """, (
-            schedule["投稿者"], schedule["開始日"], schedule["終了日"],
-            schedule["月曜日"], schedule["火曜日"], schedule["水曜日"], schedule["木曜日"],
-            schedule["金曜日"], schedule["土曜日"], schedule["日曜日"], schedule["投稿日時"],
-            Json(visited_stores["月曜日_visited_stores"]), Json(visited_stores["火曜日_visited_stores"]), 
-            Json(visited_stores["水曜日_visited_stores"]), Json(visited_stores["木曜日_visited_stores"]), 
-            Json(visited_stores["金曜日_visited_stores"]), Json(visited_stores["土曜日_visited_stores"]), 
-            Json(visited_stores["日曜日_visited_stores"])
-        ))
-        
-        schedule_id = cur.fetchone()[0]
+        if is_update:
+            # 期間フィールドを生成（開始日から終了日まで）
+            period = f"{schedule['開始日']} 〜 {schedule['終了日']}"
+            
+            # 既存のレコードを更新
+            cur.execute("""
+                UPDATE weekly_schedules SET
+                開始日 = %s, 終了日 = %s, 期間 = %s,
+                月曜日 = %s, 火曜日 = %s, 水曜日 = %s, 木曜日 = %s,
+                金曜日 = %s, 土曜日 = %s, 日曜日 = %s,
+                月曜日_visited_stores = %s, 火曜日_visited_stores = %s, 水曜日_visited_stores = %s, 
+                木曜日_visited_stores = %s, 金曜日_visited_stores = %s, 土曜日_visited_stores = %s, 
+                日曜日_visited_stores = %s
+                WHERE id = %s
+                RETURNING id
+            """, (
+                schedule["開始日"], schedule["終了日"], period,
+                schedule["月曜日"], schedule["火曜日"], schedule["水曜日"], schedule["木曜日"],
+                schedule["金曜日"], schedule["土曜日"], schedule["日曜日"],
+                Json(visited_stores["月曜日_visited_stores"]), Json(visited_stores["火曜日_visited_stores"]), 
+                Json(visited_stores["水曜日_visited_stores"]), Json(visited_stores["木曜日_visited_stores"]), 
+                Json(visited_stores["金曜日_visited_stores"]), Json(visited_stores["土曜日_visited_stores"]), 
+                Json(visited_stores["日曜日_visited_stores"]),
+                schedule["id"]
+            ))
+            
+            # IDを取得
+            schedule_id = schedule["id"]
+            
+            # 既存の訪問記録を削除
+            cur.execute("DELETE FROM store_visits WHERE report_id = %s AND visit_type = 'weekly_schedule'", (schedule_id,))
+            
+        else:
+            # 期間フィールドを生成（開始日から終了日まで）
+            period = f"{schedule['開始日']} 〜 {schedule['終了日']}"
+            
+            # 新規レコードを挿入
+            cur.execute("""
+                INSERT INTO weekly_schedules 
+                (投稿者, 開始日, 終了日, 期間, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日, 日曜日, 投稿日時,
+                月曜日_visited_stores, 火曜日_visited_stores, 水曜日_visited_stores, 木曜日_visited_stores, 
+                金曜日_visited_stores, 土曜日_visited_stores, 日曜日_visited_stores)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (
+                schedule["投稿者"], schedule["開始日"], schedule["終了日"], period,
+                schedule["月曜日"], schedule["火曜日"], schedule["水曜日"], schedule["木曜日"],
+                schedule["金曜日"], schedule["土曜日"], schedule["日曜日"], schedule["投稿日時"],
+                Json(visited_stores["月曜日_visited_stores"]), Json(visited_stores["火曜日_visited_stores"]), 
+                Json(visited_stores["水曜日_visited_stores"]), Json(visited_stores["木曜日_visited_stores"]), 
+                Json(visited_stores["金曜日_visited_stores"]), Json(visited_stores["土曜日_visited_stores"]), 
+                Json(visited_stores["日曜日_visited_stores"])
+            ))
+            
+            # 新規IDを取得
+            result = cur.fetchone()
+            if result is None:
+                logging.error("週間予定保存失敗: レコードの挿入に失敗しました")
+                return None
+            schedule_id = result[0]
         
         # 店舗訪問記録を保存
         user_code = schedule.get("user_code", "")
@@ -819,6 +1029,47 @@ def save_weekly_schedule(schedule):
         
         conn.commit()
         logging.info(f"週間予定を保存しました（ID: {schedule_id}）")
+        
+        # お気に入りメンバーに登録されているユーザーが週間予定を投稿した場合、管理者に通知
+        poster_code = schedule.get("user_code", "")
+        poster_name = schedule.get("投稿者", "")
+        if poster_code and not is_update:  # 新規投稿の場合のみ通知
+            try:
+                # お気に入り登録している管理者を取得
+                cur.execute("""
+                    SELECT admin_code FROM favorite_members
+                    WHERE member_code = %s
+                """, (poster_code,))
+                admin_results = cur.fetchall()
+                
+                # 管理者に通知
+                for admin_row in admin_results:
+                    admin_code = admin_row[0]
+                    
+                    # 管理者のユーザー名を取得
+                    admin_name = None
+                    try:
+                        with open("data/users_data.json", "r", encoding="utf-8") as f:
+                            users_data = json.load(f)
+                            for user in users_data:
+                                if user.get("code") == admin_code:
+                                    admin_name = user.get("name")
+                                    break
+                    except Exception as e:
+                        logging.error(f"管理者ユーザー名取得エラー: {e}")
+                    
+                    if admin_name:
+                        notification_content = f"お気に入りメンバー {poster_name} さんが新しい週間予定を投稿しました。開始日: {schedule['開始日']}"
+                        create_notification(
+                            admin_name,
+                            notification_content,
+                            "weekly_schedule",
+                            schedule_id
+                        )
+                        logging.info(f"お気に入りメンバーの週間予定投稿通知を作成: 管理者 {admin_name}, メンバー {poster_name}")
+            except Exception as e:
+                logging.error(f"お気に入りメンバー通知作成エラー: {e}")
+        
         return schedule_id
     except Exception as e:
         logging.error(f"週間予定保存エラー: {e}")
@@ -865,8 +1116,8 @@ def load_weekly_schedules():
         if conn:
             conn.close()
 
-def add_comments_column():
-    """コメントカラムの存在を確認し、なければ追加"""
+def add_weekly_schedule_columns():
+    """週間予定テーブルに必要なカラムを追加"""
     conn = None
     try:
         conn = get_db_connection()
@@ -888,9 +1139,33 @@ def add_comments_column():
             conn.commit()
             logging.info("weekly_schedules テーブルにコメントカラムを追加しました")
         
+        # 期間カラムが存在するか確認
+        cur.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'weekly_schedules' AND column_name = '期間'
+        """)
+        
+        if not cur.fetchone():
+            # 期間カラムを追加
+            cur.execute("""
+                ALTER TABLE weekly_schedules
+                ADD COLUMN 期間 TEXT
+            """)
+            
+            # 既存のレコードの期間を更新
+            cur.execute("""
+                UPDATE weekly_schedules
+                SET 期間 = 開始日 || ' 〜 ' || 終了日
+                WHERE 期間 IS NULL
+            """)
+            
+            conn.commit()
+            logging.info("weekly_schedules テーブルに期間カラムを追加しました")
+        
         conn.commit()
     except Exception as e:
-        logging.error(f"コメントカラム追加エラー: {e}")
+        logging.error(f"週間予定テーブルカラム追加エラー: {e}")
         if conn:
             conn.rollback()
     finally:
@@ -951,7 +1226,12 @@ def get_user_store_visits(user_code=None, user_name=None, year=None, month=None)
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        query = "SELECT v.* FROM store_visits v"
+        # 日報の内容も含めて取得するようにクエリを修正
+        query = """
+            SELECT v.*, r.実施内容, r.今後のアクション
+            FROM store_visits v
+            LEFT JOIN reports r ON v.report_id = r.id
+        """
         params = []
         
         # ユーザーコードが指定されている場合
@@ -962,8 +1242,9 @@ def get_user_store_visits(user_code=None, user_name=None, year=None, month=None)
         elif user_name:
             # reportsテーブルを結合してユーザー名から店舗訪問を検索
             query = """
-                SELECT v.* FROM store_visits v
-                JOIN reports r ON v.report_id = r.id
+                SELECT v.*, r.実施内容, r.今後のアクション
+                FROM store_visits v
+                LEFT JOIN reports r ON v.report_id = r.id
                 WHERE r.投稿者 = %s
             """
             params.append(user_name)
@@ -1077,11 +1358,49 @@ def get_store_visit_stats(user_code=None, year=None, month=None, user_name=None)
                 "code": store_code,
                 "name": store_name,
                 "count": 0,
-                "dates": []
+                "dates": [],
+                "details": []  # 日付ごとの訪問内容
             }
         
-        visit_date = visit["visit_date"].strftime("%Y-%m-%d") if isinstance(visit["visit_date"], datetime) else visit["visit_date"]
-        if visit_date not in stats[key]["dates"]:
+        # visit_dateがdatetimeかdate型の場合は文字列に変換する
+        if isinstance(visit["visit_date"], (datetime, date)):
+            visit_date = visit["visit_date"].strftime("%Y-%m-%d")
+        else:
+            # 既に文字列として保存されている場合はそのまま使用
+            visit_date = str(visit["visit_date"])
+        
+        # 訪問内容を取得
+        visit_content = ""
+        if visit.get("実施内容"):
+            visit_content = visit["実施内容"]
+        
+        # 今後のアクションを取得
+        visit_action = ""
+        if visit.get("今後のアクション"):
+            visit_action = visit["今後のアクション"]
+        
+        # 日付と内容をセットで保存
+        visit_detail = {
+            "date": visit_date,
+            "content": visit_content,
+            "action": visit_action
+        }
+        
+        # 同じ日付の既存エントリがあるか確認
+        date_exists = False
+        for i, detail in enumerate(stats[key]["details"]):
+            if detail["date"] == visit_date:
+                date_exists = True
+                # 内容が異なる場合は更新
+                if visit_content and visit_content != detail["content"]:
+                    stats[key]["details"][i]["content"] = visit_content
+                # 今後のアクションが異なる場合は更新
+                if visit_action and visit_action != detail.get("action", ""):
+                    stats[key]["details"][i]["action"] = visit_action
+                break
+                
+        if not date_exists and visit_date not in [d["date"] for d in stats[key]["details"]]:
+            stats[key]["details"].append(visit_detail)
             stats[key]["dates"].append(visit_date)
             stats[key]["count"] += 1
     
@@ -1301,7 +1620,11 @@ def save_report_image(report_id, file_name, file_type, image_data):
             RETURNING id
         """, (report_id, file_name, file_type, image_data))
         
-        image_id = cur.fetchone()[0]
+        result = cur.fetchone()
+        if result is None:
+            logging.error("画像保存失敗: レコードの挿入に失敗しました")
+            return None
+        image_id = result[0]
         conn.commit()
         logging.info(f"画像を保存しました（ID: {image_id}, 日報ID: {report_id}）")
         return image_id
@@ -1370,3 +1693,183 @@ def delete_report_image(image_id):
     finally:
         if conn:
             conn.close()
+
+# お気に入りメンバー関連機能
+def save_favorite_member(admin_code, member_code):
+    """
+    管理者がお気に入りメンバーを登録する
+    
+    Args:
+        admin_code: 管理者のユーザーコード
+        member_code: お気に入りメンバーのユーザーコード
+        
+    Returns:
+        成功した場合はTrue、失敗した場合はFalse
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # テーブルが存在しない場合は作成
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS favorite_members (
+                id SERIAL PRIMARY KEY,
+                admin_code TEXT NOT NULL,
+                member_code TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (admin_code, member_code)
+            )
+        """)
+        
+        # 既存のレコードがあるか確認（UNIQUEキー制約用）
+        cur.execute(
+            "SELECT id FROM favorite_members WHERE admin_code = %s AND member_code = %s",
+            (admin_code, member_code)
+        )
+        existing = cur.fetchone()
+        
+        if existing:
+            # 既に登録済みの場合は何もしない（成功扱い）
+            return True
+        
+        # 新規登録
+        cur.execute(
+            "INSERT INTO favorite_members (admin_code, member_code) VALUES (%s, %s)",
+            (admin_code, member_code)
+        )
+        
+        conn.commit()
+        logging.info(f"お気に入りメンバーを追加しました: 管理者 {admin_code}, メンバー {member_code}")
+        return True
+    
+    except Exception as e:
+        logging.error(f"お気に入りメンバー登録エラー: {e}")
+        if conn:
+            conn.rollback()
+        return False
+    
+    finally:
+        if conn:
+            conn.close()
+
+def delete_favorite_member(admin_code, member_code):
+    """
+    管理者がお気に入りメンバーを削除する
+    
+    Args:
+        admin_code: 管理者のユーザーコード
+        member_code: お気に入りメンバーのユーザーコード
+        
+    Returns:
+        成功した場合はTrue、失敗した場合はFalse
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # 削除
+        cur.execute(
+            "DELETE FROM favorite_members WHERE admin_code = %s AND member_code = %s",
+            (admin_code, member_code)
+        )
+        
+        conn.commit()
+        logging.info(f"お気に入りメンバーを削除しました: 管理者 {admin_code}, メンバー {member_code}")
+        return True
+    
+    except Exception as e:
+        logging.error(f"お気に入りメンバー削除エラー: {e}")
+        if conn:
+            conn.rollback()
+        return False
+    
+    finally:
+        if conn:
+            conn.close()
+
+def get_favorite_members(admin_code):
+    """
+    管理者のお気に入りメンバー一覧を取得する
+    
+    Args:
+        admin_code: 管理者のユーザーコード
+        
+    Returns:
+        お気に入りメンバーのユーザーコードのリスト
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # テーブルが存在しない場合は空リストを返す
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'favorite_members'
+            )
+        """)
+        
+        result = cur.fetchone()
+        # Noneや空の結果、またはFalseの場合は空リストを返す
+        if not result:
+            return []
+        try:
+            if not result[0]:
+                return []
+        except (IndexError, TypeError):
+            return []
+        
+        # お気に入りメンバーのリストを取得
+        cur.execute(
+            "SELECT member_code FROM favorite_members WHERE admin_code = %s ORDER BY created_at",
+            (admin_code,)
+        )
+        
+        return [row[0] for row in cur.fetchall()]
+    
+    except Exception as e:
+        logging.error(f"お気に入りメンバー取得エラー: {e}")
+        return []
+    
+    finally:
+        if conn:
+            conn.close()
+
+def get_favorite_members_with_details(admin_code):
+    """
+    管理者のお気に入りメンバー一覧を詳細情報付きで取得する
+    
+    Args:
+        admin_code: 管理者のユーザーコード
+        
+    Returns:
+        お気に入りメンバーの詳細情報のリスト [{"code": "...", "name": "...", ...}]
+    """
+    member_codes = get_favorite_members(admin_code)
+    if not member_codes:
+        return []
+    
+    # ユーザーデータファイルを読み込み
+    try:
+        with open("data/users_data.json", "r", encoding="utf-8") as f:
+            users_data = json.load(f)
+        
+        # お気に入りメンバーの詳細情報を取得
+        favorite_members = []
+        for user in users_data:
+            if user.get("code") in member_codes:
+                # パスワードを除外したユーザー情報をコピー
+                member_info = user.copy()
+                if "password" in member_info:
+                    del member_info["password"]
+                
+                favorite_members.append(member_info)
+        
+        return favorite_members
+    
+    except Exception as e:
+        logging.error(f"お気に入りメンバー詳細取得エラー: {e}")
+        return []
